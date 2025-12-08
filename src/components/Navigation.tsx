@@ -12,46 +12,46 @@ const Navigation: React.FC = () => {
 	}
 
 	return (
-		<nav className="navbar navbar-expand-lg navbar-dark fixed-top">
-			<div className="container-fluid">
-				<Link className="navbar-brand text-muted" to="/">
+		<nav className='navbar navbar-expand-lg navbar-dark fixed-top'>
+			<div className='container-fluid'>
+				<Link className='navbar-brand text-muted' to='/'>
 					VIN Info.cz
 				</Link>
 				<button
-					className="navbar-toggler"
-					type="button"
-					data-bs-toggle="collapse"
-					data-bs-target="#navbarNav"
-					aria-controls="navbarNav"
-					aria-expanded="false"
-					aria-label="Toggle navigation"
+					className='navbar-toggler'
+					type='button'
+					data-bs-toggle='collapse'
+					data-bs-target='#navbarNav'
+					aria-controls='navbarNav'
+					aria-expanded='false'
+					aria-label='Toggle navigation'
 				>
-					<span className="navbar-toggler-icon"></span>
+					<span className='navbar-toggler-icon'></span>
 				</button>
-				<div className="collapse navbar-collapse" id="navbarNav">
-					<ul className="navbar-nav ms-auto">
-						<li className="nav-item">
+				<div className='collapse navbar-collapse' id='navbarNav'>
+					<ul className='navbar-nav ms-auto'>
+						<li className='nav-item'>
 							<Link
 								className={`nav-link ${isActive('/') ? 'active text-dark' : 'text-muted'}`}
-								to="/"
+								to='/'
 								aria-current={isActive('/') ? 'page' : undefined}
 							>
 								Kontrola VIN/TP/ORV
 							</Link>
 						</li>
-						<li className="nav-item">
+						<li className='nav-item'>
 							<Link
 								className={`nav-link ${isActive('/povinne-ruceni') ? 'active text-dark' : 'text-muted'}`}
-								to="/povinne-ruceni"
+								to='/povinne-ruceni'
 								aria-current={isActive('/povinne-ruceni') ? 'page' : undefined}
 							>
 								Povinné ručení
 							</Link>
 						</li>
-						<li className="nav-item">
+						<li className='nav-item'>
 							<Link
 								className={`nav-link ${isActive('/havarijni-pojisteni') ? 'active text-dark' : 'text-muted'}`}
-								to="/havarijni-pojisteni"
+								to='/havarijni-pojisteni'
 								aria-current={
 									isActive('/havarijni-pojisteni') ? 'page' : undefined
 								}
@@ -59,10 +59,10 @@ const Navigation: React.FC = () => {
 								Havarijní pojištění
 							</Link>
 						</li>
-						<li className="nav-item">
+						<li className='nav-item'>
 							<Link
 								className={`nav-link ${isActive('/kompletni-historie-vozu') ? 'active text-dark' : 'text-muted'}`}
-								to="/kompletni-historie-vozu"
+								to='/kompletni-historie-vozu'
 								aria-current={
 									isActive('/kompletni-historie-vozu') ? 'page' : undefined
 								}

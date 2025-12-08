@@ -130,12 +130,12 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 		return (
 			<>
 				<Navigation />
-				<div className="container mt-5">
-					<div className="text-center">
-						<div className="spinner-border" role="status">
-							<span className="visually-hidden">Načítání...</span>
+				<div className='container mt-5'>
+					<div className='text-center'>
+						<div className='spinner-border' role='status'>
+							<span className='visually-hidden'>Načítání...</span>
 						</div>
-						<p className="mt-3">Načítání informací o vozidle...</p>
+						<p className='mt-3'>Načítání informací o vozidle...</p>
 					</div>
 				</div>
 				<Footer />
@@ -147,12 +147,12 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 		return (
 			<>
 				<Navigation />
-				<div className="container mt-5">
-					<div className="alert alert-danger" role="alert">
-						<h4 className="alert-heading">Chyba</h4>
+				<div className='container mt-5'>
+					<div className='alert alert-danger' role='alert'>
+						<h4 className='alert-heading'>Chyba</h4>
 						<p>{error || 'Vozidlo nebylo nalezeno.'}</p>
 						<hr />
-						<p className="mb-0">Přesměrování na hlavní stránku...</p>
+						<p className='mb-0'>Přesměrování na hlavní stránku...</p>
 					</div>
 				</div>
 				<Footer />
@@ -166,11 +166,11 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 	return (
 		<>
 			<Navigation />
-			<div className="container mt-5">
-				<div className="mb-3">
+			<div className='container mt-5'>
+				<div className='mb-3'>
 					<button
-						type="button"
-						className="btn btn-primary"
+						type='button'
+						className='btn btn-primary'
 						onClick={() => navigate('/')}
 					>
 						← Vyhledat jiné vozidlo

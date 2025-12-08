@@ -19,30 +19,30 @@ const PovinneRuceniPage: React.FC = () => {
 	return (
 		<>
 			<Navigation />
-			<div className="container mt-5">
-				<h1 className="mb-4">Povinné ručení - Kompletní průvodce</h1>
+			<div className='container mt-5'>
+				<h1 className='mb-4'>Povinné ručení - Kompletní průvodce</h1>
 
-				<div className="alert alert-info" role="alert">
+				<div className='alert alert-info' role='alert'>
 					<strong>Důležité:</strong> Povinné ručení je zákonem stanovené
 					pojištění odpovědnosti z provozu vozidla podle zákona č. 30/2024 Sb.,
 					které musí mít každý provozovatel vozidla v České republice.
 				</div>
 
-				<p className="mt-3 mb-4">
+				<p className='mt-3 mb-4'>
 					<strong>Hledáte povinné ručení?</strong> Porovnejte nabídky od různých
-					pojišťoven a najděte nejvýhodnější povinné ručení pro vaše vozidlo. {' '}
+					pojišťoven a najděte nejvýhodnější povinné ručení pro vaše vozidlo.{' '}
 					<a
-						href="https://online.pojisteni.cz/?ap=AWYPy1"
-						target="_blank"
-						rel="noopener noreferrer"
-						className="fw-bold"
+						href='https://online.pojisteni.cz/?ap=AWYPy1'
+						target='_blank'
+						rel='noopener noreferrer'
+						className='fw-bold'
 					>
 						Srovnat a sjednat povinné ručení 🔗
 					</a>
 				</p>
 
 				<article>
-					<h2 className="mt-5 mb-3">Co je povinné ručení?</h2>
+					<h2 className='mt-5 mb-3'>Co je povinné ručení?</h2>
 					<p>
 						Povinné ručení, oficiálně nazývané
 						<strong>
@@ -63,7 +63,7 @@ const PovinneRuceniPage: React.FC = () => {
 						mohly utrpět újmu.
 					</p>
 
-					<h2 className="mt-5 mb-3">Kdo musí mít povinné ručení?</h2>
+					<h2 className='mt-5 mb-3'>Kdo musí mít povinné ručení?</h2>
 					<p>
 						Podle zákona č. 30/2024 Sb. musí povinné ručení uzavřít každý
 						provozovatel vozidla. Vozidlem se pro účely tohoto zákona rozumí:
@@ -98,7 +98,7 @@ const PovinneRuceniPage: React.FC = () => {
 						invalidy užívaný výlučně osobou s tělesným postižením.
 					</p>
 
-					<h2 className="mt-5 mb-3">Co zahrnuje povinné ručení?</h2>
+					<h2 className='mt-5 mb-3'>Co zahrnuje povinné ručení?</h2>
 					<p>
 						Povinné ručení kryje odpovědnost za újmu vzniklou provozem vozidla.
 						Provozem vozidla se rozumí jakékoli použití vozidla odpovídající
@@ -125,7 +125,7 @@ const PovinneRuceniPage: React.FC = () => {
 						</li>
 					</ul>
 
-					<h2 className="mt-5 mb-3">Limity pojistného plnění</h2>
+					<h2 className='mt-5 mb-3'>Limity pojistného plnění</h2>
 					<p>
 						Zákon stanovuje minimální limity pojistného plnění, které musí každá
 						pojistná smlouva obsahovat:
@@ -146,7 +146,7 @@ const PovinneRuceniPage: React.FC = () => {
 						případě závažných dopravních nehod.
 					</p>
 
-					<h2 className="mt-5 mb-3">Česká kancelář pojistitelů</h2>
+					<h2 className='mt-5 mb-3'>Česká kancelář pojistitelů</h2>
 					<p>
 						Zákon č. 30/2024 Sb. upravuje také činnost České kanceláře
 						pojistitelů (Kancelář), která plní několik důležitých funkcí:
@@ -166,7 +166,7 @@ const PovinneRuceniPage: React.FC = () => {
 						</li>
 					</ul>
 
-					<h2 className="mt-5 mb-3">Kdy pojištění neplatí?</h2>
+					<h2 className='mt-5 mb-3'>Kdy pojištění neplatí?</h2>
 					<p>Pojištění neplatí v následujících případech:</p>
 					<ul>
 						<li>Škoda byla způsobena úmyslně</li>
@@ -183,7 +183,7 @@ const PovinneRuceniPage: React.FC = () => {
 						</li>
 					</ul>
 
-					<h2 className="mt-5 mb-3">Jak sjednat povinné ručení?</h2>
+					<h2 className='mt-5 mb-3'>Jak sjednat povinné ručení?</h2>
 					<p>
 						Povinné ručení můžete sjednat u kterékoliv pojišťovny, která má
 						oprávnění k provozování pojišťovací činnosti v České republice. Při
@@ -201,7 +201,7 @@ const PovinneRuceniPage: React.FC = () => {
 						měsíční nebo čtvrtletní platby.
 					</p>
 
-					<h2 className="mt-5 mb-3">Kontrola povinného ručení</h2>
+					<h2 className='mt-5 mb-3'>Kontrola povinného ručení</h2>
 					<p>Povinnost mít uzavřené povinné ručení kontrolují:</p>
 					<ul>
 						<li>
@@ -221,7 +221,7 @@ const PovinneRuceniPage: React.FC = () => {
 						na 1 rok.
 					</p>
 
-					<h2 className="mt-5 mb-3">Závěr</h2>
+					<h2 className='mt-5 mb-3'>Závěr</h2>
 					<p>
 						Povinné ručení je nezbytnou součástí provozování motorového vozidla
 						v České republice. Chrání nejen vás jako řidiče, ale především
@@ -233,22 +233,22 @@ const PovinneRuceniPage: React.FC = () => {
 				</article>
 
 				<div
-					className="card mt-5 mb-5"
+					className='card mt-5 mb-5'
 					style={{ backgroundColor: '#f8f9fa', border: '2px solid #c6dbad' }}
 				>
-					<div className="card-body text-center">
-						<h3 className="card-title mb-3">
+					<div className='card-body text-center'>
+						<h3 className='card-title mb-3'>
 							Sjednejte si povinné ručení ještě dnes
 						</h3>
-						<p className="card-text mb-4">
+						<p className='card-text mb-4'>
 							Porovnejte nabídky od různých pojišťoven a najděte nejvýhodnější
 							povinné ručení pro vaše vozidlo.
 						</p>
 						<a
-							href="https://online.pojisteni.cz/?ap=AWYPy1"
-							className="btn btn-primary btn-lg"
-							target="_blank"
-							rel="noopener noreferrer"
+							href='https://online.pojisteni.cz/?ap=AWYPy1'
+							className='btn btn-primary btn-lg'
+							target='_blank'
+							rel='noopener noreferrer'
 						>
 							Srovnat a sjednat povinné ručení 🔗
 						</a>

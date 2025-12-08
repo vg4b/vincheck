@@ -108,7 +108,7 @@ function formatFieldName(fieldName: string): string {
 	if (fieldLabels[fieldName]) {
 		return fieldLabels[fieldName]
 	}
-	
+
 	// Otherwise, try to format the field name
 	// Convert camelCase/PascalCase to readable text
 	return fieldName
@@ -171,14 +171,14 @@ function formatDate(dateString: string): string | null {
 	// Try to parse ISO date format (e.g., "2026-01-02T00:00:00" or "2026-01-02")
 	const isoDateRegex = /^(\d{4})-(\d{2})-(\d{2})(T.*)?$/
 	const match = dateString.match(isoDateRegex)
-	
+
 	if (match) {
 		const year = match[1]
 		const month = parseInt(match[2], 10)
 		const day = parseInt(match[3], 10)
 		return `${day}. ${month}. ${year}`
 	}
-	
+
 	return null
 }
 
@@ -188,11 +188,11 @@ export function formatValue(value: string | number | boolean): string {
 	if (typeof value === 'boolean') {
 		return value ? 'Ano' : 'Ne'
 	}
-	
+
 	if (typeof value !== 'string') {
 		value = String(value)
 	}
-	
+
 	// Convert string "true"/"false" to Czech
 	if (value.toLowerCase() === 'true') {
 		return 'Ano'
@@ -200,13 +200,13 @@ export function formatValue(value: string | number | boolean): string {
 	if (value.toLowerCase() === 'false') {
 		return 'Ne'
 	}
-	
+
 	// Format ISO date strings to Czech format (d.m.yyyy)
 	const formattedDate = formatDate(value)
 	if (formattedDate) {
 		return formattedDate
 	}
-	
+
 	return value.replace(/\n/g, '<br>')
 }
 

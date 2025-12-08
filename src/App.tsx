@@ -14,27 +14,24 @@ function App() {
 		<Router>
 			<ScrollToTop />
 			<Routes>
-				<Route path="/" element={<HomePage />} />
-				<Route path="/povinne-ruceni" element={<PovinneRuceniPage />} />
+				<Route path='/' element={<HomePage />} />
+				<Route path='/povinne-ruceni' element={<PovinneRuceniPage />} />
 				<Route
-					path="/havarijni-pojisteni"
+					path='/havarijni-pojisteni'
 					element={<HavarijniPojisteniPage />}
 				/>
 				<Route
-					path="/kompletni-historie-vozu"
+					path='/kompletni-historie-vozu'
 					element={<KompletniHistorieVozuPage />}
 				/>
-				<Route
-					path="/ochrana-osobnich-udaju"
-					element={<PrivacyPolicyPage />}
-				/>
-				<Route path="/vin/:code" element={<VehicleDetailPage type="vin" />} />
-				<Route path="/tp/:code" element={<VehicleDetailPage type="tp" />} />
-				<Route path="/orv/:code" element={<VehicleDetailPage type="orv" />} />
+				<Route path='/ochrana-osobnich-udaju' element={<PrivacyPolicyPage />} />
+				<Route path='/vin/:code' element={<VehicleDetailPage type='vin' />} />
+				<Route path='/tp/:code' element={<VehicleDetailPage type='tp' />} />
+				<Route path='/orv/:code' element={<VehicleDetailPage type='orv' />} />
 				{/* Legacy route for direct access (auto-detects VIN/TP/ORV from code length) */}
-				<Route path="/:code" element={<VehicleDetailPage />} />
+				<Route path='/:code' element={<VehicleDetailPage />} />
 				{/* Catch-all redirect to home page */}
-				<Route path="*" element={<HomePage />} />
+				<Route path='*' element={<HomePage />} />
 			</Routes>
 		</Router>
 	)
