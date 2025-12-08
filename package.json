@@ -5,21 +5,21 @@
 	"homepage": "https://vininfo.cz",
 	"dependencies": {
 		"@types/bootstrap": "^5.2.10",
-		"@types/node": "^16.18.126",
-		"@types/react": "^19.1.5",
-		"@types/react-dom": "^19.1.5",
+		"@types/node": "^20.18.0",
+		"@types/react": "^19.2.7",
+		"@types/react-dom": "^19.2.3",
 		"@types/react-router-dom": "^5.3.3",
-		"bootstrap": "^5.3.6",
-		"react": "^19.1.0",
-		"react-dom": "^19.1.0",
-		"react-router-dom": "^7.9.1",
+		"bootstrap": "^5.3.8",
+		"react": "^19.2.1",
+		"react-dom": "^19.2.1",
+		"react-router-dom": "^7.10.1",
 		"react-scripts": "5.0.1",
-		"typescript": "^4.9.5",
-		"web-vitals": "^2.1.4"
+		"typescript": "^5.9.3",
+		"web-vitals": "^4.2.4"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.3.5",
-		"gh-pages": "^6.1.1"
+		"@biomejs/biome": "^2.3.8",
+		"gh-pages": "^6.3.0"
 	},
 	"scripts": {
 		"start": "react-scripts start",
