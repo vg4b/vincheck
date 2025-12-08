@@ -3,9 +3,26 @@ import { VehicleData, VehicleDataArray, VehicleDataItem } from '../types'
 // Serverless function endpoint
 // Always use Vercel endpoint since GitHub Pages doesn't support serverless functions
 const getProxyApiUrl = (): string => {
-	// Always use the Vercel serverless function endpoint
-	// GitHub Pages is static hosting and doesn't support serverless functions
-	return 'https://vincheck-git-main-vaclavs-projects-a0f1718e.vercel.app/api/vehicle'
+	// Use production Vercel URL (update this with your actual production domain)
+	// For production: use your Vercel production domain
+	// For development: use localhost or preview URL
+	if (process.env.NODE_ENV === 'production') {
+		// Update this to your actual Vercel production domain
+		// You can find it in Vercel Dashboard → Settings → Domains
+		return 'https://vincheck-six.vercel.app/api/vehicle'
+	}
+	
+	// For development, try to use the same origin if possible
+	if (typeof window !== 'undefined') {
+		const origin = window.location.origin
+		// If running on Vercel preview, use the current origin
+		if (origin.includes('vercel.app') || origin.includes('vininfo.cz')) {
+			return `${origin}/api/vehicle`
+		}
+	}
+	
+	// Fallback to production URL
+	return 'https://vincheck-six.vercel.app/api/vehicle'
 }
 
 // Field name to label mapping (Czech labels)
