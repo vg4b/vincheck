@@ -3,8 +3,8 @@
  * Deploy to Vercel - this file will automatically be available at /api/vehicle
  */
 
-const API_KEY = 'ewVQwz_AVddGPGkxlzQJvKVt29-ExG-v'
-const API_BASE_URL = 'https://api.dataovozidlech.cz/api/vehicletechnicaldata/v2'
+const API_KEY = process.env.API_KEY
+const API_BASE_URL = process.env.API_BASE_URL
 
 // Helper function to set CORS headers
 function setCorsHeaders(req, res) {
@@ -53,6 +53,12 @@ export default async function handler(req, res) {
 	}
 
 	try {
+		// Validate environment variables
+		if (!API_KEY) {
+			console.error('API_KEY environment variable is not set')
+			return res.status(500).json({ error: 'Server configuration error' })
+		}
+
 		const { vin, tp, orv } = req.query
 
 		// Validate that at least one parameter is provided
