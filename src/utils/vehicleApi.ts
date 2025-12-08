@@ -5,7 +5,7 @@ import { VehicleData, VehicleDataArray, VehicleDataItem } from '../types'
 const getProxyApiUrl = (): string => {
 	// Always use the Vercel serverless function endpoint
 	// GitHub Pages is static hosting and doesn't support serverless functions
-	return 'https://vincheck-lk50sdfjl-vaclavs-projects-47bb9be1.vercel.app/api/vehicle'
+	return 'https://vincheck-git-main-vaclavs-projects-a0f1718e.vercel.app/api/vehicle'
 }
 
 // Field name to label mapping (Czech labels)
