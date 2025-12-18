@@ -87,36 +87,36 @@ const fieldLabels: Record<string, string> = {
 
 // Brand logo mapping
 export const brandLogos: Record<string, string> = {
-	'ALFA-ROMEO': 'logos/alfa-romeo.svg',
-	AUDI: 'logos/audi.svg',
-	BMW: 'logos/bmw.svg',
-	CHEVROLET: 'logos/chevrolet.svg',
-	CITROEN: 'logos/citroen.svg',
-	CUPRA: 'logos/cupra.svg',
-	DACIA: 'logos/dacia.svg',
-	FERRARI: 'logos/ferrari.svg',
-	FIAT: 'logos/fiat.svg',
-	FORD: 'logos/ford.svg',
-	HONDA: 'logos/honda.svg',
-	HYUNDAI: 'logos/hyundai.svg',
-	KIA: 'logos/kia.svg',
-	LANCIA: 'logos/lancia.svg',
-	'LAND-ROVER': 'logos/land-rover.svg',
-	MAZDA: 'logos/mazda.svg',
-	'MERCEDES-BENZ': 'logos/mercedes-benz.svg',
-	MITSUBISHI: 'logos/mitsubishi.svg',
-	OPEN: 'logos/opel.svg',
-	PEUGEOT: 'logos/peugeot.svg',
-	PORSCHE: 'logos/porsche.svg',
-	RENAULT: 'logos/renault.svg',
-	SAAB: 'logos/saab.svg',
-	SEAT: 'logos/seat.svg',
-	SKODA: 'logos/skoda.svg',
-	ŠKODA: 'logos/skoda.svg',
-	TOYOTA: 'logos/toyota.svg',
-	VOLKSWAGEN: 'logos/volkswagen.svg',
-	VOLVO: 'logos/volvo.svg',
-	VW: 'logos/volkswagen.svg'
+	'ALFA-ROMEO': '/logos/alfa-romeo.svg',
+	AUDI: '/logos/audi.svg',
+	BMW: '/logos/bmw.svg',
+	CHEVROLET: '/logos/chevrolet.svg',
+	CITROEN: '/logos/citroen.svg',
+	CUPRA: '/logos/cupra.svg',
+	DACIA: '/logos/dacia.svg',
+	FERRARI: '/logos/ferrari.svg',
+	FIAT: '/logos/fiat.svg',
+	FORD: '/logos/ford.svg',
+	HONDA: '/logos/honda.svg',
+	HYUNDAI: '/logos/hyundai.svg',
+	KIA: '/logos/kia.svg',
+	LANCIA: '/logos/lancia.svg',
+	'LAND-ROVER': '/logos/land-rover.svg',
+	MAZDA: '/logos/mazda.svg',
+	'MERCEDES-BENZ': '/logos/mercedes-benz.svg',
+	MITSUBISHI: '/logos/mitsubishi.svg',
+	OPEN: '/logos/opel.svg',
+	PEUGEOT: '/logos/peugeot.svg',
+	PORSCHE: '/logos/porsche.svg',
+	RENAULT: '/logos/renault.svg',
+	SAAB: '/logos/saab.svg',
+	SEAT: '/logos/seat.svg',
+	SKODA: '/logos/skoda.svg',
+	ŠKODA: '/logos/skoda.svg',
+	TOYOTA: '/logos/toyota.svg',
+	VOLKSWAGEN: '/logos/volkswagen.svg',
+	VOLVO: '/logos/volvo.svg',
+	VW: '/logos/volkswagen.svg'
 }
 
 // Helper function to format field names to human-readable labels
@@ -180,7 +180,7 @@ export function getDataValue(
 
 // Optimized logo source getter
 export function getLogoSrc(brand: string): string {
-	return brandLogos[brand] || 'logos/default_logo.svg'
+	return brandLogos[brand] || '/logos/default_logo.svg'
 }
 
 // Helper function to format ISO date string to Czech format (d.m.yyyy)

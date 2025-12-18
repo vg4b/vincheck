@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 	<url>
-		<loc>https://vininfo.cz/#/</loc>
+		<loc>https://vininfo.cz/</loc>
 		<lastmod>2024-01-01</lastmod>
 		<changefreq>weekly</changefreq>
 		<priority>1.0</priority>
 	</url>
 	<url>
-		<loc>https://vininfo.cz/#/povinne-ruceni</loc>
+		<loc>https://vininfo.cz/povinne-ruceni</loc>
 		<lastmod>2024-01-01</lastmod>
 		<changefreq>weekly</changefreq>
 		<priority>0.8</priority>
 	</url>
 	<url>
-		<loc>https://vininfo.cz/#/havarijni-pojisteni</loc>
+		<loc>https://vininfo.cz/havarijni-pojisteni</loc>
 		<lastmod>2024-01-01</lastmod>
 		<changefreq>weekly</changefreq>
 		<priority>0.8</priority>
 	</url>
 	<url>
-		<loc>https://vininfo.cz/#/kompletni-historie-vozu</loc>
+		<loc>https://vininfo.cz/kompletni-historie-vozu</loc>
 		<lastmod>2025-01-01</lastmod>
 		<changefreq>monthly</changefreq>
 		<priority>0.8</priority>
 	</url>
 	<url>
-		<loc>https://vininfo.cz/#/ochrana-osobnich-udaju</loc>
+		<loc>https://vininfo.cz/ochrana-osobnich-udaju</loc>
 		<lastmod>2025-01-01</lastmod>
 		<changefreq>yearly</changefreq>
 		<priority>0.5</priority>

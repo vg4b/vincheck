@@ -1,5 +1,7 @@
 import React from 'react'
 
+import { Link } from 'react-router-dom'
+
 const Footer: React.FC = () => {
 	return (
 		<footer className='footer mt-auto py-3 bg-light m'>
@@ -14,7 +16,7 @@ const Footer: React.FC = () => {
 					>
 						Datová kostka
 					</a>{' '}
-					| <a href='/#/ochrana-osobnich-udaju'>Ochrana osobních údajů</a> |
+					| <Link to='/ochrana-osobnich-udaju'>Ochrana osobních údajů</Link> |
 					© 2025 by{' '}
 					<a href='https://fixweb.cz' target='_blank' rel='noopener noreferrer'>
 						FixWeb.cz
