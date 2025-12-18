@@ -1,6 +1,7 @@
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import './App.css'
+import SklikAd from './components/SklikAd'
 import ScrollToTop from './components/ScrollToTop'
 import HavarijniPojisteniPage from './pages/HavarijniPojisteniPage'
 import HomePage from './pages/HomePage'
@@ -13,6 +14,20 @@ function App() {
 	return (
 		<Router>
 			<ScrollToTop />
+			{/* Mobile Overlay */}
+			<SklikAd
+				zoneId={403872}
+				id='ssp-zone-403872'
+				width={300}
+				height={600}
+			/>
+			{/* Desktop Pop-up */}
+			<SklikAd
+				zoneId={403875}
+				id='ssp-zone-403875'
+				width={970}
+				height={310}
+			/>
 			<Routes>
 				<Route path='/' element={<HomePage />} />
 				<Route path='/povinne-ruceni' element={<PovinneRuceniPage />} />
