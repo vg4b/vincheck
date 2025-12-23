@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
-import Navigation from '../components/Navigation'
 import Footer from '../components/Footer'
+import Navigation from '../components/Navigation'
 
 const PrivacyPolicyPage: React.FC = () => {
 	useEffect(() => {
@@ -9,7 +9,7 @@ const PrivacyPolicyPage: React.FC = () => {
 		if (metaDescription) {
 			metaDescription.setAttribute(
 				'content',
-				'Informace o zpracování osobních údajů, používání souborů cookies a reklamních službách Google AdSense a Google Analytics na webu VIN Info.cz.'
+				'Informace o zpracování osobních údajů, používání souborů cookies, identita správce, zpracovatelé a vaše práva na webu VIN Info.cz.'
 			)
 		}
 	}, [])
@@ -20,169 +20,217 @@ const PrivacyPolicyPage: React.FC = () => {
 			<main className='container mt-5'>
 				<article className='mb-5'>
 					<header>
-						<h1 className='mb-4'>Ochrana osobních údajů a používání Cookies</h1>
+						<h1 className='mb-4'>Zásady ochrany osobních údajů a Cookies</h1>
 					</header>
 
-					<section className='mb-4'>
-						<h2 className='h4'>1. Úvodní ustanovení</h2>
+					<section className='mb-5'>
+						<h2 className='h4'>1. Totožnost a kontaktní údaje správce (Identita)</h2>
 						<p>
-							Provozovatelem webových stránek VIN Info.cz (dále jen
-							"Provozovatel") je soukromá osoba. Tento dokument slouží k
-							informování návštěvníků o způsobu, jakým jsou shromažďovány,
-							používány a chráněny údaje při návštěvě těchto webových stránek.
+							Správcem vašich osobních údajů je:
+						</p>
+						<ul className='list-unstyled'>
+							<li><strong>Jméno / Firma:</strong> Bc. Václav Gabriel</li>
+							<li><strong>IČO:</strong> 88350207</li>
+							<li><strong>Sídlo:</strong> Krkoškova 1662/36, 613 00 Brno</li>
+							<li><strong>Kontaktní e-mail:</strong> <a href="mailto:vininfo@fixweb.cz">vininfo@fixweb.cz</a></li>
+						</ul>
+						<p>
+							(dále jen „<strong>Správce</strong>“).
 						</p>
 						<p>
-							Respektujeme vaše soukromí a zavazujeme se chránit veškeré osobní
-							údaje, které nám případně poskytnete, v souladu s Nařízením
-							Evropského parlamentu a Rady (EU) 2016/679 (GDPR).
-						</p>
-					</section>
-
-					<section className='mb-4'>
-						<h2 className='h4'>2. Zpracovávané údaje</h2>
-						<p>
-							Při běžném používání našeho vyhledávacího nástroje (zadání VIN,
-							TP, ORV) <strong>neukládáme</strong>
-							žádné osobní údaje uživatele. Zadané kódy vozidel (VIN, číslo TP,
-							číslo ORV) jsou použity výhradně pro jednorázový dotaz do databáze
-							registru vozidel a nejsou spojovány s konkrétní osobou.
+							Jako správce určujeme účely a prostředky zpracování vašich osobních údajů a neseme za ně odpovědnost.
 						</p>
 					</section>
 
-					<section className='mb-4'>
-						<h2 className='h4'>3. Soubory Cookies</h2>
+					<section className='mb-5'>
+						<h2 className='h4'>2. Účely zpracování a právní důvody (Tituly)</h2>
+						<p>Vaše osobní údaje zpracováváme na základě následujících právních titulů:</p>
+
+						<h3 className='h5 mt-4'>A. Zajištění funkčnosti webu</h3>
 						<p>
-							Tato webová stránka používá soubory cookies. Cookie je krátký
-							textový soubor, který navštívená webová stránka odešle do
-							prohlížeče. Umožňuje webu zaznamenat informace o vaší návštěvě,
-							například preferovaný jazyk a další nastavení.
+							Pro základní fungování stránek (zobrazení obsahu, bezpečnost, přenos dat) zpracováváme nezbytné technické údaje.
 						</p>
-						<p>Používáme následující typy cookies:</p>
+						<ul>
+							<li><strong>Právní důvod:</strong> Oprávněný zájem správce (zajištění provozu a bezpečnosti webu) nebo Plnění smlouvy (poskytnutí služby).</li>
+						</ul>
+
+						<h3 className='h5 mt-4'>B. Affiliate partneři a vyhodnocování provizí</h3>
+						<p>
+							Na webu využíváme affiliate odkazy. Pokud na ně kliknete a provedete nákup u partnera, můžeme obdržet provizi. Pro tento účel jsou předávána data jako ID transakce nebo IP adresa.
+						</p>
+						<ul>
+							<li><strong>Právní důvod:</strong> Oprávněný zájem správce (vyhodnocení a získání odměny za zprostředkování).</li>
+						</ul>
+
+						<h3 className='h5 mt-4'>C. Analytika a Marketing</h3>
+						<p>
+							Pro sledování návštěvnosti a zobrazování relevantní reklamy využíváme nástroje třetích stran.
+						</p>
+						<ul>
+							<li><strong>Právní důvod:</strong> <strong>Váš souhlas</strong>. Marketingové a analytické cookies a údaje zpracováváme pouze na základě vašeho uděleného souhlasu (např. prostřednictvím cookie lišty).</li>
+						</ul>
+					</section>
+
+					<section className='mb-5'>
+						<h2 className='h4'>3. Příjemci osobních údajů (Zpracovatelé)</h2>
+						<p>
+							Vaše údaje předáváme následujícím zpracovatelům a partnerům, kteří nám pomáhají provozovat web a poskytovat služby:
+						</p>
+						
+						<h3 className='h5 mt-3'>Analytika a Reklama</h3>
 						<ul>
 							<li>
-								<strong>Technické cookies:</strong> Jsou nezbytné pro správné
-								fungování stránek.
+								<strong>Google Ireland Ltd.</strong> (Gordon House, Barrow Street, Dublin 4, Irsko)
+								<br />
+								<em>Služby:</em> Google Analytics, Google AdSense.
+								<br />
+								<em>Účel:</em> Analýza návštěvnosti, zobrazování reklamy, remarketing.
+							</li>
+						</ul>
+
+						<h3 className='h5 mt-3'>Affiliate sítě a partneři</h3>
+						<p>Za účelem sledování prokliků a vyhodnocování provizí (affiliate marketing) mohou být data (např. o prokliku) předávána:</p>
+						<ul>
+							<li>
+								<strong>eHub.cz s.r.o.</strong> (poskytovatel affiliate sítě)
+								<br />
+								<em>Partner:</em> CEBIA, spol. s r.o. (prověřování historie vozidel)
 							</li>
 							<li>
-								<strong>Analytické cookies (Google Analytics):</strong> Pomáhají
-								nám analyzovat návštěvnost a chování uživatelů na webu.
-							</li>
-							<li>
-								<strong>Reklamní cookies (Google AdSense):</strong> Slouží k
-								zobrazování relevantních reklam.
+								<strong>WEDOS Internet, a.s.</strong>
+								<br />
+								<em>Služby:</em> Srovnání a sjednání pojištění (povinné ručení, havarijní pojištění, cestovní pojištění).
 							</li>
 						</ul>
 					</section>
 
-					<section className='mb-4'>
-						<h2 className='h4'>4. Google Analytics</h2>
+					<section className='mb-5'>
+						<h2 className='h4'>4. Soubory Cookies a jejich kategorizace</h2>
 						<p>
-							Tento web využívá službu Google Analytics, poskytovanou
-							společností Google, Inc. Služba Google Analytics používá soubory
-							cookies, které jsou textovými soubory ukládanými do vašeho
-							počítače umožňující analýzu způsobu užívání této stránky jejími
-							uživateli.
+							Tento web používá soubory cookies. Níže naleznete rozdělení cookies podle účelu a dobu jejich uložení.
 						</p>
-						<p>
-							Informace vygenerované souborem cookie o užívání stránky (včetně
-							vaší IP adresy) budou společností Google přeneseny a uloženy na
-							serverech ve Spojených státech. Google bude užívat těchto
-							informací pro účely vyhodnocování užívání stránky a vytváření
-							zpráv o její aktivitě.
-						</p>
+
+						<h3 className='h5 mt-3'>Technické (Nezbytné) cookies</h3>
+						<p>Jsou nutné pro správné fungování webu a nelze je vypnout.</p>
+						<div className="table-responsive">
+							<table className="table table-bordered table-sm">
+								<thead>
+									<tr>
+										<th>Název</th>
+										<th>Poskytovatel</th>
+										<th>Doba uložení</th>
+										<th>Účel</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>PHPSESSID / JSESSIONID</td>
+										<td>Vlastní</td>
+										<td>Relace (do zavření prohlížeče)</td>
+										<td>Udržení relace uživatele.</td>
+									</tr>
+									<tr>
+										<td>cookie_consent</td>
+										<td>Vlastní (CMP)</td>
+										<td>6-12 měsíců</td>
+										<td>Uložení vašich preferencí ohledně souhlasu s cookies.</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<h3 className='h5 mt-3'>Analytické cookies</h3>
+						<p>Používáme pouze s vaším souhlasem. Pomáhají nám vylepšovat web.</p>
+						<div className="table-responsive">
+							<table className="table table-bordered table-sm">
+								<thead>
+									<tr>
+										<th>Název</th>
+										<th>Poskytovatel</th>
+										<th>Doba uložení</th>
+										<th>Účel</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>_ga</td>
+										<td>Google Analytics</td>
+										<td>2 roky</td>
+										<td>Rozlišení uživatelů.</td>
+									</tr>
+									<tr>
+										<td>_gid</td>
+										<td>Google Analytics</td>
+										<td>24 hodin</td>
+										<td>Rozlišení uživatelů.</td>
+									</tr>
+									<tr>
+										<td>_gat</td>
+										<td>Google Analytics</td>
+										<td>1 minuta</td>
+										<td>Omezení četnosti požadavků.</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<h3 className='h5 mt-3'>Marketingové a Affiliate cookies</h3>
+						<p>Používáme pouze s vaším souhlasem (pro reklamu) nebo na základě oprávněného zájmu (pro affiliate tracking, kde je to nezbytné pro přiřazení provize, avšak profilování podléhá souhlasu).</p>
+						<div className="table-responsive">
+							<table className="table table-bordered table-sm">
+								<thead>
+									<tr>
+										<th>Název</th>
+										<th>Poskytovatel</th>
+										<th>Doba uložení</th>
+										<th>Účel</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>_gcl_au</td>
+										<td>Google AdSense</td>
+										<td>3 měsíce</td>
+										<td>Měření konverzí a účinnosti reklamy.</td>
+									</tr>
+									<tr>
+										<td>IDE / test_cookie</td>
+										<td>DoubleClick (Google)</td>
+										<td>1 rok / 15 min</td>
+										<td>Zobrazování relevantních reklam v síti Google.</td>
+									</tr>
+									<tr>
+										<td>ehub_tracking</td>
+										<td>eHub</td>
+										<td>30-90 dní</td>
+										<td>Sledování prokliku pro přiznání provize partnerovi (Cebia).</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
 					</section>
 
-					<section className='mb-4'>
-						<h2 className='h4'>5. Reklamní systém Google AdSense</h2>
+					<section className='mb-5'>
+						<h2 className='h4'>5. Vaše práva</h2>
 						<p>
-							Na těchto stránkách zobrazujeme reklamy poskytované společností
-							Google prostřednictvím služby AdSense. Jako dodavatel třetí strany
-							používá Google k zobrazování reklam na vašich stránkách soubory
-							cookie.
+							V souvislosti se zpracováním osobních údajů máte následující práva:
 						</p>
 						<ul>
-							<li>
-								Díky souboru cookie <strong>DoubleClick</strong> může společnost
-								Google a její partneři zobrazovat uživatelům reklamy na základě
-								jejich návštěv na vašich stránkách a dalších stránkách na
-								internetu.
-							</li>
-							<li>
-								Uživatelé si mohou používání souboru cookie DoubleClick pro
-								zájmově orientovanou reklamu odhlásit v{' '}
-								<a
-									href='https://adssettings.google.com'
-									target='_blank'
-									rel='noopener noreferrer'
-								>
-									Nastavení reklam
-								</a>
-								.
-							</li>
+							<li>Právo na přístup k vašim osobním údajům.</li>
+							<li>Právo na opravu nepřesných údajů.</li>
+							<li>Právo na výmaz („právo být zapomenut“), pokud pominul důvod zpracování nebo jste odvolali souhlas.</li>
+							<li>Právo vznést námitku proti zpracování na základě oprávněného zájmu.</li>
+							<li>Právo na přenositelnost údajů.</li>
+							<li>Právo podat stížnost u dozorového úřadu (Úřad pro ochranu osobních údajů).</li>
 						</ul>
 						<p>
-							Více informací o tom, jak Google využívá data, když používáte weby
-							nebo aplikace partnerů, naleznete na stránce:{' '}
-							<a
-								href='https://policies.google.com/technologies/partner-sites?hl=cs'
-								target='_blank'
-								rel='noopener noreferrer'
-							>
-								Jak Google využívá data
-							</a>
-							.
-						</p>
-					</section>
-
-					<section className='mb-4'>
-						<h2 className='h4'>6. Správa cookies</h2>
-						<p>
-							Většina prohlížečů cookies automaticky akceptuje, pokud není
-							prohlížeč nastaven jinak. Používání cookies můžete omezit nebo
-							zablokovat v nastavení svého webového prohlížeče.
-						</p>
-						<ul>
-							<li>
-								<a
-									href='https://support.google.com/chrome/answer/95647?hl=cs'
-									target='_blank'
-									rel='noopener noreferrer'
-								>
-									Nastavení pro Google Chrome
-								</a>
-							</li>
-							<li>
-								<a
-									href='https://support.mozilla.org/cs/kb/povoleni-zakazani-cookies'
-									target='_blank'
-									rel='noopener noreferrer'
-								>
-									Nastavení pro Mozilla Firefox
-								</a>
-							</li>
-							<li>
-								<a
-									href='https://support.microsoft.com/cs-cz/help/17442/windows-internet-explorer-delete-manage-cookies'
-									target='_blank'
-									rel='noopener noreferrer'
-								>
-									Nastavení pro Internet Explorer / Edge
-								</a>
-							</li>
-						</ul>
-					</section>
-
-					<section className='mb-4'>
-						<h2 className='h4'>7. Kontakt</h2>
-						<p>
-							V případě dotazů ohledně ochrany osobních údajů nás můžete
-							kontaktovat na emailu: info@vininfo.cz (příklad).
+							Pro uplatnění těchto práv nás kontaktujte na e-mailu: <a href="mailto:vininfo@fixweb.cz">vininfo@fixweb.cz</a>.
 						</p>
 					</section>
 
 					<footer className='text-muted mt-5 pt-3 border-top'>
 						<small>
-							Poslední aktualizace: {new Date().toLocaleDateString('cs-CZ')}
+							Datum poslední aktualizace: {new Date().toLocaleDateString('cs-CZ')}
 						</small>
 					</footer>
 				</article>
