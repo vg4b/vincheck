@@ -86,6 +86,13 @@ const PrivacyPolicyPage: React.FC = () => {
 								<br />
 								<em>Účel:</em> Analýza návštěvnosti, zobrazování reklamy, remarketing.
 							</li>
+							<li>
+								<strong>Seznam.cz, a.s.</strong> (Radlická 3294/10, 150 00 Praha 5)
+								<br />
+								<em>Služby:</em> Sklik (reklamní systém).
+								<br />
+								<em>Účel:</em> Zobrazování reklamy, retargeting, měření konverzí.
+							</li>
 						</ul>
 
 						<h3 className='h5 mt-3'>Affiliate sítě a partneři</h3>
