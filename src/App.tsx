@@ -1,6 +1,7 @@
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import './App.css'
+import GoogleAdSense from './components/GoogleAdSense'
 import GoogleAnalytics from './components/GoogleAnalytics'
 import SklikAd from './components/SklikAd'
 import SklikScript from './components/SklikScript'
@@ -17,6 +18,7 @@ function App() {
 		<Router>
 			<ScrollToTop />
 			<GoogleAnalytics />
+			<GoogleAdSense />
 			<SklikScript />
 			{/* Mobile Overlay */}
 			<SklikAd
