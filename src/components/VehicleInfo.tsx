@@ -1,6 +1,6 @@
 import React from 'react'
 import { VehicleDataArray } from '../types'
-import { formatValue, getDataValue, getLogoSrc } from '../utils/vehicleApi'
+import { getDataValue, getLogoSrc } from '../utils/vehicleApi'
 
 interface VehicleInfoProps {
 	data: VehicleDataArray
@@ -64,6 +64,12 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({ data, vinCode }) => {
 			!excludedFields.has(item.name) && item.value !== '' && item.value != null
 	)
 
+	// Split data for inserting Cebia link at specific position (e.g. 10th item)
+	// If list is shorter than 10, insert at the end
+	const insertIndex = Math.min(10, filteredData.length)
+	const firstHalf = filteredData.slice(0, insertIndex)
+	const secondHalf = filteredData.slice(insertIndex)
+
 	return (
 		<div className='mt-4 mb-5'>
 			<div className='row mt-5 mb-5 align-items-center'>
@@ -75,6 +81,10 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({ data, vinCode }) => {
 						loading='lazy'
 						decoding='async'
 						className='img-fluid logo-img brand-logo'
+						onError={(e) => {
+							// Fallback if logo not found
+							e.currentTarget.style.display = 'none'
+						}}
 					/>
 				</div>
 
@@ -124,7 +134,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({ data, vinCode }) => {
 						</a>
 						<br />
 						<a
-							href='#/kompletni-historie-vozu'
+							href='/kompletni-historie-vozu'
 							className='btn btn-outline-primary w-100 mt-1 mb-1'
 							role='button'
 						>
@@ -136,18 +146,50 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({ data, vinCode }) => {
 
 			{/* Detailed data table */}
 			{filteredData.length > 0 && (
-				<table className='table mt-4'>
-					<tbody>
-						{filteredData.map((item) => (
-							<tr key={item.name}>
-								<th>{item.label}</th>
-								<td
-									dangerouslySetInnerHTML={{ __html: formatValue(item.value) }}
-								/>
+				<div className='table-responsive mt-4'>
+					<table className='table table-striped table-hover'>
+						<tbody>
+							{/* First part of data */}
+							{firstHalf.map((item) => (
+								<tr key={item.name}>
+									<th>{item.label}</th>
+									<td
+										dangerouslySetInnerHTML={{
+											__html: formatValue(String(item.value))
+										}}
+									/>
+								</tr>
+							))}
+
+							{/* Cebia Check Row (Inserted at index ~10) */}
+							<tr className='table-warning'>
+								<th className='align-middle'>Historie a původ vozidla</th>
+								<td className='text-end'>
+									<a
+										href={`https://cz.cebia.com/?vin=${vinCode}`}
+										target='_blank'
+										rel='noopener noreferrer'
+										className='btn btn-primary btn-sm fw-bold'
+									>
+										Prověřit historii na Cebia.cz ➜
+									</a>
+								</td>
 							</tr>
-						))}
-					</tbody>
-				</table>
+
+							{/* Second part of data */}
+							{secondHalf.map((item) => (
+								<tr key={item.name}>
+									<th>{item.label}</th>
+									<td
+										dangerouslySetInnerHTML={{
+											__html: formatValue(String(item.value))
+										}}
+									/>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
 			)}
 
 			{/* Banner */}
@@ -182,6 +224,16 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({ data, vinCode }) => {
 			</div>
 		</div>
 	)
+}
+
+function formatValue(value: string): string {
+	if (!value) return '-'
+	// Try to format date if it looks like ISO date
+	if (value.match(/^\d{4}-\d{2}-\d{2}(T.*)?$/)) {
+		const date = new Date(value)
+		return date.toLocaleDateString('cs-CZ')
+	}
+	return value
 }
 
 export default VehicleInfo
