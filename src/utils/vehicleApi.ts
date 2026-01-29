@@ -1,27 +1,14 @@
 import { VehicleData, VehicleDataArray, VehicleDataItem } from '../types'
 
 // Serverless function endpoint
-// Always use Vercel endpoint since GitHub Pages doesn't support serverless functions
+// Always use relative URL so it works on any Vercel deployment (production or preview)
 const getProxyApiUrl = (): string => {
-	// Use production Vercel URL (update this with your actual production domain)
-	// For production: use your Vercel production domain
-	// For development: use localhost or preview URL
-	if (process.env.NODE_ENV === 'production') {
-		// Update this to your actual Vercel production domain
-		// You can find it in Vercel Dashboard → Settings → Domains
-		return 'https://vincheck-six.vercel.app/api/vehicle'
-	}
-	
-	// For development, try to use the same origin if possible
+	// In browser, always use relative URL - works for production, preview, and localhost
 	if (typeof window !== 'undefined') {
-		const origin = window.location.origin
-		// If running on Vercel preview, use the current origin
-		if (origin.includes('vercel.app') || origin.includes('vininfo.cz')) {
-			return `${origin}/api/vehicle`
-		}
+		return '/api/vehicle'
 	}
 	
-	// Fallback to production URL
+	// Fallback for SSR or non-browser environments
 	return 'https://vincheck-six.vercel.app/api/vehicle'
 }
 

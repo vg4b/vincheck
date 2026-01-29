@@ -27,3 +27,4 @@ yarn-error.log*
 .env
 
 .playwright-mcp
+.env*.local

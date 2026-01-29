@@ -31,6 +31,9 @@ function setCorsHeaders(req, res) {
   } else if (origin.includes("vininfo.cz")) {
     // Allow any vininfo.cz subdomain
     res.setHeader("Access-Control-Allow-Origin", origin);
+  } else if (origin.endsWith(".vercel.app")) {
+    // Allow Vercel preview deployments
+    res.setHeader("Access-Control-Allow-Origin", origin);
   } else {
     // For production, only allow vininfo.cz
     res.setHeader("Access-Control-Allow-Origin", "https://vininfo.cz");
@@ -93,8 +96,16 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
+      // Log for debugging, don't expose details to client
+      const errorBody = await response.text();
+      console.error(
+        "External API error:",
+        response.status,
+        response.statusText,
+        errorBody,
+      );
       return res.status(response.status).json({
-        error: `API error: ${response.status} ${response.statusText}`,
+        error: `Chyba při načítání dat o vozidle`,
       });
     }
 

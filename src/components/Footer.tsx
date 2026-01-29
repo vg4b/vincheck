@@ -7,8 +7,11 @@ const Footer: React.FC = () => {
     <footer className="footer mt-auto py-3 bg-light m">
       <div className="container d-flex justify-content-between">
         <span className="text-muted" id="left">
-          VinInfo.cz - Kontrola vozidel zdarma | Všechny informace jsou
-          poskytovány bez záruky. | Zdroj dat:{" "}
+        VinInfo.cz - Kontrola vozidel zdarma | 
+        Vyloučení odpovědnosti: Tento web je pouze informativní a neposkytuje žádnou formu poradenství. 
+        Všechny informace jsou poskytovány bez záruky a s rizikem chybných údajů. 
+        Tento web využívá partnerské (affiliate) odkazy – kliknutím na ně můžete podpořit náš provoz, aniž by se pro vás cokoliv měnilo.
+        | Zdroj dat:{" "}
           <a
             href="https://www.dataovozidlech.cz/"
             target="_blank"
@@ -16,6 +19,10 @@ const Footer: React.FC = () => {
           >
             Datová kostka
           </a>{" "}
+          |{" "}
+          <Link to="/podminky">
+            Obchodní podmínky
+          </Link>{" "}
           |{" "}
           <Link to="/ochrana-osobnich-udaju">
             Zásady ochrany osobních údajů a Cookies

@@ -3,7 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
 import VehicleInfo from '../components/VehicleInfo'
+import { useAuth } from '../contexts/AuthContext'
 import { VehicleDataArray } from '../types'
+import { addVehicle, fetchVehicles } from '../utils/clientZoneApi'
+import { ApiError } from '../utils/apiClient'
 import { fetchVehicleInfo, getDataValue } from '../utils/vehicleApi'
 
 interface VehicleDetailPageProps {
@@ -13,9 +16,15 @@ interface VehicleDetailPageProps {
 const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 	const params = useParams<{ code?: string }>()
 	const navigate = useNavigate()
+	const { user } = useAuth()
 	const [vehicleData, setVehicleData] = useState<VehicleDataArray | null>(null)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState('')
+	const [saving, setSaving] = useState(false)
+	const [saveMessage, setSaveMessage] = useState('')
+	const [saveTitle, setSaveTitle] = useState('')
+	const [isAlreadySaved, setIsAlreadySaved] = useState(false)
+	const [checkingSaved, setCheckingSaved] = useState(false)
 
 	useEffect(() => {
 		const loadVehicleData = async () => {
@@ -80,6 +89,7 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 
 			setLoading(true)
 			setError('')
+			setSaveMessage('')
 
 			try {
 				const vinParam = searchType === 'vin' ? cleanCode : undefined
@@ -126,6 +136,46 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 		loadVehicleData()
 	}, [params.code, type, navigate])
 
+	useEffect(() => {
+		if (vehicleData) {
+			setSaveTitle('')
+		}
+	}, [vehicleData])
+
+	// Check if vehicle is already saved when user is logged in
+	useEffect(() => {
+		const checkIfSaved = async () => {
+			if (!user || !vehicleData) {
+				setIsAlreadySaved(false)
+				return
+			}
+
+			setCheckingSaved(true)
+			try {
+				const vehicles = await fetchVehicles()
+				const vinValue = getDataValue(vehicleData, 'VIN', '').trim()
+				const tpValue = getDataValue(vehicleData, 'CisloTp', '').trim()
+				const orvValue = getDataValue(vehicleData, 'CisloOrv', '').trim()
+
+				const isDuplicate = vehicles.some((vehicle) => {
+					if (vinValue && vehicle.vin === vinValue) return true
+					if (tpValue && vehicle.tp === tpValue) return true
+					if (orvValue && vehicle.orv === orvValue) return true
+					return false
+				})
+
+				setIsAlreadySaved(isDuplicate)
+			} catch {
+				// If check fails, allow saving attempt anyway
+				setIsAlreadySaved(false)
+			} finally {
+				setCheckingSaved(false)
+			}
+		}
+
+		checkIfSaved()
+	}, [user, vehicleData])
+
 	if (loading) {
 		return (
 			<>
@@ -162,6 +212,44 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 
 	const code = params.code || ''
 	const vinCode = getDataValue(vehicleData, 'VIN', code)
+	const brand = getDataValue(vehicleData, 'TovarniZnacka', '')
+	const model = getDataValue(vehicleData, 'Typ', '')
+
+	const handleSaveVehicle = async () => {
+		if (!user || !vehicleData) {
+			navigate('/prihlaseni')
+			return
+		}
+
+		setSaving(true)
+		setSaveMessage('')
+
+		try {
+			const vinValue = getDataValue(vehicleData, 'VIN', vinCode).trim()
+			const tpValue = getDataValue(vehicleData, 'CisloTp', '').trim()
+			const orvValue = getDataValue(vehicleData, 'CisloOrv', '').trim()
+
+			await addVehicle({
+				vin: vinValue || undefined,
+				tp: tpValue || undefined,
+				orv: orvValue || undefined,
+				title: saveTitle.trim() ? saveTitle.trim().slice(0, 60) : undefined,
+				brand,
+				model,
+				snapshot: vehicleData
+			})
+			setSaveMessage('Vozidlo bylo uloženo do klientské zóny.')
+			setIsAlreadySaved(true)
+		} catch (error) {
+			if (error instanceof ApiError && error.status === 409) {
+				setSaveMessage('Vozidlo už je uložené v Moje VINInfo.')
+			} else {
+				setSaveMessage('Nepodařilo se uložit vozidlo. Zkuste to znovu.')
+			}
+		} finally {
+			setSaving(false)
+		}
+	}
 
 	return (
 		<>
@@ -176,7 +264,129 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 						← Vyhledat jiné vozidlo
 					</button>
 				</div>
-				<VehicleInfo data={vehicleData} vinCode={vinCode} />
+				<VehicleInfo
+					data={vehicleData}
+					vinCode={vinCode}
+					saveAction={
+						isAlreadySaved
+							? {
+									label: 'Už uloženo v Moje VINInfo',
+									disabled: true,
+									onClick: () => {},
+									
+								}
+							: {
+									label: user
+										? saving
+											? 'Ukládám...'
+											: 'Uložit do Moje VINInfo'
+										: 'Přihlásit se pro uložení',
+									disabled: saving || checkingSaved,
+									onClick: handleSaveVehicle
+								}
+					}
+					saveMessage={saveMessage}
+					promoSection={
+						!user ? (
+							<section
+								className='mt-5 p-4 rounded'
+								style={{ backgroundColor: '#c6dbad' }}
+							>
+								<div className='row align-items-center'>
+									<div className='col-lg-8'>
+										<h2 className='h4 mb-3'>
+											Nechte se upozornit na důležité termíny
+										</h2>
+										<p className='mb-3'>
+											Vytvořte si <strong>zdarma účet</strong> a uložte si toto vozidlo 
+											do Moje VINInfo. Nastavte si upozornění a nikdy nezmeškejte:
+										</p>
+										<div className='row'>
+											<div className='col-sm-6'>
+												<ul className='list-unstyled mb-0'>
+													<li className='mb-2'>🔧 Termín STK</li>
+													<li className='mb-2'>🛡️ Povinné ručení</li>
+													<li className='mb-2'>🚗 Havarijní pojištění</li>
+												</ul>
+											</div>
+											<div className='col-sm-6'>
+												<ul className='list-unstyled mb-0'>
+													<li className='mb-2'>🔩 Servisní prohlídky</li>
+													<li className='mb-2'>🛞 Přezutí pneumatik</li>
+													<li className='mb-2'>🛣️ Dálniční známka</li>
+												</ul>
+											</div>
+										</div>
+										<p className='mt-3 mb-0'>
+											<small className='text-muted'>
+												📧 Pošleme vám email den před termínem • ✨ 100% zdarma
+											</small>
+										</p>
+									</div>
+									<div className='col-lg-4 text-center mt-4 mt-lg-0'>
+										<a
+											href='/registrace'
+											className='btn btn-primary btn-lg mb-2 w-100'
+										>
+											Vytvořit účet zdarma
+										</a>
+										<p className='mb-0'>
+											<small>
+												Již máte účet?{' '}
+												<a href='/prihlaseni' className='text-dark'>
+													Přihlásit se
+												</a>
+											</small>
+										</p>
+									</div>
+								</div>
+							</section>
+						) : isAlreadySaved ? (
+							<section className='mt-5 p-4 bg-light rounded'>
+								<div className='row align-items-center'>
+									<div className='col-lg-8'>
+										<h2 className='h5 mb-2'>
+											✅ Toto vozidlo máte uložené v Moje VINInfo
+										</h2>
+										<p className='mb-0 text-muted'>
+											Spravujte upozornění na STK, pojištění, servis a další termíny 
+											přímo v klientské zóně.
+										</p>
+									</div>
+									<div className='col-lg-4 text-center text-lg-end mt-3 mt-lg-0'>
+										<a href='/klientska-zona' className='btn btn-outline-primary'>
+											Přejít do Moje VINInfo
+										</a>
+									</div>
+								</div>
+							</section>
+						) : (
+							<section className='mt-5 p-4 bg-light rounded'>
+								<div className='row align-items-center'>
+									<div className='col-lg-8'>
+										<h2 className='h5 mb-2'>
+											💡 Uložte si vozidlo a nastavte upozornění
+										</h2>
+										<p className='mb-0 text-muted'>
+											V Moje VINInfo si můžete nastavit upozornění na STK, pojištění, 
+											servis a další termíny. Pošleme vám email, až se bude termín blížit.
+										</p>
+									</div>
+									<div className='col-lg-4 text-center text-lg-end mt-3 mt-lg-0'>
+										<button
+											type='button'
+											className='btn btn-primary'
+											onClick={handleSaveVehicle}
+											disabled={saving || checkingSaved}
+										>
+											{saving ? 'Ukládám...' : 'Uložit do Moje VINInfo'}
+										</button>
+									</div>
+								</div>
+							</section>
+						)
+					}
+				/>
 			</div>
 			<Footer />
 		</>

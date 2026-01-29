@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
 import Navigation from "../components/Navigation";
 import VehicleInfo from "../components/VehicleInfo";
+import { useAuth } from "../contexts/AuthContext";
 import { VehicleDataArray } from "../types";
+import { addVehicle } from "../utils/clientZoneApi";
+import { ApiError } from "../utils/apiClient";
 import { fetchVehicleInfo, getDataValue } from "../utils/vehicleApi";
 
 const HomePage: React.FC = () => {
@@ -30,7 +33,7 @@ const HomePage: React.FC = () => {
       "@type": "WebApplication",
       name: "VIN Info.cz - Kontrola vozidel zdarma",
       description:
-        "Bezplatná kontrola VIN kódu, čísla TP a ORV vozidla v českém registru vozidel. Získejte technické údaje, historii vozidla a další informace.",
+        "Bezplatná kontrola VIN kódu, čísla TP a ORV vozidla v českém registru vozidel. Získejte technické údaje, historii vozidla a další informace. Uložte si vozidla a nastavte upozornění na STK, pojištění a servis.",
       url: "https://vininfo.cz",
       applicationCategory: "UtilityApplication",
       operatingSystem: "Web",
@@ -47,6 +50,11 @@ const HomePage: React.FC = () => {
         "Datum první registrace",
         "Platnost technické prohlídky STK",
         "Historie vozidla",
+        "Upozornění na termíny STK",
+        "Upozornění na pojištění",
+        "Upozornění na servisní prohlídky",
+        "Emailové notifikace",
+        "Správa více vozidel",
       ],
     });
     document.head.appendChild(script);
@@ -68,6 +76,10 @@ const HomePage: React.FC = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showSearch, setShowSearch] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+  const [saveTitle, setSaveTitle] = useState("");
+  const { user } = useAuth();
 
   const vinInputRef = useRef<HTMLInputElement>(null);
   const tpInputRef = useRef<HTMLInputElement>(null);
@@ -96,6 +108,7 @@ const HomePage: React.FC = () => {
   const handleSubmit = async () => {
     setError("");
     setLoading(true);
+    setSaveMessage("");
 
     try {
       const data = await fetchVehicleInfo(
@@ -146,6 +159,8 @@ const HomePage: React.FC = () => {
     setTp("");
     setOrv("");
     setShowSearch(true);
+    setSaveMessage("");
+    setSaveTitle("");
   };
 
   const handleKeyPress = (
@@ -160,6 +175,47 @@ const HomePage: React.FC = () => {
   const vinCode = vehicleData
     ? getDataValue(vehicleData, "VIN", "Neznámý VIN")
     : "";
+  const brand = vehicleData ? getDataValue(vehicleData, "TovarniZnacka", "") : "";
+  const model = vehicleData ? getDataValue(vehicleData, "Typ", "") : "";
+
+  const handleSaveVehicle = async () => {
+    if (!vehicleData) {
+      return;
+    }
+
+    if (!user) {
+      navigate("/prihlaseni");
+      return;
+    }
+
+    setSaving(true);
+    setSaveMessage("");
+
+    try {
+      const vinValue = getDataValue(vehicleData, "VIN", vinCode).trim();
+      const tpValue = getDataValue(vehicleData, "CisloTp", "").trim();
+      const orvValue = getDataValue(vehicleData, "CisloOrv", "").trim();
+
+      await addVehicle({
+        vin: vinValue || undefined,
+        tp: tpValue || undefined,
+        orv: orvValue || undefined,
+        title: saveTitle.trim() ? saveTitle.trim().slice(0, 60) : undefined,
+        brand,
+        model,
+        snapshot: vehicleData,
+      });
+      setSaveMessage("Vozidlo bylo uloženo do klientské zóny.");
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        setSaveMessage("Vozidlo už je uložené v Moje VINInfo.");
+      } else {
+        setSaveMessage("Nepodařilo se uložit vozidlo. Zkuste to znovu.");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <>
@@ -361,6 +417,107 @@ const HomePage: React.FC = () => {
                   </ul>
                 </div>
               </section>
+
+              {/* Moje VINInfo Promo Section */}
+              <section
+                className="mt-5 p-4 rounded"
+                style={{ backgroundColor: '#c6dbad' }}
+                aria-labelledby="moje-vininfo-heading"
+              >
+                <div className="row align-items-center">
+                  <div className="col-lg-8">
+                    <h3 id="moje-vininfo-heading" className="h4 mb-3">
+                      Moje VINInfo - Váš osobní asistent pro správu vozidel
+                    </h3>
+                    <p className="mb-3">
+                      Vytvořte si <strong>zdarma účet</strong> a mějte všechna svá vozidla 
+                      pod kontrolou. Už nikdy nezmeškáte důležitý termín!
+                    </p>
+                    <div className="row">
+                      <div className="col-md-6">
+                        <ul className="list-unstyled mb-0">
+                          <li className="mb-2">
+                            <strong>🚗 Správa vozidel</strong>
+                            <br />
+                            <small className="text-muted">
+                              Uložte si všechna svá vozidla na jedno místo
+                            </small>
+                          </li>
+                          <li className="mb-2">
+                            <strong>🔔 Upozornění na termíny</strong>
+                            <br />
+                            <small className="text-muted">
+                              STK, pojištění, servis, přezutí pneu, dálniční známka
+                            </small>
+                          </li>
+                          <li className="mb-2">
+                            <strong>📧 Emailové notifikace</strong>
+                            <br />
+                            <small className="text-muted">
+                              Připomeneme vám blížící se termíny emailem
+                            </small>
+                          </li>
+                        </ul>
+                      </div>
+                      <div className="col-md-6">
+                        <ul className="list-unstyled mb-0">
+                          <li className="mb-2">
+                            <strong>📊 Přehled na jednom místě</strong>
+                            <br />
+                            <small className="text-muted">
+                              Všechny důležité informace o vozidlech
+                            </small>
+                          </li>
+                          <li className="mb-2">
+                            <strong>💰 Srovnání pojištění</strong>
+                            <br />
+                            <small className="text-muted">
+                              Rychlý přístup k výhodným nabídkám pojištění
+                            </small>
+                          </li>
+                          <li className="mb-2">
+                            <strong>✨ 100% zdarma</strong>
+                            <br />
+                            <small className="text-muted">
+                              Žádné skryté poplatky ani předplatné
+                            </small>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-lg-4 text-center mt-4 mt-lg-0">
+                    {user ? (
+                      <div>
+                        <p className="mb-3">Jste přihlášeni jako <strong>{user.email}</strong></p>
+                        <a
+                          href="/klientska-zona"
+                          className="btn btn-primary btn-lg"
+                        >
+                          Přejít do Moje VINInfo
+                        </a>
+                      </div>
+                    ) : (
+                      <div>
+                        <a
+                          href="/registrace"
+                          className="btn btn-primary btn-lg mb-2 w-100"
+                        >
+                          Vytvořit účet zdarma
+                        </a>
+                        <p className="mb-0">
+                          <small>
+                            Již máte účet?{' '}
+                            <a href="/prihlaseni" className="text-dark">
+                              Přihlásit se
+                            </a>
+                          </small>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
             </div>
           )}
 
@@ -465,14 +622,44 @@ const HomePage: React.FC = () => {
                 </section>
 
                 <section className="mb-5">
+                  <h3 className="h4">Moje VINInfo - Bezplatná správa vozidel</h3>
+                  <p>
+                    <strong>Moje VINInfo</strong> je bezplatná služba pro všechny majitele vozidel, 
+                    která vám pomůže mít přehled o důležitých termínech. Po vytvoření účtu si můžete:
+                  </p>
+                  <ul>
+                    <li>
+                      <strong>Uložit všechna svá vozidla</strong> - osobní i firemní, 
+                      a mít je přehledně na jednom místě.
+                    </li>
+                    <li>
+                      <strong>Nastavit upozornění</strong> - na termín STK, povinné ručení, 
+                      havarijní pojištění, servisní prohlídky, přezutí pneumatik nebo platnost dálniční známky.
+                    </li>
+                    <li>
+                      <strong>Dostávat emailové notifikace</strong> - připomeneme vám blížící se 
+                      termíny den předem, abyste nic nezmeškali.
+                    </li>
+                    <li>
+                      <strong>Rychle srovnat pojištění</strong> - přímý přístup k výhodným nabídkám 
+                      povinného ručení a havarijního pojištění.
+                    </li>
+                  </ul>
+                  <p>
+                    Registrace je jednoduchá a trvá jen minutu. Stačí zadat email a heslo. 
+                    Služba je a vždy bude <strong>zcela zdarma</strong>.
+                  </p>
+                </section>
+
+                <section className="mb-5">
                   <h3 className="h4">Často kladené dotazy (FAQ)</h3>
 
                   <h4 className="h6 mt-4">Je tato služba opravdu zdarma?</h4>
                   <p>
                     Ano, kontrola základních technických údajů z registru
-                    vozidel je na VIN Info.cz zcela zdarma. Neplatíte žádné
-                    poplatky za zobrazení dat o motoru, karoserii, STK a
-                    registraci.
+                    vozidel je na VIN Info.cz zcela zdarma. Stejně tak je zdarma 
+                    vytvoření účtu v Moje VINInfo, ukládání vozidel a nastavení 
+                    upozornění na důležité termíny. Neplatíte žádné poplatky.
                   </p>
 
                   <h4 className="h6 mt-3">
@@ -505,6 +692,23 @@ const HomePage: React.FC = () => {
                     vozidla. Registr poskytuje pouze technická data o vozidle,
                     nikoliv o jeho majiteli.
                   </p>
+
+                  <h4 className="h6 mt-3">Jak funguje upozornění na termín STK?</h4>
+                  <p>
+                    Po registraci v Moje VINInfo si můžete ke každému vozidlu 
+                    nastavit upozornění na různé termíny - STK, pojištění, servis 
+                    a další. Systém vám automaticky pošle email den před termínem 
+                    (nebo v datum, které si zvolíte), abyste měli čas vše zařídit. 
+                    Upozornění můžete kdykoliv upravit nebo vypnout.
+                  </p>
+
+                  <h4 className="h6 mt-3">Kolik vozidel si mohu uložit?</h4>
+                  <p>
+                    V Moje VINInfo si můžete uložit neomezený počet vozidel. 
+                    Služba je vhodná jak pro jednotlivce s jedním autem, tak 
+                    pro rodiny nebo firmy s více vozidly. Ke každému vozidlu 
+                    můžete přidat vlastní název pro snadnou orientaci.
+                  </p>
                 </section>
               </div>
             </div>
@@ -531,6 +735,39 @@ const HomePage: React.FC = () => {
             <h2 id="vehicle-info-heading" className="visually-hidden">
               Informace o vozidle
             </h2>
+            <div className="mb-4 d-flex flex-column align-items-start">
+              <button
+                type="button"
+                className="btn btn-outline-primary"
+                onClick={handleSaveVehicle}
+                disabled={saving}
+              >
+                {user
+                  ? saving
+                    ? "Ukládám..."
+                    : "Uložit do Moje VINInfo"
+                  : "Přihlásit se pro uložení"}
+              </button>
+              <div className="mt-3 w-100">
+                <label htmlFor="saveVehicleTitle" className="form-label">
+                  Vlastní název vozidla (volitelné)
+                </label>
+                <input
+                  id="saveVehicleTitle"
+                  type="text"
+                  className="form-control"
+                  value={saveTitle}
+                  onChange={(event) => setSaveTitle(event.target.value)}
+                  placeholder="Např. Firemní Passat"
+                  maxLength={60}
+                />
+              </div>
+              {saveMessage && (
+                <div className="alert alert-info mt-3" role="alert">
+                  {saveMessage}
+                </div>
+              )}
+            </div>
             <VehicleInfo data={vehicleData} vinCode={vinCode} />
           </section>
         )}

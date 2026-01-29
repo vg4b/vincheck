@@ -1,14 +1,22 @@
 import React from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 const Navigation: React.FC = () => {
 	const location = useLocation()
+	const navigate = useNavigate()
+	const { user, logout } = useAuth()
 
 	const isActive = (path: string): boolean => {
 		if (path === '/') {
 			return location.pathname === '/'
 		}
 		return location.pathname === path
+	}
+
+	const handleLogout = async () => {
+		await logout()
+		navigate('/')
 	}
 
 	return (
@@ -69,6 +77,35 @@ const Navigation: React.FC = () => {
 							>
 								Kompletní historie vozu
 							</Link>
+						</li>
+						<li className='nav-item'>
+							<Link
+								className={`nav-link ${isActive('/klientska-zona') ? 'active text-primary fw-semibold' : 'text-primary fw-semibold'}`}
+								to='/klientska-zona'
+								aria-current={isActive('/klientska-zona') ? 'page' : undefined}
+							>
+								Moje VINInfo
+								<span className='badge bg-primary ms-2'>Můj účet</span>
+							</Link>
+						</li>
+						<li className='nav-item'>
+							{user ? (
+								<button
+									type='button'
+									className='nav-link btn btn-link text-muted'
+									onClick={handleLogout}
+								>
+									Odhlásit
+								</button>
+							) : (
+								<Link
+									className={`nav-link ${isActive('/prihlaseni') ? 'active text-dark' : 'text-muted'}`}
+									to='/prihlaseni'
+									aria-current={isActive('/prihlaseni') ? 'page' : undefined}
+								>
+									Přihlášení
+								</Link>
+							)}
 						</li>
 					</ul>
 				</div>

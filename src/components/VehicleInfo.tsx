@@ -5,9 +5,22 @@ import { getDataValue, getLogoSrc } from '../utils/vehicleApi'
 interface VehicleInfoProps {
 	data: VehicleDataArray
 	vinCode: string
+	saveAction?: {
+		label: string
+		disabled?: boolean
+		onClick: () => void
+	}
+	saveMessage?: string
+	promoSection?: React.ReactNode
 }
 
-const VehicleInfo: React.FC<VehicleInfoProps> = ({ data, vinCode }) => {
+const VehicleInfo: React.FC<VehicleInfoProps> = ({
+	data,
+	vinCode,
+	saveAction,
+	saveMessage,
+	promoSection
+}) => {
 	const excludedFields = new Set([
 		'TovarniZnacka',
 		'Typ',
@@ -81,6 +94,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({ data, vinCode }) => {
 						loading='lazy'
 						decoding='async'
 						className='img-fluid logo-img brand-logo'
+						style={{ maxWidth: '200px', height: 'auto',  }}
 						onError={(e) => {
 							// Fallback if logo not found
 							e.currentTarget.style.display = 'none'
@@ -106,36 +120,54 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({ data, vinCode }) => {
 						<div>
 							<strong>VIN:</strong> {vinCode}
 						</div>
+						<div>
+						<strong>STK do:</strong>{' '}
+						<span style={{ color }}>{techInspection}</span>
+					</div>
 					</div>
 				</div>
 
 				{/* Technical inspection column */}
 				<div className='col-md-4'>
-					<div>
+					{/* <div>
 						<strong>Pravidelná technická prohlídka do:</strong>{' '}
 						<span style={{ color }}>{techInspection}</span>
-					</div>
+					</div> */}
 
 					{/* Insurance buttons */}
-					<div className='mt-3'>
+					<div className='mt-3 d-flex flex-column gap-2'>
+						{saveAction && (
+							<button
+								type='button'
+								className='btn btn-primary'
+								onClick={saveAction.onClick}
+								disabled={saveAction.disabled}
+							>
+								{saveAction.label}
+							</button>
+						)}
+						{saveMessage && (
+							<div className='alert alert-info mb-0' role='alert'>
+								{saveMessage}
+							</div>
+						)}
 						<a
-							href='#/povinne-ruceni'
-							className='btn btn-outline-primary w-90 mt-1 mb-1'
+							href='/povinne-ruceni'
+							className='btn btn-outline-primary'
 							role='button'
 						>
 							Povinné ručení
 						</a>
 						<a
-							href='#/havarijni-pojisteni'
-							className='btn btn-outline-primary w-90 mt-1 mb-1'
+							href='/havarijni-pojisteni'
+							className='btn btn-outline-primary'
 							role='button'
 						>
 							Havarijní pojištění
 						</a>
-						<br />
 						<a
 							href='/kompletni-historie-vozu'
-							className='btn btn-outline-primary w-100 mt-1 mb-1'
+							className='btn btn-outline-primary'
 							role='button'
 						>
 							Kompletní historie vozu
@@ -143,6 +175,9 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({ data, vinCode }) => {
 					</div>
 				</div>
 			</div>
+
+			{/* Promo section (if provided) */}
+			{promoSection}
 
 			{/* Detailed data table */}
 			{filteredData.length > 0 && (

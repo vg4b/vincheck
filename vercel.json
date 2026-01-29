@@ -5,7 +5,7 @@
 			"destination": "/api/$1"
 		},
 		{
-			"source": "/((?!api/.*).*)",
+			"source": "/((?!api/|static/|logos/|favicon.ico|manifest.json|logo192.png|logo512.png|robots.txt|asset-manifest.json|site.webmanifest|sitemap.xml).*)",
 			"destination": "/index.html"
 		}
 	],
@@ -18,6 +18,12 @@
 					"value": "GET, OPTIONS"
 				}
 			]
+		}
+	],
+	"crons": [
+		{
+			"path": "/api/cron/send-reminders",
+			"schedule": "0 8 * * *"
 		}
 	]
 }
