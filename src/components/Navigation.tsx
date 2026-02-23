@@ -49,44 +49,46 @@ const Navigation: React.FC = () => {
 	}, [location.pathname])
 
 	return (
-		<nav className='navbar navbar-expand-lg navbar-light fixed-top shadow-sm' ref={navRef}>
-			<div className='container-fluid px-3 px-lg-5'>
+		<nav className='navbar navbar-expand-lg navbar-light fixed-top shadow-sm px-0' ref={navRef}>
+			<div className='container-fluid px-0 px-lg-5'>
 				{/* Logo */}
 				<Link
 					className='navbar-brand fw-bold'
 					to='/'
-					style={{ color: '#5a8f3e' }}
+					style={{ color: '#5a8f3e', padding: '12px' }}
 				>
 					<span className='d-none d-sm-inline'>VIN Info.cz</span>
 					<span className='d-sm-none'>VINInfo</span>
 				</Link>
 
-				{/* Mobile: Quick access to Moje VINInfo (right aligned, before hamburger) */}
-				<Link
-					to='/klientska-zona'
-					className='btn btn-sm d-lg-none ms-auto me-2'
-					style={{
-						backgroundColor: '#5a8f3e',
-						color: 'white',
-						borderRadius: '20px',
-						padding: '6px 12px',
-						fontSize: '0.8rem'
-					}}
-				>
-					Můj účet
-				</Link>
+				<div className='d-flex d-lg-none align-items-center ms-auto'>
+					{/* Mobile: Quick access to Moje VINInfo (right aligned, before hamburger) */}
+					<Link
+						to='/klientska-zona'
+						className='btn btn-sm me-2'
+						style={{
+							backgroundColor: '#5a8f3e',
+							color: 'white',
+							borderRadius: '20px',
+							padding: '6px 12px',
+							fontSize: '0.8rem'
+						}}
+					>
+						Můj účet
+					</Link>
 
-				{/* Hamburger */}
-				<button
-					className='navbar-toggler border-0'
-					type='button'
-					onClick={() => setIsMenuOpen(!isMenuOpen)}
-					aria-controls='navbarNav'
-					aria-expanded={isMenuOpen}
-					aria-label='Toggle navigation'
-				>
-					<span className='navbar-toggler-icon'></span>
-				</button>
+					{/* Hamburger */}
+					<button
+						className='navbar-toggler border-0'
+						type='button'
+						onClick={() => setIsMenuOpen(!isMenuOpen)}
+						aria-controls='navbarNav'
+						aria-expanded={isMenuOpen}
+						aria-label='Toggle navigation'
+					>
+						<span className='navbar-toggler-icon'></span>
+					</button>
+				</div>
 
 				{/* Menu */}
 				<div className={`collapse navbar-collapse ${isMenuOpen ? 'show' : ''}`} id='navbarNav'>

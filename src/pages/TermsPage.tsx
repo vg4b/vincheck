@@ -10,7 +10,7 @@ const TermsPage: React.FC = () => {
 			<main className='container mt-5'>
 				<h1>Obchodní podmínky</h1>
 				<p className='text-muted'>
-					Platné od 1. 1. 2025
+					Platné od 1. 1. 2026
 				</p>
 
 				<section className='mt-4'>
@@ -101,6 +101,17 @@ const TermsPage: React.FC = () => {
 						Informace poskytované službou jsou pouze orientační. Provozovatel
 						nenese odpovědnost za případné škody vzniklé v důsledku spoléhání
 						se na tyto informace.
+					</p>
+					<p>
+						Emailová upozornění jsou poskytována jako doplňková funkce bez
+						záruky doručení v konkrétním čase nebo vůbec (např. z důvodu
+						technických výpadků, omezení poskytovatelů emailu, zařazení do spamu
+						nebo chybného nastavení schránky uživatele).
+					</p>
+					<p>
+						Provozovatel nenese odpovědnost za škody způsobené nedoručením nebo
+						opožděným doručením emailových upozornění. Uživatel je povinen sledovat
+						své zákonné a smluvní termíny samostatně.
 					</p>
 					<p>
 						Uživatel je povinen ověřit si důležité informace u příslušných úřadů

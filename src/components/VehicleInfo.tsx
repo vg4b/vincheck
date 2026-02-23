@@ -191,7 +191,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 									<th>{item.label}</th>
 									<td
 										dangerouslySetInnerHTML={{
-											__html: formatValue(String(item.value))
+											__html: formatValueHtml(String(item.value))
 										}}
 									/>
 								</tr>
@@ -218,7 +218,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 									<th>{item.label}</th>
 									<td
 										dangerouslySetInnerHTML={{
-											__html: formatValue(String(item.value))
+											__html: formatValueHtml(String(item.value))
 										}}
 									/>
 								</tr>
@@ -264,12 +264,36 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 
 function formatValue(value: string): string {
 	if (!value) return '-'
+	if (value.toLowerCase() === 'false') {
+		return 'ne'
+	}
+	if (value.toLowerCase() === 'true') {
+		return 'ano'
+	}
 	// Try to format date if it looks like ISO date
 	if (value.match(/^\d{4}-\d{2}-\d{2}(T.*)?$/)) {
 		const date = new Date(value)
 		return date.toLocaleDateString('cs-CZ')
 	}
 	return value
+}
+
+function escapeHtml(value: string): string {
+	return value
+		.replaceAll('&', '&amp;')
+		.replaceAll('<', '&lt;')
+		.replaceAll('>', '&gt;')
+		.replaceAll('"', '&quot;')
+		.replaceAll("'", '&#39;')
+}
+
+function formatValueHtml(value: string): string {
+	const formatted = formatValue(value)
+	return escapeHtml(formatted)
+		.split('|')
+		.map((part) => part.trim())
+		.filter(Boolean)
+		.join('<br />')
 }
 
 export default VehicleInfo
