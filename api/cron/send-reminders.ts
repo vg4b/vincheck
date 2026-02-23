@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { sql } from '@vercel/postgres'
 import { ensureTables } from '../_db'
-import { generateUnsubscribeToken } from '../email/unsubscribe'
+import { sendReminderEmailNow } from '../_reminderEmail'
 
 // Interface for reminder with user info
 interface ReminderWithUser {
@@ -16,16 +16,6 @@ interface ReminderWithUser {
 	vehicle_brand: string | null
 	vehicle_model: string | null
 	vehicle_vin: string | null
-}
-
-const reminderTypeLabels: Record<string, string> = {
-	stk: 'Termín STK',
-	povinne_ruceni: 'Povinné ručení',
-	havarijni_pojisteni: 'Havarijní pojištění',
-	servis: 'Servisní prohlídka',
-	prezuti_pneu: 'Přezutí pneu',
-	dalnicni_znamka: 'Dálniční známka',
-	jine: 'Jiné'
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -104,48 +94,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 				if (sentCount > 0) {
 					await delay(600)
 				}
-				const vehicleName = reminder.vehicle_title?.trim()
-					|| `${reminder.vehicle_brand || 'Vozidlo'} ${reminder.vehicle_model || ''}`.trim()
 
-				const unsubscribeToken = generateUnsubscribeToken(reminder.user_id, 'notifications')
-				const unsubscribeUrl = `${getBaseUrl()}/api/email/unsubscribe?token=${unsubscribeToken}`
-
-				const emailHtml = generateReminderEmailHtml({
-					vehicleName,
-					reminderType: reminderTypeLabels[reminder.reminder_type] || reminder.reminder_type,
-					dueDate: formatDate(reminder.due_date),
-					note: reminder.note,
-					unsubscribeUrl
+				const success = await sendReminderEmailNow({
+					reminderId: reminder.reminder_id,
+					userId: reminder.user_id,
+					userEmail: reminder.user_email,
+					vehicleTitle: reminder.vehicle_title,
+					vehicleBrand: reminder.vehicle_brand,
+					vehicleModel: reminder.vehicle_model,
+					reminderType: reminder.reminder_type,
+					dueDate: reminder.due_date,
+					note: reminder.note
 				})
 
-				// Send email via Resend
-				const response = await fetch('https://api.resend.com/emails', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${resendApiKey}`
-					},
-					body: JSON.stringify({
-						from: 'VINInfo <noreply@mail.vininfo.cz>',
-						to: reminder.user_email,
-						subject: `Připomínka: ${reminderTypeLabels[reminder.reminder_type] || reminder.reminder_type} - ${vehicleName}`,
-						html: emailHtml
-					})
-				})
-
-				if (!response.ok) {
-					const errorText = await response.text()
-					throw new Error(`Resend API error: ${response.status} - ${errorText}`)
+				if (success) {
+					sentCount++
+				} else {
+					errors.push(`Failed to send reminder ${reminder.reminder_id}`)
 				}
-
-				// Mark reminder as sent
-				await sql`
-					UPDATE reminders
-					SET email_sent_at = now()
-					WHERE id = ${reminder.reminder_id};
-				`
-
-				sentCount++
 			} catch (error) {
 				const errorMessage = error instanceof Error ? error.message : 'Unknown error'
 				errors.push(`Failed to send reminder ${reminder.reminder_id}: ${errorMessage}`)
@@ -163,69 +129,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 		console.error('Cron send-reminders error:', error)
 		return res.status(500).json({ error: 'Internal server error' })
 	}
-}
-
-function getBaseUrl(): string {
-	return process.env.VERCEL_URL
-		? `https://${process.env.VERCEL_URL}`
-		: 'http://localhost:3000'
-}
-
-function formatDate(dateStr: string): string {
-	const date = new Date(dateStr)
-	return date.toLocaleDateString('cs-CZ', {
-		day: 'numeric',
-		month: 'long',
-		year: 'numeric'
-	})
-}
-
-interface ReminderEmailParams {
-	vehicleName: string
-	reminderType: string
-	dueDate: string
-	note: string | null
-	unsubscribeUrl: string
-}
-
-function generateReminderEmailHtml(params: ReminderEmailParams): string {
-	const { vehicleName, reminderType, dueDate, note, unsubscribeUrl } = params
-
-	return `<!DOCTYPE html>
-<html lang="cs">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Připomínka - VIN Info.cz</title>
-</head>
-<body style="font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
-	<div style="background-color: #c6dbad; padding: 25px 30px; border-radius: 8px 8px 0 0; text-align: center;">
-		<h1 style="margin: 0; font-size: 22px; color: #333; font-weight: 600;">VIN Info.cz</h1>
-	</div>
-
-	<div style="background: #ffffff; padding: 30px; border-left: 1px solid #e9ecef; border-right: 1px solid #e9ecef;">
-		<h2 style="color: #333; margin-top: 0; font-size: 20px;">Blíží se termín: ${reminderType}</h2>
-
-		<div style="background: #c6dbad; padding: 20px; border-radius: 8px; margin: 20px 0;">
-			<p style="margin: 0 0 10px; color: #333;"><strong>Vozidlo:</strong> ${vehicleName}</p>
-			<p style="margin: 0 0 10px; color: #333;"><strong>Typ upozornění:</strong> ${reminderType}</p>
-			<p style="margin: 0; color: #333;"><strong>Termín:</strong> <span style="color: #c0392b; font-weight: bold;">${dueDate}</span></p>
-			${note ? `<p style="margin: 10px 0 0; color: #333;"><strong>Poznámka:</strong> ${note}</p>` : ''}
-		</div>
-
-		<p style="color: #555;">Nezapomeňte si včas zajistit splnění tohoto termínu. V případě potřeby můžete termín upravit v klientské zóně.</p>
-
-		<div style="text-align: center; margin: 30px 0;">
-			<a href="${getBaseUrl()}/klientska-zona" style="display: inline-block; background: #5a8f3e; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: 600;">Přejít do Moje VINInfo</a>
-		</div>
-	</div>
-
-	<div style="background: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px; border: 1px solid #e9ecef; border-top: none; text-align: center; font-size: 12px; color: #888;">
-		<p style="margin: 0 0 10px;">Tento email byl odeslán ze služby <a href="https://vininfo.cz" style="color: #555; text-decoration: none;">VIN Info.cz</a></p>
-		<p style="margin: 0;">
-			<a href="${unsubscribeUrl}" style="color: #888;">Odhlásit se z odběru notifikací</a>
-		</p>
-	</div>
-</body>
-</html>`
 }

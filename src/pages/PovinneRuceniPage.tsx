@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
+import { pojisteni, csob } from '../config/affiliateCampaigns'
 
 const PovinneRuceniPage: React.FC = () => {
 	useEffect(() => {
@@ -32,7 +33,7 @@ const PovinneRuceniPage: React.FC = () => {
 					<strong>Hledáte povinné ručení?</strong> Porovnejte nabídky od různých
 					pojišťoven a najděte nejvýhodnější povinné ručení pro vaše vozidlo.{' '}
 					<a
-						href='https://online.pojisteni.cz/?ap=AWYPy1'
+						href={pojisteni.getUrl()}
 						target='_blank'
 						rel='noopener noreferrer'
 						className='fw-bold'
@@ -245,13 +246,40 @@ const PovinneRuceniPage: React.FC = () => {
 							povinné ručení pro vaše vozidlo.
 						</p>
 						<a
-							href='https://online.pojisteni.cz/?ap=AWYPy1'
+							href={pojisteni.getUrl()}
 							className='btn btn-primary btn-lg'
 							target='_blank'
 							rel='noopener noreferrer'
 						>
 							Srovnat a sjednat povinné ručení 🔗
 						</a>
+						{csob.getValidCoupons().some((c) =>
+							['sleva_10_odpovednost', 'sleva_20_auto', 'ccs_karta_1000'].includes(c.id)
+						) && (
+							<div className='mt-4 pt-4 border-top'>
+								<p className='text-muted small mb-2'>
+									{csob.shortLabel} – {csob.tagline}
+								</p>
+								<div className='d-flex flex-wrap gap-2 justify-content-center'>
+									{csob
+										.getValidCoupons()
+										.filter((c) =>
+											['sleva_10_odpovednost', 'sleva_20_auto', 'ccs_karta_1000'].includes(c.id)
+										)
+										.map(({ id, shortLabel }) => (
+											<a
+												key={id}
+												href={csob.getCouponUrl(id)}
+												target='_blank'
+												rel='noopener noreferrer'
+												className='btn btn-outline-success btn-sm'
+											>
+												{shortLabel}
+											</a>
+										))}
+								</div>
+							</div>
+						)}
 					</div>
 				</div>
 			</div>

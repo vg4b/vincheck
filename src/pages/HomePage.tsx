@@ -8,6 +8,7 @@ import { VehicleDataArray } from "../types";
 import { addVehicle } from "../utils/clientZoneApi";
 import { ApiError } from "../utils/apiClient";
 import { fetchVehicleInfo, getDataValue } from "../utils/vehicleApi";
+import { cebia } from "../config/affiliateCampaigns";
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -145,7 +146,7 @@ const HomePage: React.FC = () => {
     } catch (err) {
       console.error("Chyba při načítání dat:", err);
       setError(
-        'Chyba při načítání dat. Zadaný VIN/TP/ORV pravděpodobně neexistuje v Registru silničních vozidel.<br>Zkontrolujte kód a zkuste to znovu. Pokud ani to nepomůže, zkuste vyhledat <a href="https://ehub.cz/system/scripts/click.php?a_aid=9a3cbf23&a_bid=67e04d9d" target="_blank" rel="noopener noreferrer">jinde</a>.'
+        `Chyba při načítání dat. Zadaný VIN/TP/ORV pravděpodobně neexistuje v Registru silničních vozidel.<br>Zkontrolujte kód a zkuste to znovu. Pokud ani to nepomůže, zkuste vyhledat <a href="${cebia.getTextLinkUrl()}" target="_blank" rel="noopener noreferrer">jinde</a>.`
       );
     } finally {
       setLoading(false);
@@ -671,7 +672,7 @@ const HomePage: React.FC = () => {
                     tachometru doporučujeme využít specializované placené služby
                     (např.{" "}
                     <a
-                      href="https://ehub.cz/system/scripts/click.php?a_aid=9a3cbf23&a_bid=67e04d9d"
+                      href={cebia.getTextLinkUrl()}
                       target="_blank"
                       rel="noopener noreferrer"
                     >

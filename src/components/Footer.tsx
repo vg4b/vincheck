@@ -23,8 +23,10 @@ const Footer: React.FC = () => {
                 className="text-decoration-none"
               >
                 Datová kostka
-              </a>
+              </a><br />
+              Kontakt: vininfo(zavináč)fixweb.cz
             </p>
+
           </div>
 
           {/* Quick Links */}

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
+import { cebia } from '../config/affiliateCampaigns'
 
 const KompletniHistorieVozuPage: React.FC = () => {
 	useEffect(() => {
@@ -189,7 +190,7 @@ const KompletniHistorieVozuPage: React.FC = () => {
 									počtu majitelů, servisní historie a dalších důležitých
 									informací můžete využít specializované služby, jako je{' '}
 									<a
-										href='https://ehub.cz/system/scripts/click.php?a_aid=9a3cbf23&a_bid=67e04d9d'
+										href={cebia.getTextLinkUrl()}
 										target='_blank'
 										rel='noopener noreferrer'
 									>
@@ -199,7 +200,7 @@ const KompletniHistorieVozuPage: React.FC = () => {
 									za poplatek.
 								</p>
 								<a
-									href='https://ehub.cz/system/scripts/click.php?a_aid=9a3cbf23&a_bid=67e04d9d'
+									href={cebia.getTextLinkUrl()}
 									target='_blank'
 									rel='noopener noreferrer'
 									className='btn btn-outline-primary'

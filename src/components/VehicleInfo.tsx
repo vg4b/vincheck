@@ -1,6 +1,7 @@
 import React from 'react'
 import { VehicleDataArray } from '../types'
 import { getDataValue, getLogoSrc } from '../utils/vehicleApi'
+import { cebia } from '../config/affiliateCampaigns'
 
 interface VehicleInfoProps {
 	data: VehicleDataArray
@@ -201,7 +202,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 								<th className='align-middle'>Historie a původ vozidla</th>
 								<td className='text-end'>
 									<a
-										href={`https://cz.cebia.com/?vin=${vinCode}`}
+										href={cebia.getDirectUrl(vinCode)}
 										target='_blank'
 										rel='noopener noreferrer'
 										className='btn btn-primary btn-sm fw-bold'
@@ -230,13 +231,13 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 			{/* Banner */}
 			<div className='mt-3 mb-3'>
 				<a
-					href='https://ehub.cz/system/scripts/click.php?a_aid=9a3cbf23&a_bid=452865f0'
+					href={cebia.getGraphicBannerUrl()}
 					target='_top'
 					rel='noopener noreferrer'
 					style={{ display: 'block', width: '100%' }}
 				>
 					<img
-						src='https://doc.ehub.cz/b/6e6f52ca/452865f0.png'
+						src={cebia.getGraphicBannerImage()}
 						alt='Advertisement'
 						className='img-fluid'
 						style={{ width: '100%', height: 'auto', display: 'block' }}
@@ -251,7 +252,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 						position: 'absolute',
 						left: '-9999px'
 					}}
-					src='https://ehub.cz/system/scripts/imp.php?a_aid=9a3cbf23&a_bid=452865f0'
+					src={cebia.getImpressionPixelUrl()}
 					width='1'
 					height='1'
 					alt=''

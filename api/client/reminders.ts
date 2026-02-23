@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { sql } from '@vercel/postgres'
-import { ensureTables } from '../_db'
 import { requireUserId } from '../_auth'
+import { ensureTables } from '../_db'
+import { sendReminderEmailNow } from '../_reminderEmail'
 
 const reminderTypes = new Set([
 	'stk',
@@ -89,7 +90,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 			VALUES (${userId}, ${vehicleId}, ${type}, ${dueDate}, ${note ?? null}, ${emailEnabledValue}, ${emailSendAtValue ?? null})
 			RETURNING id, vehicle_id, type, due_date, note, is_done, created_at, email_enabled, email_send_at, email_sent_at;
 		`
-		return res.status(201).json({ reminder: insertResult.rows[0] })
+
+		const reminder = insertResult.rows[0]
+
+		// Check if email should be sent immediately (email_send_at is today or in the past)
+		if (emailEnabledValue && emailSendAtValue) {
+			const today = new Date().toISOString().split('T')[0]
+			if (emailSendAtValue <= today) {
+				// Check if user has verified email and notifications enabled
+				const userCheck = await sql`
+					SELECT email, email_verified_at, notifications_enabled
+					FROM users
+					WHERE id = ${userId}
+					LIMIT 1;
+				`
+				const user = userCheck.rows[0]
+
+				if (user?.email_verified_at && user?.notifications_enabled) {
+					// Get vehicle info for email
+					const vehicleInfo = await sql`
+						SELECT title, brand, model
+						FROM vehicles
+						WHERE id = ${vehicleId}
+						LIMIT 1;
+					`
+					const vehicle = vehicleInfo.rows[0]
+
+					// Send email immediately
+					await sendReminderEmailNow({
+						reminderId: reminder.id,
+						userId,
+						userEmail: user.email,
+						vehicleTitle: vehicle?.title,
+						vehicleBrand: vehicle?.brand,
+						vehicleModel: vehicle?.model,
+						reminderType: type,
+						dueDate,
+						note: note ?? null
+					})
+
+					// Refresh reminder to get updated email_sent_at
+					const refreshed = await sql`
+						SELECT id, vehicle_id, type, due_date, note, is_done, created_at, email_enabled, email_send_at, email_sent_at
+						FROM reminders
+						WHERE id = ${reminder.id}
+						LIMIT 1;
+					`
+					return res.status(201).json({ reminder: refreshed.rows[0] })
+				}
+			}
+		}
+
+		return res.status(201).json({ reminder })
 	}
 
 	if (req.method === 'PATCH') {

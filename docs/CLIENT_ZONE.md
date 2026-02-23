@@ -147,12 +147,21 @@ The Client Zone is a user dashboard for managing vehicles and setting up reminde
 
 ### Email Notifications
 
-- Sent at 8:00 AM on the `email_send_at` date
-- Only sent if:
-  - User's email is verified
-  - User's `notifications_enabled` is true
-  - Reminder's `email_enabled` is true
-  - `email_sent_at` is null (not already sent)
+**Regular delivery:**
+
+- Sent at 8:00 AM UTC on the `email_send_at` date via cron job
+
+**Immediate delivery:**
+
+- If `email_send_at` is today or in the past when creating a reminder, the email is sent **immediately**
+- This handles edge cases like creating a reminder with due date = tomorrow (default send date would be today)
+
+**Conditions for sending:**
+
+- User's email is verified
+- User's `notifications_enabled` is true
+- Reminder's `email_enabled` is true
+- `email_sent_at` is null (not already sent)
 
 ### Marking as Done
 
@@ -252,10 +261,14 @@ For each saved vehicle, users can:
 src/pages/
 └── ClientZonePage.tsx    # Main client zone component (1300+ lines)
 
-api/client/
-├── vehicles.ts           # Vehicle CRUD operations
-├── reminders.ts          # Reminder CRUD operations
-└── preferences.ts        # User preferences
+api/
+├── _reminderEmail.ts     # Shared reminder email utility
+├── client/
+│   ├── vehicles.ts       # Vehicle CRUD operations
+│   ├── reminders.ts      # Reminder CRUD operations (+ immediate email)
+│   └── preferences.ts    # User preferences
+└── cron/
+    └── send-reminders.ts # Daily cron job for scheduled emails
 
 src/utils/
 └── clientZoneApi.ts      # Frontend API client

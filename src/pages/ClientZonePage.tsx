@@ -19,6 +19,7 @@ import {
 } from '../utils/clientZoneApi'
 import { ApiError } from '../utils/apiClient'
 import { fetchVehicleInfo, formatValue, getDataValue } from '../utils/vehicleApi'
+import { cebia, csob, pojisteni } from '../config/affiliateCampaigns'
 
 const reminderTypeLabels: Record<ReminderType, string> = {
 	stk: 'Termín STK',
@@ -717,7 +718,7 @@ const ClientZonePage: React.FC = () => {
 													</p>
 													<div className='mt-2'>
 														<a
-															href={`https://cz.cebia.com/?vin=${vehicle.vin ?? ''}`}
+															href={cebia.getDirectUrl(vehicle.vin ?? undefined)}
 															target='_blank'
 															rel='noopener noreferrer'
 															className='link-primary'
@@ -935,7 +936,7 @@ const ClientZonePage: React.FC = () => {
 											stav tachometru a další důležité informace.
 										</p>
 										<a
-											href='https://ehub.cz/system/scripts/click.php?a_aid=9a3cbf23&a_bid=67e04d9d'
+											href={cebia.getTextLinkUrl()}
 											target='_blank'
 											rel='noopener noreferrer'
 											className='btn btn-outline-primary'
@@ -949,13 +950,14 @@ const ClientZonePage: React.FC = () => {
 							<div className='col-md-6'>
 								<div className='card h-100'>
 									<div className='card-body'>
-										<h5 className='card-title'>Povinné ručení a havarijní pojištění</h5>
+										<h5 className='card-title'>Srovnání pojištění</h5>
 										<p className='card-text text-muted'>
-											Srovnejte nabídky pojištění od všech pojišťoven a ušetřete 
-											na povinném ručení i havarijním pojištění.
+											{pojisteni.getProvider(pojisteni.defaultProviderId).tagline}.
+											{' '}Srovnejte nabídky od všech pojišťoven a najděte nejvýhodnější 
+											povinné ručení i havarijní pojištění.
 										</p>
 										<a
-											href='https://online.pojisteni.cz/?ap=AWYPy1'
+											href={pojisteni.getUrl()}
 											target='_blank'
 											rel='noopener noreferrer'
 											className='btn btn-outline-primary'
@@ -965,6 +967,32 @@ const ClientZonePage: React.FC = () => {
 									</div>
 								</div>
 							</div>
+
+							{csob.getValidCoupons().length > 0 && (
+								<div className='col-12'>
+									<div className='card'>
+										<div className='card-body'>
+											<h5 className='card-title'>CSOB Pojišťovna – akční nabídky</h5>
+											<p className='card-text text-muted'>
+												{csob.tagline}. Aktuální slevy a dárky:
+											</p>
+											<div className='d-flex flex-wrap gap-2'>
+												{csob.getValidCoupons().map(({ id, shortLabel }) => (
+													<a
+														key={id}
+														href={csob.getCouponUrl(id)}
+														target='_blank'
+														rel='noopener noreferrer'
+														className='btn btn-outline-success btn-sm'
+													>
+														{shortLabel}
+													</a>
+												))}
+											</div>
+										</div>
+									</div>
+								</div>
+							)}
 						</div>
 
 						{vehicles.length > 0 && (
@@ -981,7 +1009,7 @@ const ClientZonePage: React.FC = () => {
 													<div className='d-flex gap-2 flex-wrap'>
 														{vehicle.vin && (
 															<a
-																href={`https://cz.cebia.com/?vin=${vehicle.vin}`}
+																href={cebia.getDirectUrl(vehicle.vin)}
 																target='_blank'
 																rel='noopener noreferrer'
 																className='btn btn-sm btn-outline-secondary'
@@ -990,7 +1018,7 @@ const ClientZonePage: React.FC = () => {
 															</a>
 														)}
 														<a
-															href='https://online.pojisteni.cz/?ap=AWYPy1'
+															href={pojisteni.getUrl()}
 															target='_blank'
 															rel='noopener noreferrer'
 															className='btn btn-sm btn-outline-secondary'
