@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
 import { useAuth } from '../contexts/AuthContext'
@@ -19,7 +19,7 @@ import {
 } from '../utils/clientZoneApi'
 import { ApiError } from '../utils/apiClient'
 import { fetchVehicleInfo, formatValue, getDataValue } from '../utils/vehicleApi'
-import { cebia, csob, pojisteni } from '../config/affiliateCampaigns'
+import { cebia, csob, direct } from '../config/affiliateCampaigns'
 
 const reminderTypeLabels: Record<ReminderType, string> = {
 	stk: 'Termín STK',
@@ -103,12 +103,15 @@ const VehicleCardSkeleton: React.FC = () => (
 
 const ClientZonePage: React.FC = () => {
 	const navigate = useNavigate()
+	const [searchParams] = useSearchParams()
 	const { user, loading: authLoading, logout, verifyEmail, resendVerification } = useAuth()
 	const [vehicles, setVehicles] = useState<ClientVehicle[]>([])
 	const [reminders, setReminders] = useState<Reminder[]>([])
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState('')
-	const [activeTab, setActiveTab] = useState<ZoneTab>('vehicles')
+	const tabFromUrl = searchParams.get('tab') as ZoneTab | null
+	const isValidTab = tabFromUrl && ['vehicles', 'alerts', 'benefits', 'settings'].includes(tabFromUrl)
+	const [activeTab, setActiveTab] = useState<ZoneTab>(isValidTab ? tabFromUrl : 'vehicles')
 	const [titleDrafts, setTitleDrafts] = useState<Record<string, string>>({})
 	const [titleSavingId, setTitleSavingId] = useState<string | null>(null)
 	const [titleError, setTitleError] = useState<Record<string, string>>({})
@@ -169,6 +172,13 @@ const ClientZonePage: React.FC = () => {
 			loadRef.current.inFlight = false
 		}
 	}
+
+	useEffect(() => {
+		const tab = searchParams.get('tab') as ZoneTab | null
+		if (tab && ['vehicles', 'alerts', 'benefits', 'settings'].includes(tab)) {
+			setActiveTab(tab)
+		}
+	}, [searchParams])
 
 	useEffect(() => {
 		if (!authLoading && !user) {
@@ -930,6 +940,22 @@ const ClientZonePage: React.FC = () => {
 							<div className='col-md-6'>
 								<div className='card h-100'>
 									<div className='card-body'>
+										<h5 className='card-title'>Porovnání pojištění</h5>
+										<p className='card-text text-muted'>
+											Vyberte typ pojištění a přejděte k online sjednání. Povinné ručení i havarijní.
+										</p>
+										<Link
+											to='/sjednat-pojisteni'
+											className='btn btn-outline-primary'
+										>
+											Sjednat pojištění
+										</Link>
+									</div>
+								</div>
+							</div>
+							<div className='col-md-6'>
+								<div className='card h-100'>
+									<div className='card-body'>
 										<h5 className='card-title'>Prověření historie vozidla</h5>
 										<p className='card-text text-muted'>
 											Zjistěte kompletní historii vozidla - havárie, servisní záznamy, 
@@ -950,19 +976,25 @@ const ClientZonePage: React.FC = () => {
 							<div className='col-md-6'>
 								<div className='card h-100'>
 									<div className='card-body'>
-										<h5 className='card-title'>Srovnání pojištění</h5>
+										<h5 className='card-title'>Pojištění vozidla</h5>
 										<p className='card-text text-muted'>
-											{pojisteni.getProvider(pojisteni.defaultProviderId).tagline}.
-											{' '}Srovnejte nabídky od všech pojišťoven a najděte nejvýhodnější 
-											povinné ručení i havarijní pojištění.
+											{direct.tagline}
 										</p>
 										<a
-											href={pojisteni.getUrl()}
+											href={direct.getTextLinkUrl()}
 											target='_blank'
 											rel='noopener noreferrer'
 											className='btn btn-outline-primary'
 										>
-											Srovnat na Pojisteni.cz
+											Povinné ručení na {direct.shortLabel}
+										</a>
+										<a
+											href={direct.getHavarijniUrl()}
+											target='_blank'
+											rel='noopener noreferrer'
+											className='btn btn-outline-primary ms-2'
+										>
+											Havarijní na {direct.shortLabel}
 										</a>
 									</div>
 								</div>
@@ -1018,12 +1050,12 @@ const ClientZonePage: React.FC = () => {
 															</a>
 														)}
 														<a
-															href={pojisteni.getUrl()}
+															href={direct.getDirectUrl(vehicle.vin ?? undefined)}
 															target='_blank'
 															rel='noopener noreferrer'
 															className='btn btn-sm btn-outline-secondary'
 														>
-															Srovnat pojištění
+															Pojištění na Direct
 														</a>
 													</div>
 												</div>

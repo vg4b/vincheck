@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
-import { pojisteni, csob } from '../config/affiliateCampaigns'
+import { direct, csob } from '../config/affiliateCampaigns'
 
 const PovinneRuceniPage: React.FC = () => {
 	useEffect(() => {
@@ -30,15 +30,14 @@ const PovinneRuceniPage: React.FC = () => {
 				</div>
 
 				<p className='mt-3 mb-4'>
-					<strong>Hledáte povinné ručení?</strong> Porovnejte nabídky od různých
-					pojišťoven a najděte nejvýhodnější povinné ručení pro vaše vozidlo.{' '}
+					<strong>Hledáte povinné ručení?</strong> {direct.tagline}{' '}
 					<a
-						href={pojisteni.getUrl()}
+						href={direct.getTextLinkUrl()}
 						target='_blank'
 						rel='noopener noreferrer'
 						className='fw-bold'
 					>
-						Srovnat a sjednat povinné ručení 🔗
+						{direct.shortLabel} – sjednat povinné ručení 🔗
 					</a>
 				</p>
 
@@ -242,16 +241,15 @@ const PovinneRuceniPage: React.FC = () => {
 							Sjednejte si povinné ručení ještě dnes
 						</h3>
 						<p className='card-text mb-4'>
-							Porovnejte nabídky od různých pojišťoven a najděte nejvýhodnější
-							povinné ručení pro vaše vozidlo.
+							{direct.tagline}
 						</p>
 						<a
-							href={pojisteni.getUrl()}
+							href={direct.getTextLinkUrl()}
 							className='btn btn-primary btn-lg'
 							target='_blank'
 							rel='noopener noreferrer'
 						>
-							Srovnat a sjednat povinné ručení 🔗
+							{direct.shortLabel} – sjednat povinné ručení 🔗
 						</a>
 						{csob.getValidCoupons().some((c) =>
 							['sleva_10_odpovednost', 'sleva_20_auto', 'ccs_karta_1000'].includes(c.id)

@@ -109,7 +109,7 @@ const Navigation: React.FC = () => {
 						<li className='nav-item dropdown'>
 							<button
 								className={`nav-link px-3 rounded dropdown-toggle btn btn-link text-decoration-none ${
-									isActive('/povinne-ruceni') || isActive('/havarijni-pojisteni')
+									isActive('/povinne-ruceni') || isActive('/havarijni-pojisteni') || isActive('/sjednat-pojisteni')
 										? 'active fw-semibold'
 										: ''
 								}`}
@@ -117,7 +117,7 @@ const Navigation: React.FC = () => {
 								data-bs-toggle='dropdown'
 								aria-expanded='false'
 								style={
-									isActive('/povinne-ruceni') || isActive('/havarijni-pojisteni')
+									isActive('/povinne-ruceni') || isActive('/havarijni-pojisteni') || isActive('/sjednat-pojisteni')
 										? { backgroundColor: 'rgba(90, 143, 62, 0.1)', color: '#5a8f3e' }
 										: {}
 								}
@@ -125,6 +125,16 @@ const Navigation: React.FC = () => {
 								Pojištění
 							</button>
 							<ul className='dropdown-menu dropdown-menu-end shadow-sm border-0'>
+								<li>
+									<Link
+										className={`dropdown-item fw-semibold ${isActive('/sjednat-pojisteni') ? 'active' : ''}`}
+										to='/sjednat-pojisteni'
+										onClick={closeMenu}
+									>
+										Sjednat pojištění
+									</Link>
+								</li>
+								<li><hr className='dropdown-divider' /></li>
 								<li>
 									<Link
 										className={`dropdown-item ${isActive('/povinne-ruceni') ? 'active' : ''}`}

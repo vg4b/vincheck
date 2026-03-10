@@ -70,6 +70,8 @@ const HomePage: React.FC = () => {
       }
     };
   }, []);
+  const [searchMethod, setSearchMethod] = useState<"vin" | "tp" | "orv">("vin");
+  const [searchAlsoCebia, setSearchAlsoCebia] = useState(false); // skryto do opravy
   const [vin, setVin] = useState("");
   const [tp, setTp] = useState("");
   const [orv, setOrv] = useState("");
@@ -111,6 +113,16 @@ const HomePage: React.FC = () => {
     setLoading(true);
     setSaveMessage("");
 
+    const openCebiaInCurrentTab = searchMethod === "vin" && searchAlsoCebia && vin.trim().length === 17;
+    let newTab: Window | null = null;
+    if (openCebiaInCurrentTab) {
+      newTab = window.open(
+        `${window.location.origin}/vin/${vin.trim()}`,
+        "_blank",
+        "noopener,noreferrer"
+      );
+    }
+
     try {
       const data = await fetchVehicleInfo(
         vin || undefined,
@@ -120,13 +132,19 @@ const HomePage: React.FC = () => {
 
       // Navigate to appropriate detail page based on search type
       if (vin && vin.trim().length === 17) {
-        // Get VIN from response data or use the input value
         const vinCode = getDataValue(data, "VIN", vin);
 
-        // Navigate to the VIN detail page if we have a valid VIN
         if (vinCode && vinCode.length === 17) {
-          navigate(`/vin/${vinCode}`);
-          return; // Exit early, navigation will handle the rest
+          if (openCebiaInCurrentTab) {
+            if (newTab && newTab !== window) {
+              window.location.href = cebia.getTextLinkUrlWithVin(vin.trim());
+            } else {
+              navigate(`/vin/${vinCode}`);
+            }
+          } else {
+            navigate(`/vin/${vinCode}`);
+          }
+          return;
         }
       } else if (tp && tp.trim().length >= 6 && tp.trim().length <= 10) {
         // Navigate to TP detail page
@@ -268,110 +286,180 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="col-md-6">
-                <label htmlFor="vinInput" className="form-label">
-                  <strong>Zadejte VIN kód vozidla:</strong>
-                  <br />
-                  <small className="text-muted">
-                    Unikátní 17místný identifikátor vozidla
-                  </small>
+              <div className="col-12 mb-3">
+                <label className="form-label">
+                  <strong>Vyberte způsob vyhledávání:</strong>
                 </label>
-                <input
-                  ref={vinInputRef}
-                  type="text"
-                  className="form-control"
-                  id="vinInput"
-                  name="vin"
-                  placeholder="Např. WF0FXXWPCFHD05923"
-                  value={vin}
-                  onChange={handleVinChange}
-                  onKeyPress={(e) => handleKeyPress(e, isVinValid)}
-                  aria-label="VIN kód vozidla (17 znaků)"
-                  maxLength={17}
-                  autoComplete="off"
-                />
-              </div>
-              <div className="col-md-6 d-flex align-items-end justify-content-md-end mt-md-0 mt-3">
-                <button
-                  type="button"
-                  className="btn btn-primary w-100"
-                  onClick={handleSubmit}
-                  id="getInfoBtn"
-                  disabled={!isVinValid || loading}
-                >
-                  Vyhledat vozidlo dle VIN
-                </button>
+                <div className="btn-group w-100" role="group">
+                  <input
+                    type="radio"
+                    className="btn-check"
+                    name="searchMethod"
+                    id="methodVin"
+                    checked={searchMethod === "vin"}
+                    onChange={() => setSearchMethod("vin")}
+                  />
+                  <label className="btn btn-outline-primary" htmlFor="methodVin">
+                    VIN kód
+                  </label>
+                  <input
+                    type="radio"
+                    className="btn-check"
+                    name="searchMethod"
+                    id="methodTp"
+                    checked={searchMethod === "tp"}
+                    onChange={() => setSearchMethod("tp")}
+                  />
+                  <label className="btn btn-outline-primary" htmlFor="methodTp">
+                    Číslo TP
+                  </label>
+                  <input
+                    type="radio"
+                    className="btn-check"
+                    name="searchMethod"
+                    id="methodOrv"
+                    checked={searchMethod === "orv"}
+                    onChange={() => setSearchMethod("orv")}
+                  />
+                  <label className="btn btn-outline-primary" htmlFor="methodOrv">
+                    Číslo ORV
+                  </label>
+                </div>
               </div>
 
-              <div className="col-md-6 mt-5">
-                <label htmlFor="tpInput" className="form-label">
-                  <strong>Zadejte číslo TP vozidla:</strong>
-                  <br />
-                  <small className="text-muted">
-                    Číslo velkého technického průkazu (6-10 znaků)
-                  </small>
-                </label>
-                <input
-                  ref={tpInputRef}
-                  type="text"
-                  className="form-control"
-                  id="tpInput"
-                  name="tp"
-                  placeholder="Např. UI036202"
-                  value={tp}
-                  onChange={handleTpChange}
-                  onKeyPress={(e) => handleKeyPress(e, isTpValid)}
-                  aria-label="Číslo TP vozidla (6-10 znaků)"
-                  maxLength={10}
-                  autoComplete="off"
-                />
-              </div>
-              <div className="col-md-6 d-flex align-items-end justify-content-md-end mt-md-0 mt-3">
-                <button
-                  type="button"
-                  className="btn btn-primary w-100"
-                  onClick={handleSubmit}
-                  id="getTpInfoBtn"
-                  disabled={!isTpValid || loading}
-                >
-                  Vyhledat vozidlo dle TP
-                </button>
-              </div>
+              {searchMethod === "vin" && (
+                <>
+                  <div className="col-md-6">
+                    <label htmlFor="vinInput" className="form-label">
+                      <strong>Zadejte VIN kód vozidla:</strong>
+                      <br />
+                      <small className="text-muted">
+                        Unikátní 17místný identifikátor vozidla
+                      </small>
+                    </label>
+                    <input
+                      ref={vinInputRef}
+                      type="text"
+                      className="form-control"
+                      id="vinInput"
+                      name="vin"
+                      placeholder="Např. WF0FXXWPCFHD05923"
+                      value={vin}
+                      onChange={handleVinChange}
+                      onKeyPress={(e) => handleKeyPress(e, isVinValid)}
+                      aria-label="VIN kód vozidla (17 znaků)"
+                      maxLength={17}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="col-md-6 d-flex align-items-end justify-content-md-end mt-md-0 mt-3">
+                    <button
+                      type="button"
+                      className="btn btn-primary w-100"
+                      onClick={handleSubmit}
+                      id="getInfoBtn"
+                      disabled={!isVinValid || loading}
+                    >
+                      Vyhledat vozidlo dle VIN
+                    </button>
+                  </div>
+                  {/* Cebia checkbox prozatím skryt - otevření nového tabu nefunguje spolehlivě */}
+                  {false && (
+                    <div className="col-12 mt-2">
+                      <div className="form-check">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          id="searchAlsoCebia"
+                          checked={searchAlsoCebia}
+                          onChange={(e) => setSearchAlsoCebia(e.target.checked)}
+                        />
+                        <label className="form-check-label" htmlFor="searchAlsoCebia">
+                          Vyhledat také na Cebia.cz (historie vozidla)
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
 
-              <div className="col-md-6 mt-5">
-                <label htmlFor="orvInput" className="form-label">
-                  <strong>Zadejte číslo ORV vozidla:</strong>
-                  <br />
-                  <small className="text-muted">
-                    Číslo osvědčení o registraci vozidla (5-9 znaků)
-                  </small>
-                </label>
-                <input
-                  ref={orvInputRef}
-                  type="text"
-                  className="form-control"
-                  id="orvInput"
-                  name="orv"
-                  placeholder="Např. UAA000000"
-                  value={orv}
-                  onChange={handleOrvChange}
-                  onKeyPress={(e) => handleKeyPress(e, isOrvValid)}
-                  aria-label="Číslo ORV vozidla (5-9 znaků)"
-                  maxLength={9}
-                  autoComplete="off"
-                />
-              </div>
-              <div className="col-md-6 d-flex align-items-end justify-content-md-end mt-md-0 mt-3">
-                <button
-                  type="button"
-                  className="btn btn-primary w-100"
-                  onClick={handleSubmit}
-                  id="getOrvInfoBtn"
-                  disabled={!isOrvValid || loading}
-                >
-                  Vyhledat vozidlo dle ORV
-                </button>
-              </div>
+              {searchMethod === "tp" && (
+                <>
+                  <div className="col-md-6">
+                    <label htmlFor="tpInput" className="form-label">
+                      <strong>Zadejte číslo TP vozidla:</strong>
+                      <br />
+                      <small className="text-muted">
+                        Číslo velkého technického průkazu (6-10 znaků)
+                      </small>
+                    </label>
+                    <input
+                      ref={tpInputRef}
+                      type="text"
+                      className="form-control"
+                      id="tpInput"
+                      name="tp"
+                      placeholder="Např. UI036202"
+                      value={tp}
+                      onChange={handleTpChange}
+                      onKeyPress={(e) => handleKeyPress(e, isTpValid)}
+                      aria-label="Číslo TP vozidla (6-10 znaků)"
+                      maxLength={10}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="col-md-6 d-flex align-items-end justify-content-md-end mt-md-0 mt-3">
+                    <button
+                      type="button"
+                      className="btn btn-primary w-100"
+                      onClick={handleSubmit}
+                      id="getTpInfoBtn"
+                      disabled={!isTpValid || loading}
+                    >
+                      Vyhledat vozidlo dle TP
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {searchMethod === "orv" && (
+                <>
+                  <div className="col-md-6">
+                    <label htmlFor="orvInput" className="form-label">
+                      <strong>Zadejte číslo ORV vozidla:</strong>
+                      <br />
+                      <small className="text-muted">
+                        Číslo osvědčení o registraci vozidla (5-9 znaků)
+                      </small>
+                    </label>
+                    <input
+                      ref={orvInputRef}
+                      type="text"
+                      className="form-control"
+                      id="orvInput"
+                      name="orv"
+                      placeholder="Např. UAA000000"
+                      value={orv}
+                      onChange={handleOrvChange}
+                      onKeyPress={(e) => handleKeyPress(e, isOrvValid)}
+                      aria-label="Číslo ORV vozidla (5-9 znaků)"
+                      maxLength={9}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="col-md-6 d-flex align-items-end justify-content-md-end mt-md-0 mt-3">
+                    <button
+                      type="button"
+                      className="btn btn-primary w-100"
+                      onClick={handleSubmit}
+                      id="getOrvInfoBtn"
+                      disabled={!isOrvValid || loading}
+                    >
+                      Vyhledat vozidlo dle ORV
+                    </button>
+                  </div>
+                </>
+              )}
 
               {error && (
                 <div className="mt-4 mb-1">

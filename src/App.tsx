@@ -10,6 +10,7 @@ import HomePage from './pages/HomePage'
 import ClientZonePage from './pages/ClientZonePage'
 import KompletniHistorieVozuPage from './pages/KompletniHistorieVozuPage'
 import PovinneRuceniPage from './pages/PovinneRuceniPage'
+import SjednatPojisteniPage from './pages/SjednatPojisteniPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -46,6 +47,7 @@ function App() {
 					path='/havarijni-pojisteni'
 					element={<HavarijniPojisteniPage />}
 				/>
+				<Route path='/sjednat-pojisteni' element={<SjednatPojisteniPage />} />
 				<Route
 					path='/kompletni-historie-vozu'
 					element={<KompletniHistorieVozuPage />}

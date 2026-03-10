@@ -8,6 +8,21 @@ const EHUB_AID = '9a3cbf23'
 
 /** Campaign definitions */
 export const campaigns = {
+	/** Direct pojišťovna – povinné ručení, havarijní (CJ/Impact network) */
+	direct: {
+		/** CJ affiliate click URL */
+		affiliateClickUrl: 'https://www.anrdoezrs.net/click-101607830-15284807',
+		/** Destination: povinné ručení s VIN */
+		povinneRuceniUrl: 'https://www.direct.cz/auto/povinne-ruceni',
+		/** Destination: havarijní pojištění s VIN */
+		havarijniPojisteniUrl: 'https://www.direct.cz/auto/havarijni-pojisteni',
+		/** Destination: přehled autopojištění (povinné + havarijní) */
+		autoUrl: 'https://www.direct.cz/auto',
+		label: 'Pojištění na Direct.cz',
+		shortLabel: 'Direct pojišťovna',
+		tagline: 'nízká cena, sjednání i správa pojištění zdarma, vysoké plnění',
+	},
+
 	/** Cebia.cz - Vehicle history check (eHub network) */
 	cebia: {
 		/** Direct landing URL (append ?vin=XXX for pre-filled check) */
@@ -25,35 +40,6 @@ export const campaigns = {
 	},
 
 } as const
-
-/**
- * Insurance (pojištění) affiliate providers.
- * Add new providers here – each gets label, URL builder, and optional sort order.
- */
-export const pojisteniProviders = {
-	pojisteni_cz: {
-		baseUrl: 'https://online.pojisteni.cz',
-		/** Query param name (e.g. 'ap' for Pojisteni.cz) */
-		paramName: 'ap',
-		affiliateParam: 'AWYPy1',
-		label: 'Srovnat na Pojisteni.cz',
-		shortLabel: 'Pojisteni.cz',
-		tagline: 'bez telefonátů, výhodné ceny',
-		sortOrder: 0,
-	},
-	// Add more providers, e.g.:
-	// srovnejto_cz: {
-	//   baseUrl: 'https://www.srovnejto.cz/pojisteni',
-	//   paramName: 'ref',
-	//   affiliateParam: 'YOUR_ID',
-	//   label: 'Srovnat na Srovnejto.cz',
-	//   shortLabel: 'Srovnejto.cz',
-	//   tagline: 'výhodné srovnání',
-	//   sortOrder: 1,
-	// },
-} as const
-
-export type PojisteniProviderId = keyof typeof pojisteniProviders
 
 /**
  * CSOB Pojišťovna – eHub program with coupon-based offers.
@@ -143,6 +129,13 @@ export const cebia = {
 	getTextLinkUrl: (): string =>
 		buildEhubClickUrl(campaigns.cebia.textBannerId),
 
+	/** eHub affiliate URL to Cebia with VIN pre-filled */
+	getTextLinkUrlWithVin: (vin: string): string =>
+		buildEhubClickUrlWithDest(
+			campaigns.cebia.textBannerId,
+			`${campaigns.cebia.baseUrl}/?vin=${encodeURIComponent(vin)}`
+		),
+
 	/** eHub affiliate URL for graphic banner (VehicleInfo) */
 	getGraphicBannerUrl: (): string =>
 		buildEhubClickUrl(campaigns.cebia.graphicBannerId),
@@ -158,33 +151,59 @@ export const cebia = {
 	shortLabel: campaigns.cebia.shortLabel,
 } as const
 
+/** Přidá ?vin= nebo ?spz= podle délky kódu (VIN = 17 znaků) */
+function appendVinOrSpzParam(baseUrl: string, code: string): string {
+	const sep = baseUrl.includes('?') ? '&' : '?'
+	const param = code.length === 17 ? 'vin' : 'spz'
+	return `${baseUrl}${sep}${param}=${encodeURIComponent(code)}`
+}
+
 /**
- * Insurance (pojištění) affiliate links – supports multiple providers
+ * Direct pojišťovna – povinné ručení, havarijní (CJ/Impact affiliate)
  */
-export const pojisteni = {
-	/** Affiliate URL for a provider. Omit for default (first by sortOrder). */
-	getUrl: (providerId?: PojisteniProviderId): string => {
-		const id = providerId ?? pojisteni.defaultProviderId
-		const p = pojisteniProviders[id]
-		const sep = p.baseUrl.includes('?') ? '&' : '?'
-		return `${p.baseUrl}${sep}${p.paramName}=${p.affiliateParam}`
+export const direct = {
+	/** Affiliate URL pro povinné ručení (bez VIN/SPZ) */
+	getTextLinkUrl: (): string => {
+		const dest = campaigns.direct.povinneRuceniUrl
+		return `${campaigns.direct.affiliateClickUrl}?url=${encodeURIComponent(dest)}`
 	},
 
-	/** All providers sorted by sortOrder (for listing in UI) */
-	getSortedProviders: (): Array<{ id: PojisteniProviderId; label: string; shortLabel: string; tagline: string }> =>
-		(Object.entries(pojisteniProviders) as [PojisteniProviderId, (typeof pojisteniProviders)[PojisteniProviderId]][])
-			.map(([id, p]) => ({ id, label: p.label, shortLabel: p.shortLabel, tagline: p.tagline, sortOrder: p.sortOrder }))
-			.sort((a, b) => a.sortOrder - b.sortOrder)
-			.map(({ id, label, shortLabel, tagline }) => ({ id, label, shortLabel, tagline })),
-
-	/** Default provider (first by sortOrder) – for backward compatibility */
-	get defaultProviderId(): PojisteniProviderId {
-		return (Object.entries(pojisteniProviders) as [PojisteniProviderId, (typeof pojisteniProviders)[PojisteniProviderId]][])
-			.sort(([, a], [, b]) => a.sortOrder - b.sortOrder)[0][0]
+	/** Affiliate URL pro povinné ručení s VIN nebo SPZ předvyplněným */
+	getDirectUrl: (vinOrSpz?: string): string => {
+		const base = campaigns.direct.affiliateClickUrl
+		const dest = vinOrSpz && vinOrSpz.length >= 5
+			? appendVinOrSpzParam(campaigns.direct.povinneRuceniUrl, vinOrSpz)
+			: campaigns.direct.povinneRuceniUrl
+		return `${base}?url=${encodeURIComponent(dest)}`
 	},
 
-	/** Get full provider config by id */
-	getProvider: (providerId: PojisteniProviderId) => pojisteniProviders[providerId],
+	/** Affiliate URL pro havarijní pojištění (bez VIN/SPZ) */
+	getHavarijniUrl: (): string => {
+		const dest = campaigns.direct.havarijniPojisteniUrl
+		return `${campaigns.direct.affiliateClickUrl}?url=${encodeURIComponent(dest)}`
+	},
+
+	/** Affiliate URL pro havarijní pojištění s VIN nebo SPZ předvyplněným */
+	getHavarijniUrlWithVin: (vinOrSpz?: string): string => {
+		const base = campaigns.direct.affiliateClickUrl
+		const dest = vinOrSpz && vinOrSpz.length >= 5
+			? appendVinOrSpzParam(campaigns.direct.havarijniPojisteniUrl, vinOrSpz)
+			: campaigns.direct.havarijniPojisteniUrl
+		return `${base}?url=${encodeURIComponent(dest)}`
+	},
+
+	/** Affiliate URL pro autopojištění (povinné i havarijní) */
+	getAutoUrl: (vinOrSpz?: string): string => {
+		const base = campaigns.direct.affiliateClickUrl
+		const dest = vinOrSpz && vinOrSpz.length >= 5
+			? appendVinOrSpzParam(campaigns.direct.autoUrl, vinOrSpz)
+			: campaigns.direct.autoUrl
+		return `${base}?url=${encodeURIComponent(dest)}`
+	},
+
+	label: campaigns.direct.label,
+	shortLabel: campaigns.direct.shortLabel,
+	tagline: campaigns.direct.tagline,
 } as const
 
 /**
@@ -227,6 +246,6 @@ export const csob = {
  */
 export const allCampaigns = {
 	cebia,
-	pojisteni,
+	direct,
 	csob,
 } as const

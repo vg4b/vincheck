@@ -1,6 +1,7 @@
 import React from 'react'
 import { VehicleDataArray } from '../types'
 import { getDataValue, getLogoSrc } from '../utils/vehicleApi'
+import { Link } from 'react-router-dom'
 import { cebia } from '../config/affiliateCampaigns'
 
 interface VehicleInfoProps {
@@ -152,20 +153,13 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 								{saveMessage}
 							</div>
 						)}
-						<a
-							href='/povinne-ruceni'
+						<Link
+							to={`/sjednat-pojisteni?vin=${encodeURIComponent(vinCode)}`}
 							className='btn btn-outline-primary'
 							role='button'
 						>
-							Povinné ručení
-						</a>
-						<a
-							href='/havarijni-pojisteni'
-							className='btn btn-outline-primary'
-							role='button'
-						>
-							Havarijní pojištění
-						</a>
+							Sjednat pojištění
+						</Link>
 						<a
 							href='/kompletni-historie-vozu'
 							className='btn btn-outline-primary'
