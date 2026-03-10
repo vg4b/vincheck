@@ -731,10 +731,16 @@ const ClientZonePage: React.FC = () => {
 															href={cebia.getDirectUrl(vehicle.vin ?? undefined)}
 															target='_blank'
 															rel='noopener noreferrer'
-															className='link-primary'
+															className='link-primary d-block'
 														>
 															Prověřit historii vozidla ➜
 														</a>
+														<Link
+															to={vehicle.vin ? `/sjednat-pojisteni?vin=${encodeURIComponent(vehicle.vin)}` : '/sjednat-pojisteni'}
+															className='link-primary d-block'
+														>
+															Sjednat pojištění →
+														</Link>
 													</div>
 													</div>
 													<div className='btn-group'>
@@ -942,7 +948,7 @@ const ClientZonePage: React.FC = () => {
 									<div className='card-body'>
 										<h5 className='card-title'>Porovnání pojištění</h5>
 										<p className='card-text text-muted'>
-											Vyberte typ pojištění a přejděte k online sjednání. Povinné ručení i havarijní.
+											Vyberte typ pojištění a přejděte k online sjednání. Povinné ručení i havarijní pojištění.
 										</p>
 										<Link
 											to='/sjednat-pojisteni'
