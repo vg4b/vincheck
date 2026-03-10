@@ -102,6 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 					vehicleTitle: reminder.vehicle_title,
 					vehicleBrand: reminder.vehicle_brand,
 					vehicleModel: reminder.vehicle_model,
+					vehicleVin: reminder.vehicle_vin,
 					reminderType: reminder.reminder_type,
 					dueDate: reminder.due_date,
 					note: reminder.note

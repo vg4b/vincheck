@@ -2,6 +2,12 @@ import { sql } from '@vercel/postgres'
 import { sendEmail } from './_email'
 import { generateUnsubscribeToken } from './email/unsubscribe'
 
+/** Cebia eHub affiliate URL s VIN */
+function getCebiaAffiliateUrl(vin: string): string {
+	const dest = `https://cz.cebia.com/?vin=${encodeURIComponent(vin)}`
+	return `https://ehub.cz/system/scripts/click.php?a_aid=9a3cbf23&a_bid=67e04d9d&desturl=${encodeURIComponent(dest)}`
+}
+
 export const reminderTypeLabels: Record<string, string> = {
 	stk: 'Termín STK',
 	povinne_ruceni: 'Povinné ručení',
@@ -30,14 +36,49 @@ export function formatDate(dateStr: string): string {
 interface ReminderEmailParams {
 	vehicleName: string
 	reminderType: string
+	reminderTypeRaw: string
 	dueDate: string
 	note: string | null
 	unsubscribeUrl: string
+	vehicleVin: string | null
+	baseUrl: string
+}
+
+function getPromoBlockHtml(params: ReminderEmailParams): string {
+	const { reminderTypeRaw, vehicleVin, baseUrl } = params
+	const vin = vehicleVin?.trim()
+	const hasVin = vin && vin.length === 17
+
+	if (reminderTypeRaw === 'povinne_ruceni' || reminderTypeRaw === 'havarijni_pojisteni') {
+		const sjednatUrl = hasVin ? `${baseUrl}/sjednat-pojisteni?vin=${encodeURIComponent(vin)}` : `${baseUrl}/sjednat-pojisteni`
+		return `
+		<div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #e9ecef;">
+			<p style="margin: 0 0 10px; font-size: 14px; color: #555;">Sjednejte si pojištění online během pár minut – bez telefonátů a za jedny z nejlepších cen na trhu.</p>
+			<a href="${sjednatUrl}" style="display: inline-block; background: #5a8f3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; font-size: 14px;">Sjednat pojištění online</a>
+		</div>`
+	}
+	if (reminderTypeRaw === 'stk' && hasVin) {
+		const cebiaUrl = getCebiaAffiliateUrl(vin)
+		return `
+		<div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #e9ecef;">
+			<p style="margin: 0 0 10px; font-size: 14px; color: #555;">Zvažujete koupi nového vozu? Prověřte si historii vozidla.</p>
+			<a href="${cebiaUrl}" style="display: inline-block; background: #5a8f3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; font-size: 14px;">Prověřit historii vozidla</a>
+		</div>`
+	}
+	if (['servis', 'prezuti_pneu', 'dalnicni_znamka', 'jine'].includes(reminderTypeRaw)) {
+		const benefitsUrl = `${baseUrl}/klientska-zona?tab=benefits`
+		return `
+		<div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #e9ecef;">
+			<p style="margin: 0 0 10px; font-size: 14px; color: #555;">Prohlédněte si doporučené služby pro vaše vozidla.</p>
+			<a href="${benefitsUrl}" style="display: inline-block; background: #5a8f3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; font-size: 14px;">Moje výhody</a>
+		</div>`
+	}
+	return ''
 }
 
 export function generateReminderEmailHtml(params: ReminderEmailParams): string {
-	const { vehicleName, reminderType, dueDate, note, unsubscribeUrl } = params
-	const baseUrl = getBaseUrl()
+	const { vehicleName, reminderType, dueDate, note, unsubscribeUrl, baseUrl } = params
+	const promoBlock = getPromoBlockHtml(params)
 
 	return `<!DOCTYPE html>
 <html lang="cs">
@@ -62,7 +103,7 @@ export function generateReminderEmailHtml(params: ReminderEmailParams): string {
 		</div>
 
 		<p style="color: #555;">Nezapomeňte si včas zajistit splnění tohoto termínu. V případě potřeby můžete termín upravit v klientské zóně.</p>
-
+		${promoBlock}
 		<div style="text-align: center; margin: 30px 0;">
 			<a href="${baseUrl}/klientska-zona" style="display: inline-block; background: #5a8f3e; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: 600;">Přejít do Moje VINInfo</a>
 		</div>
@@ -85,6 +126,7 @@ interface SendReminderEmailParams {
 	vehicleTitle: string | null
 	vehicleBrand: string | null
 	vehicleModel: string | null
+	vehicleVin: string | null
 	reminderType: string
 	dueDate: string
 	note: string | null
@@ -102,12 +144,16 @@ export async function sendReminderEmailNow(params: SendReminderEmailParams): Pro
 		const unsubscribeToken = generateUnsubscribeToken(params.userId, 'notifications')
 		const unsubscribeUrl = `${getBaseUrl()}/api/email/unsubscribe?token=${unsubscribeToken}`
 
+		const baseUrl = getBaseUrl()
 		const emailHtml = generateReminderEmailHtml({
 			vehicleName,
 			reminderType: reminderTypeLabels[params.reminderType] || params.reminderType,
+			reminderTypeRaw: params.reminderType,
 			dueDate: formatDate(params.dueDate),
 			note: params.note,
-			unsubscribeUrl
+			unsubscribeUrl,
+			vehicleVin: params.vehicleVin,
+			baseUrl
 		})
 
 		const success = await sendEmail({

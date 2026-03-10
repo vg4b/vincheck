@@ -109,7 +109,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 				if (user?.email_verified_at && user?.notifications_enabled) {
 					// Get vehicle info for email
 					const vehicleInfo = await sql`
-						SELECT title, brand, model
+						SELECT title, brand, model, vin
 						FROM vehicles
 						WHERE id = ${vehicleId}
 						LIMIT 1;
@@ -124,6 +124,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 						vehicleTitle: vehicle?.title,
 						vehicleBrand: vehicle?.brand,
 						vehicleModel: vehicle?.model,
+						vehicleVin: vehicle?.vin ?? null,
 						reminderType: type,
 						dueDate,
 						note: note ?? null
