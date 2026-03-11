@@ -1,10 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { sql } from '@vercel/postgres'
 import { ensureTables } from '../_db'
+import { getBaseUrl } from '../_utils'
 import { generateUnsubscribeToken } from '../email/unsubscribe'
 
 // Helper to add delay between API calls (Resend rate limit: 2 req/s)
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 const getResendApiKey = (): string | null => {
 	return process.env.RESEND_API_KEY || null
@@ -12,12 +13,6 @@ const getResendApiKey = (): string | null => {
 
 const getAdminSecret = (): string | null => {
 	return process.env.ADMIN_SECRET || process.env.CRON_SECRET || null
-}
-
-const getBaseUrl = (): string => {
-	return process.env.VERCEL_URL
-		? `https://${process.env.VERCEL_URL}`
-		: 'https://vininfo.cz'
 }
 
 interface MarketingEmailParams {
@@ -29,7 +24,10 @@ interface MarketingEmailParams {
 	ctaUrl?: string
 }
 
-function generateMarketingEmailHtml(params: MarketingEmailParams, unsubscribeUrl: string): string {
+function generateMarketingEmailHtml(
+	params: MarketingEmailParams,
+	unsubscribeUrl: string
+): string {
 	const { subject, preheader, heading, content, ctaText, ctaUrl } = params
 
 	return `<!DOCTYPE html>
@@ -54,11 +52,15 @@ function generateMarketingEmailHtml(params: MarketingEmailParams, unsubscribeUrl
 			${content}
 		</div>
 
-		${ctaText && ctaUrl ? `
+		${
+			ctaText && ctaUrl
+				? `
 		<div style="text-align: center; margin: 30px 0;">
 			<a href="${ctaUrl}" style="display: inline-block; background-color: #333; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">${ctaText}</a>
 		</div>
-		` : ''}
+		`
+				: ''
+		}
 	</div>
 
 	<div style="background: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px; border: 1px solid #e9ecef; border-top: none; text-align: center; font-size: 12px; color: #888;">
@@ -85,23 +87,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 			return res.status(401).json({ error: 'Unauthorized' })
 		}
 	} else {
-		return res.status(500).json({ error: 'ADMIN_SECRET or CRON_SECRET not configured' })
+		return res
+			.status(500)
+			.json({ error: 'ADMIN_SECRET or CRON_SECRET not configured' })
 	}
 
 	try {
 		await ensureTables()
 
-		const { subject, preheader, heading, content, ctaText, ctaUrl, testEmail } = req.body ?? {}
+		const { subject, preheader, heading, content, ctaText, ctaUrl, testEmail } =
+			req.body ?? {}
 
 		// Validate required fields
 		if (!subject || !heading || !content) {
-			return res.status(400).json({ 
+			return res.status(400).json({
 				error: 'Missing required fields: subject, heading, content',
 				example: {
 					subject: 'Novinka na VIN Info.cz',
 					preheader: 'Podívejte se, co je nového...',
 					heading: 'Nová funkce: Upozornění na termíny',
-					content: '<p>Nyní si můžete nastavit upozornění na důležité termíny...</p>',
+					content:
+						'<p>Nyní si můžete nastavit upozornění na důležité termíny...</p>',
 					ctaText: 'Vyzkoušet',
 					ctaUrl: 'https://vininfo.cz/klientska-zona',
 					testEmail: 'optional@test.com'
@@ -141,7 +147,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 		}
 
 		if (recipients.length === 0) {
-			return res.status(200).json({ 
+			return res.status(200).json({
 				message: 'No recipients found',
 				sent: 0,
 				total: 0
@@ -158,7 +164,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 					await delay(600)
 				}
 
-				const unsubscribeToken = generateUnsubscribeToken(recipient.id, 'marketing')
+				const unsubscribeToken = generateUnsubscribeToken(
+					recipient.id,
+					'marketing'
+				)
 				const unsubscribeUrl = `${getBaseUrl()}/api/email/unsubscribe?token=${unsubscribeToken}`
 
 				const emailHtml = generateMarketingEmailHtml(
@@ -170,7 +179,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${resendApiKey}`
+						Authorization: `Bearer ${resendApiKey}`
 					},
 					body: JSON.stringify({
 						from: 'VINInfo <noreply@mail.vininfo.cz>',
@@ -187,9 +196,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 				sentCount++
 			} catch (error) {
-				const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+				const errorMessage =
+					error instanceof Error ? error.message : 'Unknown error'
 				errors.push(`Failed to send to ${recipient.email}: ${errorMessage}`)
-				console.error(`Failed to send marketing email to ${recipient.email}:`, error)
+				console.error(
+					`Failed to send marketing email to ${recipient.email}:`,
+					error
+				)
 			}
 		}
 

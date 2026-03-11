@@ -1,6 +1,9 @@
 import { sql } from '@vercel/postgres'
 import { sendEmail } from './_email'
+import { formatDate, getBaseUrl } from './_utils'
 import { generateUnsubscribeToken } from './email/unsubscribe'
+
+export { formatDate, getBaseUrl }
 
 /** Cebia eHub affiliate URL s VIN */
 function getCebiaAffiliateUrl(vin: string): string {
@@ -16,21 +19,6 @@ export const reminderTypeLabels: Record<string, string> = {
 	prezuti_pneu: 'Přezutí pneu',
 	dalnicni_znamka: 'Dálniční známka',
 	jine: 'Jiné'
-}
-
-export function getBaseUrl(): string {
-	return process.env.VERCEL_URL
-		? `https://${process.env.VERCEL_URL}`
-		: 'http://localhost:3000'
-}
-
-export function formatDate(dateStr: string): string {
-	const date = new Date(dateStr)
-	return date.toLocaleDateString('cs-CZ', {
-		day: 'numeric',
-		month: 'long',
-		year: 'numeric'
-	})
 }
 
 interface ReminderEmailParams {
@@ -49,8 +37,13 @@ function getPromoBlockHtml(params: ReminderEmailParams): string {
 	const vin = vehicleVin?.trim()
 	const hasVin = vin && vin.length === 17
 
-	if (reminderTypeRaw === 'povinne_ruceni' || reminderTypeRaw === 'havarijni_pojisteni') {
-		const sjednatUrl = hasVin ? `${baseUrl}/sjednat-pojisteni?vin=${encodeURIComponent(vin)}` : `${baseUrl}/sjednat-pojisteni`
+	if (
+		reminderTypeRaw === 'povinne_ruceni' ||
+		reminderTypeRaw === 'havarijni_pojisteni'
+	) {
+		const sjednatUrl = hasVin
+			? `${baseUrl}/sjednat-pojisteni?vin=${encodeURIComponent(vin)}`
+			: `${baseUrl}/sjednat-pojisteni`
 		return `
 		<div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #e9ecef;">
 			<p style="margin: 0 0 10px; font-size: 14px; color: #555;">Sjednejte si pojištění online během pár minut – bez telefonátů a za jedny z nejlepších cen na trhu.</p>
@@ -65,7 +58,11 @@ function getPromoBlockHtml(params: ReminderEmailParams): string {
 			<a href="${cebiaUrl}" style="display: inline-block; background: #5a8f3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; font-size: 14px;">Prověřit historii vozidla</a>
 		</div>`
 	}
-	if (['servis', 'prezuti_pneu', 'dalnicni_znamka', 'jine'].includes(reminderTypeRaw)) {
+	if (
+		['servis', 'prezuti_pneu', 'dalnicni_znamka', 'jine'].includes(
+			reminderTypeRaw
+		)
+	) {
 		const benefitsUrl = `${baseUrl}/klientska-zona?tab=benefits`
 		return `
 		<div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #e9ecef;">
@@ -77,7 +74,8 @@ function getPromoBlockHtml(params: ReminderEmailParams): string {
 }
 
 export function generateReminderEmailHtml(params: ReminderEmailParams): string {
-	const { vehicleName, reminderType, dueDate, note, unsubscribeUrl, baseUrl } = params
+	const { vehicleName, reminderType, dueDate, note, unsubscribeUrl, baseUrl } =
+		params
 	const promoBlock = getPromoBlockHtml(params)
 
 	return `<!DOCTYPE html>
@@ -136,18 +134,25 @@ interface SendReminderEmailParams {
  * Send a reminder email immediately and mark it as sent
  * Returns true if sent successfully, false otherwise
  */
-export async function sendReminderEmailNow(params: SendReminderEmailParams): Promise<boolean> {
+export async function sendReminderEmailNow(
+	params: SendReminderEmailParams
+): Promise<boolean> {
 	try {
-		const vehicleName = params.vehicleTitle?.trim()
-			|| `${params.vehicleBrand || 'Vozidlo'} ${params.vehicleModel || ''}`.trim()
+		const vehicleName =
+			params.vehicleTitle?.trim() ||
+			`${params.vehicleBrand || 'Vozidlo'} ${params.vehicleModel || ''}`.trim()
 
-		const unsubscribeToken = generateUnsubscribeToken(params.userId, 'notifications')
+		const unsubscribeToken = generateUnsubscribeToken(
+			params.userId,
+			'notifications'
+		)
 		const unsubscribeUrl = `${getBaseUrl()}/api/email/unsubscribe?token=${unsubscribeToken}`
 
 		const baseUrl = getBaseUrl()
 		const emailHtml = generateReminderEmailHtml({
 			vehicleName,
-			reminderType: reminderTypeLabels[params.reminderType] || params.reminderType,
+			reminderType:
+				reminderTypeLabels[params.reminderType] || params.reminderType,
 			reminderTypeRaw: params.reminderType,
 			dueDate: formatDate(params.dueDate),
 			note: params.note,

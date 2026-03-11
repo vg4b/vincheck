@@ -1,10 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import {
 	generateReminderEmailHtml,
-	getBaseUrl,
-	formatDate,
 	reminderTypeLabels
 } from '../_reminderEmail'
+import { formatDate, getBaseUrl } from '../_utils'
 
 const REMINDER_TYPES = [
 	'stk',
