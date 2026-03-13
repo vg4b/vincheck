@@ -16,6 +16,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import TermsPage from './pages/TermsPage'
 import VehicleDetailPage from './pages/VehicleDetailPage'
+import UpozorneniNaTerminyPage from './pages/UpozorneniNaTerminyPage'
 
 function App() {
 	return (
@@ -51,6 +52,10 @@ function App() {
 				<Route
 					path='/kompletni-historie-vozu'
 					element={<KompletniHistorieVozuPage />}
+				/>
+				<Route
+					path='/upozorneni-na-terminy'
+					element={<UpozorneniNaTerminyPage />}
 				/>
 				<Route path='/ochrana-osobnich-udaju' element={<PrivacyPolicyPage />} />
 				<Route path='/podminky' element={<TermsPage />} />

@@ -29,6 +29,20 @@ const RegisterPage: React.FC = () => {
 		}
 	}, [user, navigate])
 
+	useEffect(() => {
+		document.title = 'Registrace – upozornění na STK zdarma | VIN Info.cz'
+		const meta = document.querySelector('meta[name="description"]')
+		if (meta) {
+			meta.setAttribute(
+				'content',
+				'Vytvořte si účet a nastavte si připomínky na STK, pojištění, servis – zdarma emailem. Uložte si vozidla a nikdy nezmeškejte důležitý termín.'
+			)
+		}
+		return () => {
+			document.title = 'VIN Info.cz'
+		}
+	}, [])
+
 	const handleSubmit = async (event: React.FormEvent) => {
 		event.preventDefault()
 		setError('')
@@ -186,12 +200,29 @@ const RegisterPage: React.FC = () => {
 		<>
 			<Navigation />
 			<main className='container mt-5'>
-				<h1>Registrace</h1>
-				<p className='text-muted'>
-					Vytvořte si účet a ukládejte vozidla i upozornění na jednom místě.
-				</p>
-				<form className='mt-4' onSubmit={handleSubmit}>
-					<div className='mb-3'>
+				<div className='row'>
+					<div className='col-lg-7'>
+						<h1>Registrace</h1>
+						<p className='lead text-muted mb-3'>
+							Vytvořte si účet a ukládejte vozidla i upozornění na jednom místě.
+						</p>
+						<p className='text-muted mb-4'>
+							Už nikdy nezmeškejte důležitý termín. Uložte si vozidla z kontroly v registru,
+							nastavte si připomínky na STK, pojištění, servis nebo přezutí pneumatik –
+							a pošleme vám email v termínu, který si zvolíte. Vše zdarma, bez předplatného.
+						</p>
+						<div className='mb-4'>
+							<ul className='list-unstyled text-muted small mb-0'>
+								<li className='mb-2'>🔧 Upozornění na termín STK</li>
+								<li className='mb-2'>🛡️ Připomínka povinného ručení a havarijního</li>
+								<li className='mb-2'>🛞 Servis, přezutí pneu, dálniční známka</li>
+								<li className='mb-0'>📧 Email v termínu dle vašeho výběru • ✨ 100 % zdarma</li>
+							</ul>
+						</div>
+					</div>
+					<div className='col-lg-5'>
+						<form className='mt-4 mt-lg-0' onSubmit={handleSubmit}>
+							<div className='mb-3'>
 						<label htmlFor='registerEmail' className='form-label'>
 							Email
 						</label>
@@ -203,9 +234,9 @@ const RegisterPage: React.FC = () => {
 							onChange={(event) => setEmail(event.target.value)}
 							required
 						/>
-					</div>
-					<div className='mb-3'>
-						<label htmlFor='registerPassword' className='form-label'>
+							</div>
+							<div className='mb-3'>
+								<label htmlFor='registerPassword' className='form-label'>
 							Heslo
 						</label>
 						<input
@@ -217,9 +248,9 @@ const RegisterPage: React.FC = () => {
 							required
 							minLength={8}
 						/>
-					</div>
-					<div className='mb-3'>
-						<label htmlFor='registerPasswordConfirm' className='form-label'>
+							</div>
+							<div className='mb-3'>
+								<label htmlFor='registerPasswordConfirm' className='form-label'>
 							Potvrzení hesla
 						</label>
 						<input
@@ -231,11 +262,11 @@ const RegisterPage: React.FC = () => {
 							required
 							minLength={8}
 						/>
-					</div>
-					<div className='mb-3'>
-						<div className='form-check'>
-							<input
-								id='termsAccepted'
+							</div>
+							<div className='mb-3'>
+								<div className='form-check'>
+									<input
+										id='termsAccepted'
 								type='checkbox'
 								className='form-check-input'
 								checked={termsAccepted}
@@ -277,10 +308,12 @@ const RegisterPage: React.FC = () => {
 					>
 						{loading ? 'Zakládám účet...' : 'Vytvořit účet'}
 					</button>
-				</form>
-				<p className='mt-3'>
-					Máte účet? <Link to='/prihlaseni'>Přihlásit se</Link>
-				</p>
+						</form>
+						<p className='mt-3'>
+							Máte účet? <Link to='/prihlaseni'>Přihlásit se</Link>
+						</p>
+					</div>
+				</div>
 			</main>
 			<Footer />
 		</>

@@ -319,7 +319,7 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 										</div>
 										<p className='mt-3 mb-0'>
 											<small className='text-muted'>
-												📧 Pošleme vám email den před termínem • ✨ 100% zdarma
+												📧 Pošleme vám email v termínu, který si zvolíte • ✨ 100% zdarma
 											</small>
 										</p>
 									</div>
@@ -369,7 +369,7 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 										</h2>
 										<p className='mb-0 text-muted'>
 											V Moje VINInfo si můžete nastavit upozornění na STK, pojištění, 
-											servis a další termíny. Pošleme vám email, až se bude termín blížit.
+											servis a další termíny. Pošleme vám email v termínu, který si zvolíte.
 										</p>
 									</div>
 									<div className='col-lg-4 text-center text-lg-end mt-3 mt-lg-0'>

@@ -48,3 +48,8 @@ img {
 #newSearch {
 	justify-content: center;
 }
+
+/* Prevent mobile browser from underlining auto-detected email links */
+.client-zone-email a {
+	text-decoration: none !important;
+}

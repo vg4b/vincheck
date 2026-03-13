@@ -25,6 +25,36 @@
 		<priority>0.8</priority>
 	</url>
 	<url>
+		<loc>https://vininfo.cz/upozorneni-na-terminy</loc>
+		<lastmod>2025-01-01</lastmod>
+		<changefreq>monthly</changefreq>
+		<priority>0.8</priority>
+	</url>
+	<url>
+		<loc>https://vininfo.cz/sjednat-pojisteni</loc>
+		<lastmod>2025-01-01</lastmod>
+		<changefreq>monthly</changefreq>
+		<priority>0.8</priority>
+	</url>
+	<url>
+		<loc>https://vininfo.cz/registrace</loc>
+		<lastmod>2025-01-01</lastmod>
+		<changefreq>monthly</changefreq>
+		<priority>0.8</priority>
+	</url>
+	<url>
+		<loc>https://vininfo.cz/prihlaseni</loc>
+		<lastmod>2025-01-01</lastmod>
+		<changefreq>monthly</changefreq>
+		<priority>0.7</priority>
+	</url>
+	<url>
+		<loc>https://vininfo.cz/klientska-zona</loc>
+		<lastmod>2025-01-01</lastmod>
+		<changefreq>monthly</changefreq>
+		<priority>0.7</priority>
+	</url>
+	<url>
 		<loc>https://vininfo.cz/ochrana-osobnich-udaju</loc>
 		<lastmod>2025-01-01</lastmod>
 		<changefreq>yearly</changefreq>

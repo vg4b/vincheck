@@ -79,6 +79,10 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 			!excludedFields.has(item.name) && item.value !== '' && item.value != null
 	)
 
+	const cleanVin = vinCode.replace(/[^a-zA-Z0-9]/g, '')
+	const historyUrl =
+		cleanVin.length === 17 ? cebia.getTextLinkUrlWithVin(cleanVin) : cebia.getTextLinkUrl()
+
 	// Split data for inserting Cebia link at specific position (e.g. 10th item)
 	// If list is shorter than 10, insert at the end
 	const insertIndex = Math.min(10, filteredData.length)
@@ -219,11 +223,21 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 							))}
 						</tbody>
 					</table>
+					<div className='text-center mt-3'>
+						<a
+							href={historyUrl}
+							target='_blank'
+							rel='noopener noreferrer'
+							className='btn btn-outline-secondary'
+						>
+							Načíst historii vozidla (nová stránka)
+						</a>
+					</div>
 				</div>
 			)}
 
 			{/* Banner */}
-			<div className='mt-3 mb-3'>
+			<div className='mt-5 mb-5'>
 				<a
 					href={cebia.getGraphicBannerUrl()}
 					target='_top'

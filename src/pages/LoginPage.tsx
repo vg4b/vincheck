@@ -19,6 +19,20 @@ const LoginPage: React.FC = () => {
 		}
 	}, [user, navigate])
 
+	useEffect(() => {
+		document.title = 'Přihlášení do Moje VINInfo | VIN Info.cz'
+		const meta = document.querySelector('meta[name="description"]')
+		if (meta) {
+			meta.setAttribute(
+				'content',
+				'Přihlaste se pro správu vozidel a upozornění na STK, pojištění a servis. Moje VINInfo – vše na jednom místě zdarma.'
+			)
+		}
+		return () => {
+			document.title = 'VIN Info.cz'
+		}
+	}, [])
+
 	const handleSubmit = async (event: React.FormEvent) => {
 		event.preventDefault()
 		setError('')

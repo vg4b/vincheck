@@ -22,7 +22,7 @@ const HomePage: React.FC = () => {
     if (metaDescription) {
       metaDescription.setAttribute(
         "content",
-        "Zdarma zkontrolujte VIN kód, číslo TP nebo ORV vozidla v českém registru. Získejte informace o stáří vozidla, technické údaje, datum první registrace, platnost STK a dalších 90+ údajů o vozidle. Rychlá a bezplatná kontrola vozidel v ČR."
+        "Zdarma zkontrolujte VIN kód, číslo TP nebo ORV vozidla v českém registru. Získejte technické údaje, datum první registrace, platnost STK. Uložte si vozidlo a nastavte upozornění na STK, pojištění a servis – emailem zdarma."
       );
     }
 
@@ -492,6 +492,10 @@ const HomePage: React.FC = () => {
                       kdy je vozidlo technicky způsobilé
                     </li>
                     <li className="mb-2">
+                      ✅ <strong>Upozornění na termíny</strong> - uložte si vozidlo
+                      a nechte se emailem připomenout STK, pojištění a servis
+                    </li>
+                    <li className="mb-2">
                       ✅ <strong>Technické údaje vozidla</strong> - motorizace,
                       objem motoru, výkon, palivo
                     </li>
@@ -727,7 +731,7 @@ const HomePage: React.FC = () => {
                     </li>
                     <li>
                       <strong>Dostávat emailové notifikace</strong> - připomeneme vám blížící se 
-                      termíny den předem, abyste nic nezmeškali.
+                      termíny v den, který si zvolíte, abyste nic nezmeškali.
                     </li>
                     <li>
                       <strong>Rychle srovnat pojištění</strong> - přímý přístup k výhodným nabídkám 
@@ -786,8 +790,8 @@ const HomePage: React.FC = () => {
                   <p>
                     Po registraci v Moje VINInfo si můžete ke každému vozidlu 
                     nastavit upozornění na různé termíny - STK, pojištění, servis 
-                    a další. Systém vám automaticky pošle email den před termínem 
-                    (nebo v datum, které si zvolíte), abyste měli čas vše zařídit. 
+                    a další. Systém vám pošle email v termínu, který si zvolíte, 
+                    abyste měli čas vše zařídit. 
                     Upozornění můžete kdykoliv upravit nebo vypnout.
                   </p>
 

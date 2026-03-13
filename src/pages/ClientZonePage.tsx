@@ -174,6 +174,15 @@ const ClientZonePage: React.FC = () => {
 	}
 
 	useEffect(() => {
+		if (user) {
+			document.title = 'Moje VINInfo – upozornění na STK, pojištění | VIN Info.cz'
+		}
+		return () => {
+			document.title = 'VIN Info.cz'
+		}
+	}, [user])
+
+	useEffect(() => {
 		const tab = searchParams.get('tab') as ZoneTab | null
 		if (tab && ['vehicles', 'alerts', 'benefits', 'settings'].includes(tab)) {
 			setActiveTab(tab)
@@ -493,7 +502,7 @@ const ClientZonePage: React.FC = () => {
 				<div className='d-flex flex-wrap align-items-center justify-content-between'>
 					<div>
 						<h1>{zoneTitle}</h1>
-						<p className='text-muted mb-0'>Přihlášen: {user?.email}</p>
+						<p className='text-muted mb-0'>Přihlášen: <span className='client-zone-email'>{user?.email}</span></p>
 					</div>
 					<button type='button' className='btn btn-outline-secondary' onClick={handleLogout}>
 						Odhlásit se
@@ -727,6 +736,20 @@ const ClientZonePage: React.FC = () => {
 														</span>
 													</p>
 													<div className='mt-2'>
+														{(vehicle.vin || vehicle.tp || vehicle.orv) && (
+															<Link
+																to={
+																	vehicle.vin
+																		? `/vin/${encodeURIComponent(vehicle.vin)}`
+																		: vehicle.tp
+																			? `/tp/${encodeURIComponent(vehicle.tp)}`
+																			: `/orv/${encodeURIComponent(vehicle.orv!)}`
+																}
+																className='link-primary d-block'
+															>
+																Info z registru vozidel →
+															</Link>
+														)}
 														<a
 															href={cebia.getDirectUrl(vehicle.vin ?? undefined)}
 															target='_blank'
@@ -986,22 +1009,24 @@ const ClientZonePage: React.FC = () => {
 										<p className='card-text text-muted'>
 											{direct.tagline}
 										</p>
-										<a
-											href={direct.getTextLinkUrl()}
-											target='_blank'
-											rel='noopener noreferrer'
-											className='btn btn-outline-primary'
-										>
-											Povinné ručení na {direct.shortLabel}
-										</a>
-										<a
-											href={direct.getHavarijniUrl()}
-											target='_blank'
-											rel='noopener noreferrer'
-											className='btn btn-outline-primary ms-2'
-										>
-											Havarijní na {direct.shortLabel}
-										</a>
+										<div className='d-flex flex-wrap gap-2'>
+											<a
+												href={direct.getTextLinkUrl()}
+												target='_blank'
+												rel='noopener noreferrer'
+												className='btn btn-outline-primary'
+											>
+												Povinné ručení na {direct.shortLabel}
+											</a>
+											<a
+												href={direct.getHavarijniUrl()}
+												target='_blank'
+												rel='noopener noreferrer'
+												className='btn btn-outline-primary'
+											>
+												Havarijní na {direct.shortLabel}
+											</a>
+										</div>
 									</div>
 								</div>
 							</div>
@@ -1045,6 +1070,20 @@ const ClientZonePage: React.FC = () => {
 												<div className='d-flex justify-content-between align-items-center flex-wrap gap-2'>
 													<span className='fw-semibold'>{vehicleName}</span>
 													<div className='d-flex gap-2 flex-wrap'>
+														{(vehicle.vin || vehicle.tp || vehicle.orv) && (
+															<Link
+																to={
+																	vehicle.vin
+																		? `/vin/${encodeURIComponent(vehicle.vin)}`
+																		: vehicle.tp
+																			? `/tp/${encodeURIComponent(vehicle.tp)}`
+																			: `/orv/${encodeURIComponent(vehicle.orv!)}`
+																}
+																className='btn btn-sm btn-outline-secondary'
+															>
+																Info z registru vozidel
+															</Link>
+														)}
 														{vehicle.vin && (
 															<a
 																href={cebia.getDirectUrl(vehicle.vin)}

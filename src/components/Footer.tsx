@@ -44,8 +44,28 @@ const Footer: React.FC = () => {
                 </Link>
               </li>
               <li className="mb-2">
+                <Link to="/prihlaseni" className="text-muted text-decoration-none small">
+                  Přihlášení
+                </Link>
+              </li>
+              <li className="mb-2">
                 <Link to="/registrace" className="text-muted text-decoration-none small">
                   Registrace
+                </Link>
+              </li>
+              <li className="mb-2">
+                <Link to="/sjednat-pojisteni" className="text-muted text-decoration-none small">
+                  Sjednat pojištění
+                </Link>
+              </li>
+              <li className="mb-2">
+                <Link to="/kompletni-historie-vozu" className="text-muted text-decoration-none small">
+                  Historie vozu
+                </Link>
+              </li>
+              <li className="mb-2">
+                <Link to="/upozorneni-na-terminy" className="text-muted text-decoration-none small">
+                  Upozornění na termíny
                 </Link>
               </li>
             </ul>

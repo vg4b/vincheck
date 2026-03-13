@@ -20,7 +20,7 @@ export const campaigns = {
 		autoUrl: 'https://www.direct.cz/auto',
 		label: 'Pojištění na Direct.cz',
 		shortLabel: 'Direct pojišťovna',
-		tagline: 'nízká cena, sjednání i správa pojištění zdarma, vysoké plnění',
+		tagline: 'Nízká cena, sjednání i správa pojištění online bez volání, vysoké plnění',
 	},
 
 	/** Cebia.cz - Vehicle history check (eHub network) */

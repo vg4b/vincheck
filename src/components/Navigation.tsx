@@ -167,6 +167,17 @@ const Navigation: React.FC = () => {
 								Historie vozu
 							</Link>
 						</li>
+						{/* Upozornění na termíny */}
+						<li className='nav-item'>
+							<Link
+								className={`nav-link px-3 rounded ${isActive('/upozorneni-na-terminy') ? 'active fw-semibold' : ''}`}
+								to='/upozorneni-na-terminy'
+								onClick={closeMenu}
+								style={isActive('/upozorneni-na-terminy') ? { backgroundColor: 'rgba(90, 143, 62, 0.1)', color: '#5a8f3e' } : {}}
+							>
+								Upozornění
+							</Link>
+						</li>
 
 						{/* Divider (desktop only) */}
 						<li className='nav-item d-none d-lg-block'>
