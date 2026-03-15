@@ -49,7 +49,7 @@ const Navigation: React.FC = () => {
 	}, [location.pathname])
 
 	return (
-		<nav className='navbar navbar-expand-lg navbar-light fixed-top shadow-sm px-0' ref={navRef}>
+		<nav className='navbar navbar-expand-xl navbar-light fixed-top shadow-sm px-0' ref={navRef}>
 			<div className='container-fluid px-0 px-lg-5'>
 				{/* Logo */}
 				<Link
@@ -61,7 +61,7 @@ const Navigation: React.FC = () => {
 					<span className='d-sm-none'>VINInfo</span>
 				</Link>
 
-				<div className='d-flex d-lg-none align-items-center ms-auto'>
+				<div className='d-flex d-xl-none align-items-center ms-auto'>
 					{/* Mobile: Quick access to Moje VINInfo (right aligned, before hamburger) */}
 					<Link
 						to='/klientska-zona'
@@ -92,11 +92,11 @@ const Navigation: React.FC = () => {
 
 				{/* Menu */}
 				<div className={`collapse navbar-collapse ${isMenuOpen ? 'show' : ''}`} id='navbarNav'>
-					<ul className='navbar-nav ms-auto align-items-lg-center gap-lg-1'>
+					<ul className='navbar-nav ms-auto align-items-lg-center gap-lg-1 flex-nowrap'>
 						{/* Main Search */}
 						<li className='nav-item'>
 							<Link
-								className={`nav-link px-3 rounded ${isActive('/') ? 'active fw-semibold' : ''}`}
+								className={`nav-link px-3 rounded text-nowrap ${isActive('/') ? 'active fw-semibold' : ''}`}
 								to='/'
 								onClick={closeMenu}
 								style={isActive('/') ? { backgroundColor: 'rgba(90, 143, 62, 0.1)', color: '#5a8f3e' } : {}}
@@ -108,7 +108,7 @@ const Navigation: React.FC = () => {
 						{/* Insurance Dropdown */}
 						<li className='nav-item dropdown'>
 							<button
-								className={`nav-link px-3 rounded dropdown-toggle btn btn-link text-decoration-none ${
+								className={`nav-link px-3 rounded dropdown-toggle btn btn-link text-decoration-none text-nowrap ${
 									isActive('/povinne-ruceni') || isActive('/havarijni-pojisteni') || isActive('/sjednat-pojisteni')
 										? 'active fw-semibold'
 										: ''
@@ -159,7 +159,7 @@ const Navigation: React.FC = () => {
 						{/* Vehicle History */}
 						<li className='nav-item'>
 							<Link
-								className={`nav-link px-3 rounded ${isActive('/kompletni-historie-vozu') ? 'active fw-semibold' : ''}`}
+								className={`nav-link px-3 rounded text-nowrap ${isActive('/kompletni-historie-vozu') ? 'active fw-semibold' : ''}`}
 								to='/kompletni-historie-vozu'
 								onClick={closeMenu}
 								style={isActive('/kompletni-historie-vozu') ? { backgroundColor: 'rgba(90, 143, 62, 0.1)', color: '#5a8f3e' } : {}}
@@ -170,7 +170,7 @@ const Navigation: React.FC = () => {
 						{/* Upozornění na termíny */}
 						<li className='nav-item'>
 							<Link
-								className={`nav-link px-3 rounded ${isActive('/upozorneni-na-terminy') ? 'active fw-semibold' : ''}`}
+								className={`nav-link px-3 rounded text-nowrap ${isActive('/upozorneni-na-terminy') ? 'active fw-semibold' : ''}`}
 								to='/upozorneni-na-terminy'
 								onClick={closeMenu}
 								style={isActive('/upozorneni-na-terminy') ? { backgroundColor: 'rgba(90, 143, 62, 0.1)', color: '#5a8f3e' } : {}}
@@ -180,15 +180,15 @@ const Navigation: React.FC = () => {
 						</li>
 
 						{/* Divider (desktop only) */}
-						<li className='nav-item d-none d-lg-block'>
+						<li className='nav-item d-none d-xl-block'>
 							<span className='nav-link px-2 text-muted'>|</span>
 						</li>
 
 						{/* Moje VINInfo - Highlighted */}
-						<li className='nav-item d-none d-lg-block'>
+						<li className='nav-item d-none d-xl-block'>
 							<Link
 								to='/klientska-zona'
-								className='btn btn-sm'
+								className='btn btn-sm text-nowrap'
 								onClick={closeMenu}
 								style={{
 									backgroundColor: isActive('/klientska-zona') ? '#4a7a32' : '#5a8f3e',
@@ -202,9 +202,9 @@ const Navigation: React.FC = () => {
 						</li>
 
 						{/* Mobile: Moje VINInfo as regular link */}
-						<li className='nav-item d-lg-none'>
+						<li className='nav-item d-xl-none'>
 							<Link
-								className={`nav-link px-3 rounded ${isActive('/klientska-zona') ? 'active fw-semibold' : ''}`}
+								className={`nav-link px-3 rounded text-nowrap ${isActive('/klientska-zona') ? 'active fw-semibold' : ''}`}
 								to='/klientska-zona'
 								onClick={closeMenu}
 								style={isActive('/klientska-zona') ? { backgroundColor: 'rgba(90, 143, 62, 0.1)', color: '#5a8f3e' } : {}}
@@ -218,7 +218,7 @@ const Navigation: React.FC = () => {
 							{user ? (
 								<button
 									type='button'
-									className='nav-link px-3 btn btn-link text-decoration-none'
+									className='nav-link px-3 btn btn-link text-decoration-none text-nowrap'
 									onClick={handleLogout}
 									style={{ color: '#6c757d' }}
 								>
@@ -226,7 +226,7 @@ const Navigation: React.FC = () => {
 								</button>
 							) : (
 								<Link
-									className={`nav-link px-3 rounded ${isActive('/prihlaseni') ? 'active fw-semibold' : ''}`}
+									className={`nav-link px-3 rounded text-nowrap ${isActive('/prihlaseni') ? 'active fw-semibold' : ''}`}
 									to='/prihlaseni'
 									onClick={closeMenu}
 									style={isActive('/prihlaseni') ? { backgroundColor: 'rgba(90, 143, 62, 0.1)', color: '#5a8f3e' } : {}}

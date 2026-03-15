@@ -8,7 +8,7 @@ export { formatDate, getBaseUrl }
 /** Cebia eHub affiliate URL s VIN */
 function getCebiaAffiliateUrl(vin: string): string {
 	const dest = `https://cz.cebia.com/?vin=${encodeURIComponent(vin)}`
-	return `https://ehub.cz/system/scripts/click.php?a_aid=9a3cbf23&a_bid=67e04d9d&desturl=${encodeURIComponent(dest)}`
+	return `https://ehub.cz/system/scripts/click.php?a_aid=9a3cbf23&a_bid=67e04d9d&desturl=${encodeURIComponent(dest)}&data1=email_reminder`
 }
 
 export const reminderTypeLabels: Record<string, string> = {

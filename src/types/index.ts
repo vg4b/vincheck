@@ -54,3 +54,12 @@ export interface Reminder {
 	email_send_at?: string | null
 	email_sent_at?: string | null
 }
+
+export interface OdometerReading {
+	id: string
+	vehicle_id: string
+	recorded_at: string
+	km: number
+	note?: string | null
+	created_at?: string
+}

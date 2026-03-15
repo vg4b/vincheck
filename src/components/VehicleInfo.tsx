@@ -81,7 +81,9 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 
 	const cleanVin = vinCode.replace(/[^a-zA-Z0-9]/g, '')
 	const historyUrl =
-		cleanVin.length === 17 ? cebia.getTextLinkUrlWithVin(cleanVin) : cebia.getTextLinkUrl()
+		cleanVin.length === 17
+			? cebia.getTextLinkUrlWithVin(cleanVin, 'vehicle_info_history')
+			: cebia.getTextLinkUrl('vehicle_info_history')
 
 	// Split data for inserting Cebia link at specific position (e.g. 10th item)
 	// If list is shorter than 10, insert at the end
@@ -200,7 +202,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 								<th className='align-middle'>Historie a původ vozidla</th>
 								<td className='text-end'>
 									<a
-										href={cebia.getDirectUrl(vinCode)}
+										href={cebia.getDirectUrl(vinCode, 'vehicle_info_table')}
 										target='_blank'
 										rel='noopener noreferrer'
 										className='btn btn-primary btn-sm fw-bold'
@@ -239,7 +241,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 			{/* Banner */}
 			<div className='mt-5 mb-5'>
 				<a
-					href={cebia.getGraphicBannerUrl()}
+					href={cebia.getGraphicBannerUrl('vehicle_info_banner')}
 					target='_top'
 					rel='noopener noreferrer'
 					style={{ display: 'block', width: '100%' }}

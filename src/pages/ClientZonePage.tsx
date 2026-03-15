@@ -3,13 +3,14 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
 import { useAuth } from '../contexts/AuthContext'
-import { ClientVehicle, Reminder, ReminderType, VehicleDataArray } from '../types'
+import { ClientVehicle, OdometerReading, Reminder, ReminderType, VehicleDataArray } from '../types'
 import {
 	createReminder,
 	deleteReminder,
 	deleteVehicle,
 	fetchReminders,
 	fetchVehicles,
+	fetchOdometerReadings,
 	updateReminder,
 	addVehicle,
 	updateVehicleTitle,
@@ -17,6 +18,7 @@ import {
 	updatePreferences,
 	UserPreferences
 } from '../utils/clientZoneApi'
+import { OdometerSection } from '../components/OdometerSection'
 import { ApiError } from '../utils/apiClient'
 import { fetchVehicleInfo, formatValue, getDataValue } from '../utils/vehicleApi'
 import { cebia, csob, direct } from '../config/affiliateCampaigns'
@@ -107,6 +109,9 @@ const ClientZonePage: React.FC = () => {
 	const { user, loading: authLoading, logout, verifyEmail, resendVerification } = useAuth()
 	const [vehicles, setVehicles] = useState<ClientVehicle[]>([])
 	const [reminders, setReminders] = useState<Reminder[]>([])
+	const [odometerReadingsByVehicle, setOdometerReadingsByVehicle] = useState<
+		Record<string, OdometerReading[]>
+	>({})
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState('')
 	const tabFromUrl = searchParams.get('tab') as ZoneTab | null
@@ -155,12 +160,23 @@ const ClientZonePage: React.FC = () => {
 		setLoading(true)
 		setError('')
 		try {
-			const [vehicleData, reminderData] = await Promise.all([
+			const [vehicleData, reminderData, odometerData] = await Promise.all([
 				fetchVehicles(),
-				fetchReminders()
+				fetchReminders(),
+				fetchOdometerReadings()
 			])
 			setVehicles(vehicleData)
 			setReminders(reminderData)
+			const byVehicle = odometerData.reduce<Record<string, OdometerReading[]>>(
+				(acc, r) => {
+					const list = acc[r.vehicle_id] ?? []
+					list.push(r)
+					acc[r.vehicle_id] = list
+					return acc
+				},
+				{}
+			)
+			setOdometerReadingsByVehicle(byVehicle)
 		} catch (error) {
 			if (error instanceof ApiError) {
 				setError(error.message)
@@ -175,7 +191,14 @@ const ClientZonePage: React.FC = () => {
 
 	useEffect(() => {
 		if (user) {
-			document.title = 'Moje VINInfo – upozornění na STK, pojištění | VIN Info.cz'
+			document.title = 'Moje VINInfo – stav tachometru, upozornění na STK | VIN Info.cz'
+			const meta = document.querySelector('meta[name="description"]')
+			if (meta) {
+				meta.setAttribute(
+					'content',
+					'Správa vozidel, evidence stavu tachometru, upozornění na STK, pojištění a servis. Sledujte trendy najetých kilometrů a nikdy nezmeškejte termín.'
+				)
+			}
 		}
 		return () => {
 			document.title = 'VIN Info.cz'
@@ -317,10 +340,25 @@ const ClientZonePage: React.FC = () => {
 		setReminders((prev) => prev.filter((item) => item.id !== reminderId))
 	}
 
+	const handleOdometerReadingsChange = (
+		vehicleId: string,
+		updater: (prev: OdometerReading[]) => OdometerReading[]
+	) => {
+		setOdometerReadingsByVehicle((prev) => ({
+			...prev,
+			[vehicleId]: updater(prev[vehicleId] ?? [])
+		}))
+	}
+
 	const handleDeleteVehicle = async (vehicleId: string) => {
 		await deleteVehicle(vehicleId)
 		setVehicles((prev) => prev.filter((item) => item.id !== vehicleId))
 		setReminders((prev) => prev.filter((item) => item.vehicle_id !== vehicleId))
+		setOdometerReadingsByVehicle((prev) => {
+			const next = { ...prev }
+			delete next[vehicleId]
+			return next
+		})
 	}
 
 	const handleTitleChange = (vehicleId: string, value: string) => {
@@ -751,7 +789,7 @@ const ClientZonePage: React.FC = () => {
 															</Link>
 														)}
 														<a
-															href={cebia.getDirectUrl(vehicle.vin ?? undefined)}
+															href={cebia.getDirectUrl(vehicle.vin ?? undefined, 'client_zone_vehicle')}
 															target='_blank'
 															rel='noopener noreferrer'
 															className='link-primary d-block'
@@ -875,6 +913,17 @@ const ClientZonePage: React.FC = () => {
 														vehicleId={vehicle.id}
 														onAdd={handleAddReminder}
 													/>
+													<OdometerSection
+														vehicleId={vehicle.id}
+														vehicleName={
+															vehicle.title?.trim() ||
+															`${vehicle.brand ?? ''} ${vehicle.model ?? ''}`.trim()
+														}
+														readings={
+															odometerReadingsByVehicle[vehicle.id] ?? []
+														}
+														onReadingsChange={handleOdometerReadingsChange}
+													/>
 												</div>
 											</div>
 										</div>
@@ -991,7 +1040,7 @@ const ClientZonePage: React.FC = () => {
 											stav tachometru a další důležité informace.
 										</p>
 										<a
-											href={cebia.getTextLinkUrl()}
+											href={cebia.getTextLinkUrl('client_zone_benefits')}
 											target='_blank'
 											rel='noopener noreferrer'
 											className='btn btn-outline-primary'
@@ -1086,7 +1135,7 @@ const ClientZonePage: React.FC = () => {
 														)}
 														{vehicle.vin && (
 															<a
-																href={cebia.getDirectUrl(vehicle.vin)}
+																href={cebia.getDirectUrl(vehicle.vin, 'client_zone_vehicle_list')}
 																target='_blank'
 																rel='noopener noreferrer'
 																className='btn btn-sm btn-outline-secondary'

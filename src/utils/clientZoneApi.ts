@@ -1,4 +1,4 @@
-import { ClientVehicle, Reminder, ReminderType } from '../types'
+import { ClientVehicle, OdometerReading, Reminder, ReminderType } from '../types'
 import { requestJson } from './apiClient'
 
 export const fetchVehicles = async (): Promise<ClientVehicle[]> => {
@@ -95,6 +95,55 @@ export const updateReminder = async (payload: {
 
 export const deleteReminder = async (id: string): Promise<void> => {
 	await requestJson(`/api/client/reminders?id=${encodeURIComponent(id)}`, {
+		method: 'DELETE'
+	})
+}
+
+// Odometer readings API
+export const fetchOdometerReadings = async (
+	vehicleId?: string
+): Promise<OdometerReading[]> => {
+	const url = vehicleId
+		? `/api/client/odometer-readings?vehicleId=${encodeURIComponent(vehicleId)}`
+		: '/api/client/odometer-readings'
+	const response = await requestJson<{ readings: OdometerReading[] }>(url)
+	return response.readings
+}
+
+export const createOdometerReading = async (payload: {
+	vehicleId: string
+	recordedAt: string
+	km: number
+	note?: string
+}): Promise<OdometerReading> => {
+	const response = await requestJson<{ reading: OdometerReading }>(
+		'/api/client/odometer-readings',
+		{
+			method: 'POST',
+			body: JSON.stringify(payload)
+		}
+	)
+	return response.reading
+}
+
+export const updateOdometerReading = async (payload: {
+	id: string
+	recordedAt?: string
+	km?: number
+	note?: string | null
+}): Promise<OdometerReading> => {
+	const response = await requestJson<{ reading: OdometerReading }>(
+		'/api/client/odometer-readings',
+		{
+			method: 'PATCH',
+			body: JSON.stringify(payload)
+		}
+	)
+	return response.reading
+}
+
+export const deleteOdometerReading = async (id: string): Promise<void> => {
+	await requestJson(`/api/client/odometer-readings?id=${encodeURIComponent(id)}`, {
 		method: 'DELETE'
 	})
 }

@@ -22,7 +22,7 @@ const HomePage: React.FC = () => {
     if (metaDescription) {
       metaDescription.setAttribute(
         "content",
-        "Zdarma zkontrolujte VIN kód, číslo TP nebo ORV vozidla v českém registru. Získejte technické údaje, datum první registrace, platnost STK. Uložte si vozidlo a nastavte upozornění na STK, pojištění a servis – emailem zdarma."
+        "Zdarma zkontrolujte VIN kód, číslo TP nebo ORV vozidla v českém registru. Technické údaje, platnost STK, sledování stavu tachometru. Uložte si vozidlo, evidujte najeté km a nastavte upozornění na STK, pojištění – emailem zdarma."
       );
     }
 
@@ -51,6 +51,8 @@ const HomePage: React.FC = () => {
         "Datum první registrace",
         "Platnost technické prohlídky STK",
         "Historie vozidla",
+        "Sledování stavu tachometru",
+        "Evidence najetých kilometrů",
         "Upozornění na termíny STK",
         "Upozornění na pojištění",
         "Upozornění na servisní prohlídky",
@@ -137,7 +139,7 @@ const HomePage: React.FC = () => {
         if (vinCode && vinCode.length === 17) {
           if (openCebiaInCurrentTab) {
             if (newTab && newTab !== window) {
-              window.location.href = cebia.getTextLinkUrlWithVin(vin.trim());
+              window.location.href = cebia.getTextLinkUrlWithVin(vin.trim(), 'homepage_vin');
             } else {
               navigate(`/vin/${vinCode}`);
             }
@@ -164,7 +166,7 @@ const HomePage: React.FC = () => {
     } catch (err) {
       console.error("Chyba při načítání dat:", err);
       setError(
-        `Chyba při načítání dat. Zadaný VIN/TP/ORV pravděpodobně neexistuje v Registru silničních vozidel.<br>Zkontrolujte kód a zkuste to znovu. Pokud ani to nepomůže, zkuste vyhledat <a href="${cebia.getTextLinkUrl()}" target="_blank" rel="noopener noreferrer">jinde</a>.`
+        `Chyba při načítání dat. Zadaný VIN/TP/ORV pravděpodobně neexistuje v Registru silničních vozidel.<br>Zkontrolujte kód a zkuste to znovu. Pokud ani to nepomůže, zkuste vyhledat <a href="${cebia.getTextLinkUrl('homepage_error')}" target="_blank" rel="noopener noreferrer">jinde</a>.`
       );
     } finally {
       setLoading(false);
@@ -555,6 +557,13 @@ const HomePage: React.FC = () => {
                       <div className="col-md-6">
                         <ul className="list-unstyled mb-0">
                           <li className="mb-2">
+                            <strong>📏 Stav tachometru</strong>
+                            <br />
+                            <small className="text-muted">
+                              Evidence najetých km a trend v čase
+                            </small>
+                          </li>
+                          <li className="mb-2">
                             <strong>📊 Přehled na jednom místě</strong>
                             <br />
                             <small className="text-muted">
@@ -764,7 +773,7 @@ const HomePage: React.FC = () => {
                     tachometru doporučujeme využít specializované placené služby
                     (např.{" "}
                     <a
-                      href={cebia.getTextLinkUrl()}
+                      href={cebia.getTextLinkUrl('homepage_faq')}
                       target="_blank"
                       rel="noopener noreferrer"
                     >

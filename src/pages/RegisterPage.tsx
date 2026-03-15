@@ -216,6 +216,7 @@ const RegisterPage: React.FC = () => {
 								<li className='mb-2'>🔧 Upozornění na termín STK</li>
 								<li className='mb-2'>🛡️ Připomínka povinného ručení a havarijního</li>
 								<li className='mb-2'>🛞 Servis, přezutí pneu, dálniční známka</li>
+								<li className='mb-2'>📏 Evidence stavu tachometru a trend km</li>
 								<li className='mb-0'>📧 Email v termínu dle vašeho výběru • ✨ 100 % zdarma</li>
 							</ul>
 						</div>

@@ -190,7 +190,7 @@ const KompletniHistorieVozuPage: React.FC = () => {
 									počtu majitelů, servisní historie a dalších důležitých
 									informací můžete využít specializované služby, jako je{' '}
 									<a
-										href={cebia.getTextLinkUrl()}
+										href={cebia.getTextLinkUrl('kompletni_historie')}
 										target='_blank'
 										rel='noopener noreferrer'
 									>
@@ -200,7 +200,7 @@ const KompletniHistorieVozuPage: React.FC = () => {
 									za poplatek.
 								</p>
 								<a
-									href={cebia.getTextLinkUrl()}
+									href={cebia.getTextLinkUrl('kompletni_historie')}
 									target='_blank'
 									rel='noopener noreferrer'
 									className='btn btn-outline-primary'

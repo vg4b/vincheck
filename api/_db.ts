@@ -108,5 +108,30 @@ export async function ensureTables() {
 		WHERE email_enabled = true;
 	`
 
+	await sql`
+		CREATE TABLE IF NOT EXISTS odometer_readings (
+			id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			vehicle_id uuid NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+			recorded_at date NOT NULL,
+			km integer NOT NULL CHECK (km >= 0),
+			note text,
+			created_at timestamptz NOT NULL DEFAULT now()
+		);
+	`
+
+	await sql`
+		CREATE INDEX IF NOT EXISTS odometer_readings_vehicle_idx
+		ON odometer_readings(vehicle_id);
+	`
+	await sql`
+		CREATE INDEX IF NOT EXISTS odometer_readings_vehicle_date_idx
+		ON odometer_readings(vehicle_id, recorded_at);
+	`
+	await sql`
+		CREATE INDEX IF NOT EXISTS odometer_readings_user_vehicle_idx
+		ON odometer_readings(user_id, vehicle_id);
+	`
+
 	tablesReady = true
 }

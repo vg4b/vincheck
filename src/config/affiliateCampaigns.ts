@@ -101,13 +101,15 @@ export const csobCoupons = {
 export type CsobCouponId = keyof typeof csobCoupons
 
 /** Build eHub click URL for a given banner ID */
-function buildEhubClickUrl(bannerId: string): string {
-	return `https://ehub.cz/system/scripts/click.php?a_aid=${EHUB_AID}&a_bid=${bannerId}`
+function buildEhubClickUrl(bannerId: string, data1?: string): string {
+	const base = `https://ehub.cz/system/scripts/click.php?a_aid=${EHUB_AID}&a_bid=${bannerId}`
+	return data1 ? `${base}&data1=${encodeURIComponent(data1)}` : base
 }
 
 /** Build eHub click URL with desturl (for CSOB coupon links) */
-function buildEhubClickUrlWithDest(bannerId: string, destUrl: string): string {
-	return `https://ehub.cz/system/scripts/click.php?a_aid=${EHUB_AID}&a_bid=${bannerId}&desturl=${encodeURIComponent(destUrl)}`
+function buildEhubClickUrlWithDest(bannerId: string, destUrl: string, data1?: string): string {
+	const base = `https://ehub.cz/system/scripts/click.php?a_aid=${EHUB_AID}&a_bid=${bannerId}&desturl=${encodeURIComponent(destUrl)}`
+	return data1 ? `${base}&data1=${encodeURIComponent(data1)}` : base
 }
 
 /** Build eHub impression pixel URL for a given banner ID */
@@ -117,28 +119,32 @@ function buildEhubImpressionUrl(bannerId: string): string {
 
 /**
  * Cebia.cz affiliate links and helpers
+ * @param data1 - Optional identifier for tracking (e.g. page/section name)
  */
 export const cebia = {
 	/** Direct link with optional VIN (no affiliate tracking, use for VIN-specific checks) */
-	getDirectUrl: (vin?: string): string => {
+	getDirectUrl: (vin?: string, data1?: string): string => {
 		const base = campaigns.cebia.baseUrl
-		return vin ? `${base}/?vin=${vin}` : base
+		let url = vin ? `${base}/?vin=${encodeURIComponent(vin)}` : base
+		if (data1) url += `${url.includes('?') ? '&' : '?'}data1=${encodeURIComponent(data1)}`
+		return url
 	},
 
 	/** eHub affiliate URL for text/CTA links (Benefits, fallbacks, etc.) */
-	getTextLinkUrl: (): string =>
-		buildEhubClickUrl(campaigns.cebia.textBannerId),
+	getTextLinkUrl: (data1?: string): string =>
+		buildEhubClickUrl(campaigns.cebia.textBannerId, data1),
 
 	/** eHub affiliate URL to Cebia with VIN pre-filled */
-	getTextLinkUrlWithVin: (vin: string): string =>
+	getTextLinkUrlWithVin: (vin: string, data1?: string): string =>
 		buildEhubClickUrlWithDest(
 			campaigns.cebia.textBannerId,
-			`${campaigns.cebia.baseUrl}/?vin=${encodeURIComponent(vin)}`
+			`${campaigns.cebia.baseUrl}/?vin=${encodeURIComponent(vin)}`,
+			data1
 		),
 
 	/** eHub affiliate URL for graphic banner (VehicleInfo) */
-	getGraphicBannerUrl: (): string =>
-		buildEhubClickUrl(campaigns.cebia.graphicBannerId),
+	getGraphicBannerUrl: (data1?: string): string =>
+		buildEhubClickUrl(campaigns.cebia.graphicBannerId, data1),
 
 	/** Graphic banner image URL */
 	getGraphicBannerImage: (): string => campaigns.cebia.graphicBannerImage,
