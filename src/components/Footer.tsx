@@ -7,14 +7,14 @@ const Footer: React.FC = () => {
       <div className="container py-4">
         <div className="row g-4">
           {/* Brand & Description */}
-          <div className="col-12 col-md-6 col-lg-4">
+          <div className="col-12 col-md-6 col-lg-3">
             <h5 className="fw-bold mb-3" style={{ color: "#5a8f3e" }}>
               VIN Info.cz
             </h5>
             <p className="text-muted small mb-2">
               Kontrola vozidel zdarma podle VIN, TP nebo ORV.
             </p>
-            <p className="text-muted small">
+            <p className="text-muted small mb-0">
               Zdroj dat:{" "}
               <a
                 href="https://www.dataovozidlech.cz/"
@@ -27,10 +27,23 @@ const Footer: React.FC = () => {
               Kontakt: vininfo(zavináč)fixweb.cz
             </p>
 
+            <h6 className="fw-bold mb-3 mt-4">Právní info</h6>
+            <ul className="list-unstyled mb-0">
+              <li className="mb-2">
+                <Link to="/podminky" className="text-muted text-decoration-none small">
+                  Obchodní podmínky
+                </Link>
+              </li>
+              <li className="mb-2">
+                <Link to="/ochrana-osobnich-udaju" className="text-muted text-decoration-none small">
+                  Ochrana osobních údajů
+                </Link>
+              </li>
+            </ul>
           </div>
 
-          {/* Quick Links */}
-          <div className="col-6 col-md-3 col-lg-2">
+          {/* Navigation */}
+          <div className="col-12 col-md-6 col-lg-3">
             <h6 className="fw-bold mb-3">Navigace</h6>
             <ul className="list-unstyled mb-0">
               <li className="mb-2">
@@ -71,25 +84,65 @@ const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Legal Links */}
-          <div className="col-6 col-md-3 col-lg-2">
-            <h6 className="fw-bold mb-3">Právní info</h6>
+          {/* Related services */}
+          <div className="col-12 col-md-6 col-lg-3">
+            <h6 className="fw-bold mb-3">Další služby</h6>
             <ul className="list-unstyled mb-0">
               <li className="mb-2">
-                <Link to="/podminky" className="text-muted text-decoration-none small">
-                  Obchodní podmínky
-                </Link>
+                <a
+                  href="https://fixweb.cz/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted text-decoration-none small"
+                >
+                  FixWeb.cz - opravy webů
+                </a>
               </li>
               <li className="mb-2">
-                <Link to="/ochrana-osobnich-udaju" className="text-muted text-decoration-none small">
-                  Ochrana osobních údajů
-                </Link>
+                <a
+                  href="https://www.kurzykaret.cz/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted text-decoration-none small"
+                >
+                  KurzyKaret.cz - kurzy při platbě kartou
+                </a>
+              </li>
+              <li className="mb-2">
+                <a
+                  href="https://www.dealora.cz/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted text-decoration-none small"
+                >
+                  Dealora.cz - slevové kódy
+                </a>
+              </li>
+              <li className="mb-2">
+                <a
+                  href="https://jsouobchodyotevrene.cz/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted text-decoration-none small"
+                >
+                  Jsou obchody otevřené? - svátky a provoz
+                </a>
+              </li>
+              <li className="mb-2">
+                <a
+                  href="https://slevy-hosting-domeny.cz/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted text-decoration-none small"
+                >
+                  Slevy na hosting a domény - kupóny
+                </a>
               </li>
             </ul>
           </div>
 
           {/* Disclaimer */}
-          <div className="col-12 col-lg-4">
+          <div className="col-12 col-md-6 col-lg-3">
             <h6 className="fw-bold mb-3">Upozornění</h6>
             <p className="text-muted small mb-0">
               Tento web je pouze informativní a neposkytuje žádnou formu poradenství.
