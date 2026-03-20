@@ -1,5 +1,6 @@
-import React from 'react'
-import { VehicleDataArray } from '../types'
+import React, { useMemo } from 'react'
+import type { VehicleDataArray } from '../types'
+import { groupVehicleFieldsByCategory } from '../utils/vehicleFieldCategories'
 import { getDataValue, getLogoSrc } from '../utils/vehicleApi'
 import { Link } from 'react-router-dom'
 import { cebia } from '../config/affiliateCampaigns'
@@ -16,6 +17,14 @@ interface VehicleInfoProps {
 	promoSection?: React.ReactNode
 }
 
+const VEHICLE_INFO_SUMMARY_FIELDS = new Set<string>([
+	'TovarniZnacka',
+	'Typ',
+	'DatumPrvniRegistrace',
+	'VIN',
+	'PravidelnaTechnickaProhlidkaDo'
+])
+
 const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	data,
 	vinCode,
@@ -23,14 +32,6 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	saveMessage,
 	promoSection
 }) => {
-	const excludedFields = new Set([
-		'TovarniZnacka',
-		'Typ',
-		'DatumPrvniRegistrace',
-		'VIN',
-		'PravidelnaTechnickaProhlidkaDo'
-	])
-
 	const brand = getDataValue(data, 'TovarniZnacka', 'Neznámá značka')
 	const brandLogoSrc = getLogoSrc(brand)
 	const model = getDataValue(data, 'Typ', 'Neznámý model')
@@ -74,22 +75,113 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 		techInspectionDate && techInspectionDate.getTime() < currentDate.getTime()
 	const color = isExpired ? 'red' : 'green'
 
-	const filteredData = data.filter(
-		(item) =>
-			!excludedFields.has(item.name) && item.value !== '' && item.value != null
+	const filteredData = useMemo(
+		() =>
+			data.filter(
+				(item) =>
+					!VEHICLE_INFO_SUMMARY_FIELDS.has(item.name) &&
+					item.value !== '' &&
+					item.value != null
+			),
+		[data]
 	)
+
+	const groupedData = useMemo(
+		() => groupVehicleFieldsByCategory(filteredData),
+		[filteredData]
+	)
+
+	const detailSectionBlocks = useMemo(() => {
+		let dataRowsShown = 0
+		let promoInserted = false
+
+		const buildPromoRow = () => (
+			<tr key='cebia-inline-promo' className='table-warning'>
+				<th className='align-middle'>Historie a původ vozidla</th>
+				<td className='text-end'>
+					<a
+						href={cebia.getDirectUrl(vinCode, 'vehicle_info_table')}
+						target='_blank'
+						rel='noopener noreferrer'
+						className='btn btn-primary btn-sm fw-bold'
+					>
+						Prověřit historii na Cebia.cz ➜
+					</a>
+				</td>
+			</tr>
+		)
+
+		const sections = groupedData.map((group) => {
+			const bodyRows: React.ReactNode[] = []
+			for (const item of group.items) {
+				dataRowsShown += 1
+				bodyRows.push(
+					<tr key={item.name}>
+						<th scope='row' className='w-50'>
+							{item.label}
+						</th>
+						<td
+							dangerouslySetInnerHTML={{
+								__html: formatValueHtml(String(item.value))
+							}}
+						/>
+					</tr>
+				)
+				if (dataRowsShown === 10 && !promoInserted) {
+					bodyRows.push(buildPromoRow())
+					promoInserted = true
+				}
+			}
+
+			const headingId = `vehicle-info-group-${group.categoryId}`
+
+			return (
+				<section
+					key={group.categoryId}
+					className='vehicle-info-detail-group mb-4'
+					aria-labelledby={headingId}
+				>
+					<div className='rounded-3 border shadow-sm overflow-hidden bg-body'>
+						<h3
+							id={headingId}
+							className='h6 mb-0 fw-semibold px-3 py-2 text-body border-bottom bg-primary-subtle'
+						>
+							{group.label}
+						</h3>
+						<div className='table-responsive'>
+							<table className='table table-striped table-hover table-sm mb-0 align-middle'>
+								<tbody>{bodyRows}</tbody>
+							</table>
+						</div>
+					</div>
+				</section>
+			)
+		})
+
+		const trailingPromo =
+			!promoInserted && filteredData.length > 0 ? (
+				<div className='table-responsive mb-4' key='cebia-promo-trailing'>
+					<div className='rounded-3 border border-warning overflow-hidden shadow-sm'>
+						<table className='table table-sm table-warning mb-0'>
+							<tbody>{buildPromoRow()}</tbody>
+						</table>
+					</div>
+				</div>
+			) : null
+
+		return (
+			<>
+				{sections}
+				{trailingPromo}
+			</>
+		)
+	}, [groupedData, filteredData.length, vinCode])
 
 	const cleanVin = vinCode.replace(/[^a-zA-Z0-9]/g, '')
 	const historyUrl =
 		cleanVin.length === 17
 			? cebia.getTextLinkUrlWithVin(cleanVin, 'vehicle_info_history')
 			: cebia.getTextLinkUrl('vehicle_info_history')
-
-	// Split data for inserting Cebia link at specific position (e.g. 10th item)
-	// If list is shorter than 10, insert at the end
-	const insertIndex = Math.min(10, filteredData.length)
-	const firstHalf = filteredData.slice(0, insertIndex)
-	const secondHalf = filteredData.slice(insertIndex)
 
 	return (
 		<div className='mt-4 mb-5'>
@@ -180,57 +272,16 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 			{/* Promo section (if provided) */}
 			{promoSection}
 
-			{/* Detailed data table */}
+			{/* Detailní údaje po sekcích (karta + vlastní pruhovaná tabulka) */}
 			{filteredData.length > 0 && (
-				<div className='table-responsive mt-4'>
-					<table className='table table-striped table-hover'>
-						<tbody>
-							{/* First part of data */}
-							{firstHalf.map((item) => (
-								<tr key={item.name}>
-									<th>{item.label}</th>
-									<td
-										dangerouslySetInnerHTML={{
-											__html: formatValueHtml(String(item.value))
-										}}
-									/>
-								</tr>
-							))}
-
-							{/* Cebia Check Row (Inserted at index ~10) */}
-							<tr className='table-warning'>
-								<th className='align-middle'>Historie a původ vozidla</th>
-								<td className='text-end'>
-									<a
-										href={cebia.getDirectUrl(vinCode, 'vehicle_info_table')}
-										target='_blank'
-										rel='noopener noreferrer'
-										className='btn btn-primary btn-sm fw-bold'
-									>
-										Prověřit historii na Cebia.cz ➜
-									</a>
-								</td>
-							</tr>
-
-							{/* Second part of data */}
-							{secondHalf.map((item) => (
-								<tr key={item.name}>
-									<th>{item.label}</th>
-									<td
-										dangerouslySetInnerHTML={{
-											__html: formatValueHtml(String(item.value))
-										}}
-									/>
-								</tr>
-							))}
-						</tbody>
-					</table>
-					<div className='text-center mt-3'>
+				<div className='mt-4'>
+					{detailSectionBlocks}
+					<div className='text-center mt-4'>
 						<a
 							href={historyUrl}
 							target='_blank'
 							rel='noopener noreferrer'
-							className='btn btn-outline-secondary'
+							className='btn btn-outline-primary'
 						>
 							Načíst historii vozidla (nová stránka)
 						</a>
@@ -238,21 +289,25 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 				</div>
 			)}
 
-			{/* Banner */}
+			{/* Banner (max šířka na desktopu – původně 100 % kontejneru působilo přerostle) */}
 			<div className='mt-5 mb-5'>
-				<a
-					href={cebia.getGraphicBannerUrl('vehicle_info_banner')}
-					target='_top'
-					rel='noopener noreferrer'
-					style={{ display: 'block', width: '100%' }}
+				<div
+					className='mx-auto px-1'
+					style={{ maxWidth: 'min(100%, 640px)' }}
 				>
-					<img
-						src={cebia.getGraphicBannerImage()}
-						alt='Advertisement'
-						className='img-fluid'
-						style={{ width: '100%', height: 'auto', display: 'block' }}
-					/>
-				</a>
+					<a
+						href={cebia.getGraphicBannerUrl('vehicle_info_banner')}
+						target='_top'
+						rel='noopener noreferrer'
+						className='d-block'
+					>
+						<img
+							src={cebia.getGraphicBannerImage()}
+							alt='Advertisement'
+							className='img-fluid w-100 d-block rounded-2'
+						/>
+					</a>
+				</div>
 				<img
 					style={{
 						border: 0,
@@ -275,11 +330,14 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 function formatValue(value: string): string {
 	if (!value) return '-'
 	if (value.toLowerCase() === 'false') {
-		return 'ne'
+		return 'Ne'
 	}
 	if (value.toLowerCase() === 'true') {
-		return 'ano'
+		return 'Ano'
 	}
+	const ul = value.toUpperCase()
+	if (ul === 'NE') return 'Ne'
+	if (ul === 'ANO') return 'Ano'
 	// Try to format date if it looks like ISO date
 	if (value.match(/^\d{4}-\d{2}-\d{2}(T.*)?$/)) {
 		const date = new Date(value)

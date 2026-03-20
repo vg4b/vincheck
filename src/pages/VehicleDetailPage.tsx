@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
 import VehicleInfo from '../components/VehicleInfo'
@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { VehicleDataArray } from '../types'
 import { addVehicle, fetchVehicles } from '../utils/clientZoneApi'
 import { ApiError } from '../utils/apiClient'
-import { fetchVehicleInfo, getDataValue } from '../utils/vehicleApi'
+import { VehicleLookupError, fetchVehicleInfo, getDataValue } from '../utils/vehicleApi'
 
 interface VehicleDetailPageProps {
 	type?: 'vin' | 'tp' | 'orv'
@@ -20,6 +20,7 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 	const [vehicleData, setVehicleData] = useState<VehicleDataArray | null>(null)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState('')
+	const [willRedirectHome, setWillRedirectHome] = useState(false)
 	const [saving, setSaving] = useState(false)
 	const [saveMessage, setSaveMessage] = useState('')
 	const [saveTitle, setSaveTitle] = useState('')
@@ -27,6 +28,9 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 	const [checkingSaved, setCheckingSaved] = useState(false)
 
 	useEffect(() => {
+		const controller = new AbortController()
+		const { signal } = controller
+
 		const loadVehicleData = async () => {
 			// Get code from params
 			const code = params.code
@@ -89,6 +93,7 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 
 			setLoading(true)
 			setError('')
+			setWillRedirectHome(false)
 			setSaveMessage('')
 
 			try {
@@ -96,7 +101,9 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 				const tpParam = searchType === 'tp' ? cleanCode : undefined
 				const orvParam = searchType === 'orv' ? cleanCode : undefined
 
-				const data = await fetchVehicleInfo(vinParam, tpParam, orvParam)
+				const data = await fetchVehicleInfo(vinParam, tpParam, orvParam, {
+					signal
+				})
 				setVehicleData(data)
 
 				// Update page title
@@ -116,24 +123,44 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 					)
 				}
 			} catch (err) {
+				if (err instanceof DOMException && err.name === 'AbortError') {
+					return
+				}
 				console.error('Chyba při načítání dat:', err)
+				if (VehicleLookupError.isInstance(err)) {
+					if (err.kind === 'server_error') {
+						setWillRedirectHome(false)
+						setError(
+							'Registr dočasně neodpovídá. Zkuste stránku načíst znovu za chvíli.'
+						)
+						return
+					}
+					if (err.kind === 'unknown') {
+						setWillRedirectHome(false)
+						setError(err.message)
+						return
+					}
+				}
 				const errorMessage =
 					searchType === 'vin'
 						? 'Vozidlo s tímto VIN kódem nebylo nalezeno v registru.'
 						: searchType === 'tp'
 							? 'Vozidlo s tímto číslem TP nebylo nalezeno v registru.'
 							: 'Vozidlo s tímto číslem ORV nebylo nalezeno v registru.'
+				setWillRedirectHome(true)
 				setError(errorMessage)
-				// Redirect to home page after a short delay
 				setTimeout(() => {
 					navigate('/')
 				}, 2000)
 			} finally {
-				setLoading(false)
+				if (!signal.aborted) {
+					setLoading(false)
+				}
 			}
 		}
 
 		loadVehicleData()
+		return () => controller.abort()
 	}, [params.code, type, navigate])
 
 	useEffect(() => {
@@ -198,11 +225,32 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 			<>
 				<Navigation />
 				<div className='container mt-5'>
-					<div className='alert alert-danger' role='alert'>
-						<h4 className='alert-heading'>Chyba</h4>
-						<p>{error || 'Vozidlo nebylo nalezeno.'}</p>
-						<hr />
-						<p className='mb-0'>Přesměrování na hlavní stránku...</p>
+					<div
+						className={
+							willRedirectHome ? 'alert alert-warning' : 'alert alert-danger'
+						}
+						role='alert'
+					>
+						<h4 className='alert-heading'>
+							{willRedirectHome ? 'Vozidlo nenalezeno' : 'Nelze načíst údaje'}
+						</h4>
+						<p className='mb-3'>{error || 'Vozidlo nebylo nalezeno.'}</p>
+						{willRedirectHome ? (
+							<p className='mb-0'>Za chvíli vás přesměrujeme na vyhledávání…</p>
+						) : (
+							<div className='d-flex flex-wrap gap-2'>
+								<button
+									type='button'
+									className='btn btn-outline-danger'
+									onClick={() => window.location.reload()}
+								>
+									Zkusit znovu
+								</button>
+								<Link to='/' className='btn btn-primary'>
+									Zpět na vyhledávání
+								</Link>
+							</div>
+						)}
 					</div>
 				</div>
 				<Footer />

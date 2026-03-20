@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
 import Navigation from "../components/Navigation";
@@ -7,7 +7,12 @@ import { useAuth } from "../contexts/AuthContext";
 import { VehicleDataArray } from "../types";
 import { addVehicle } from "../utils/clientZoneApi";
 import { ApiError } from "../utils/apiClient";
-import { fetchVehicleInfo, getDataValue } from "../utils/vehicleApi";
+import {
+  VehicleLookupError,
+  type VehicleLookupErrorKind,
+  fetchVehicleInfo,
+  getDataValue,
+} from "../utils/vehicleApi";
 import { cebia } from "../config/affiliateCampaigns";
 
 const HomePage: React.FC = () => {
@@ -78,7 +83,10 @@ const HomePage: React.FC = () => {
   const [tp, setTp] = useState("");
   const [orv, setOrv] = useState("");
   const [vehicleData, setVehicleData] = useState<VehicleDataArray | null>(null);
-  const [error, setError] = useState("");
+  const [lookupError, setLookupError] = useState<{
+    kind: VehicleLookupErrorKind;
+    message?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
   const [showSearch, setShowSearch] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -89,6 +97,38 @@ const HomePage: React.FC = () => {
   const vinInputRef = useRef<HTMLInputElement>(null);
   const tpInputRef = useRef<HTMLInputElement>(null);
   const orvInputRef = useRef<HTMLInputElement>(null);
+  const lookupErrorRef = useRef<HTMLDivElement>(null);
+
+  const identifierLabel =
+    searchMethod === "vin"
+      ? "VIN"
+      : searchMethod === "tp"
+        ? "Číslo TP"
+        : "Číslo ORV";
+
+  const focusActiveSearchField = () => {
+    if (searchMethod === "vin") {
+      vinInputRef.current?.focus();
+    } else if (searchMethod === "tp") {
+      tpInputRef.current?.focus();
+    } else {
+      orvInputRef.current?.focus();
+    }
+  };
+
+  const cebiaNotFoundUrl =
+    searchMethod === "vin" && vin.trim().length === 17
+      ? cebia.getTextLinkUrlWithVin(vin.trim(), "homepage_error")
+      : cebia.getTextLinkUrl("homepage_error");
+
+  useLayoutEffect(() => {
+    if (lookupError) {
+      lookupErrorRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }
+  }, [lookupError]);
 
   // Button disabled states
   const isVinValid = vin.trim().length === 17;
@@ -111,7 +151,7 @@ const HomePage: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    setError("");
+    setLookupError(null);
     setLoading(true);
     setSaveMessage("");
 
@@ -165,9 +205,11 @@ const HomePage: React.FC = () => {
       setShowSearch(false);
     } catch (err) {
       console.error("Chyba při načítání dat:", err);
-      setError(
-        `Chyba při načítání dat. Zadaný VIN/TP/ORV pravděpodobně neexistuje v Registru silničních vozidel.<br>Zkontrolujte kód a zkuste to znovu. Pokud ani to nepomůže, zkuste vyhledat <a href="${cebia.getTextLinkUrl('homepage_error')}" target="_blank" rel="noopener noreferrer">jinde</a>.`
-      );
+      if (VehicleLookupError.isInstance(err)) {
+        setLookupError({ kind: err.kind, message: err.message });
+      } else {
+        setLookupError({ kind: "unknown" });
+      }
     } finally {
       setLoading(false);
     }
@@ -175,7 +217,7 @@ const HomePage: React.FC = () => {
 
   const handleNewSearch = () => {
     setVehicleData(null);
-    setError("");
+    setLookupError(null);
     setVin("");
     setTp("");
     setOrv("");
@@ -463,12 +505,64 @@ const HomePage: React.FC = () => {
                 </>
               )}
 
-              {error && (
-                <div className="mt-4 mb-1">
-                  <p
-                    className="text-danger"
-                    dangerouslySetInnerHTML={{ __html: error }}
-                  />
+              {lookupError?.kind === "not_found" && (
+                <div className="col-12 mt-4" ref={lookupErrorRef}>
+                  <div className="alert alert-info border-info shadow-sm" role="status">
+                    <h3 className="alert-heading h6 mb-2">
+                      {identifierLabel} nebylo nalezeno v registru silničních vozidel ČR.
+                    </h3>
+                    <p className="small mb-2">
+                      <strong>1)</strong> Zkontrolujte překlepy (<strong>I/l</strong>,{" "}
+                      <strong>O/0</strong>) a případně zkuste jiný
+                      způsob hledání (VIN / TP / ORV).
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm mb-3"
+                      onClick={focusActiveSearchField}
+                    >
+                      Upravit zadání
+                    </button>
+                    <p className="small mb-2 pt-2 border-top">
+                      <strong>2)</strong> Zkuste vyhledat v rozšířeném registru:
+                    </p>
+                    <a
+                      href={cebiaNotFoundUrl}
+                      className="btn btn-primary"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Otevřít rozšířenou prověrku vozidla
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {lookupError?.kind === "server_error" && (
+                <div className="col-12 mt-4" ref={lookupErrorRef}>
+                  <div className="alert alert-danger" role="alert">
+                    <strong>Registr dočasně neodpovídá.</strong> Zkuste vyhledání
+                    znovu za chvíli. Pokud problém přetrvává, zkuste obnovit
+                    stránku.
+                  </div>
+                </div>
+              )}
+
+              {lookupError?.kind === "unknown" && (
+                <div className="col-12 mt-4" ref={lookupErrorRef}>
+                  <div className="alert alert-danger" role="alert">
+                    <p className="mb-2">
+                      {lookupError.message ??
+                        "Nepodařilo se načíst údaje. Zkontrolujte připojení k internetu a zkuste to znovu."}
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-danger"
+                      onClick={focusActiveSearchField}
+                    >
+                      Zkusit znovu — upravit zadání
+                    </button>
+                  </div>
                 </div>
               )}
 
