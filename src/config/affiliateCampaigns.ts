@@ -122,13 +122,18 @@ function buildEhubImpressionUrl(bannerId: string): string {
  * @param data1 - Optional identifier for tracking (e.g. page/section name)
  */
 export const cebia = {
-	/** Direct link with optional VIN (no affiliate tracking, use for VIN-specific checks) */
-	getDirectUrl: (vin?: string, data1?: string): string => {
-		const base = campaigns.cebia.baseUrl
-		let url = vin ? `${base}/?vin=${encodeURIComponent(vin)}` : base
-		if (data1) url += `${url.includes('?') ? '&' : '?'}data1=${encodeURIComponent(data1)}`
-		return url
-	},
+	/**
+	 * eHub affiliate URL (text banner) with optional VIN → Cebia.
+	 * Same tracking as getTextLinkUrl / getTextLinkUrlWithVin; kept for existing call sites.
+	 */
+	getDirectUrl: (vin?: string, data1?: string): string =>
+		vin
+			? buildEhubClickUrlWithDest(
+					campaigns.cebia.textBannerId,
+					`${campaigns.cebia.baseUrl}/?vin=${encodeURIComponent(vin)}`,
+					data1,
+				)
+			: buildEhubClickUrl(campaigns.cebia.textBannerId, data1),
 
 	/** eHub affiliate URL for text/CTA links (Benefits, fallbacks, etc.) */
 	getTextLinkUrl: (data1?: string): string =>
