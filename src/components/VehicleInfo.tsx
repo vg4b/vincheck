@@ -15,6 +15,11 @@ interface VehicleInfoProps {
 	}
 	saveMessage?: string
 	promoSection?: React.ReactNode
+	/**
+	 * Po kliknutí na Cebia odkaz v novém tabu (např. modal na detailu VIN).
+	 * Volá se odloženě (`setTimeout(0)`), aby měl výchozí otevření tabu přednost před překryvem.
+	 */
+	onCebiaExternalNavigate?: () => void
 }
 
 const VEHICLE_INFO_SUMMARY_FIELDS = new Set<string>([
@@ -30,7 +35,8 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	vinCode,
 	saveAction,
 	saveMessage,
-	promoSection
+	promoSection,
+	onCebiaExternalNavigate,
 }) => {
 	const brand = getDataValue(data, 'TovarniZnacka', 'Neznámá značka')
 	const brandLogoSrc = getLogoSrc(brand)
@@ -104,6 +110,10 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 						target='_blank'
 						rel='noopener noreferrer'
 						className='btn btn-primary btn-sm fw-bold'
+						onClick={() => {
+							if (!onCebiaExternalNavigate) return
+							window.setTimeout(onCebiaExternalNavigate, 0)
+						}}
 					>
 						Prověřit historii na Cebia.cz ➜
 					</a>
@@ -175,7 +185,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 				{trailingPromo}
 			</>
 		)
-	}, [groupedData, filteredData.length, vinCode])
+	}, [groupedData, filteredData.length, vinCode, onCebiaExternalNavigate])
 
 	const cleanVin = vinCode.replace(/[^a-zA-Z0-9]/g, '')
 	const historyUrl =
@@ -282,6 +292,10 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 							target='_blank'
 							rel='noopener noreferrer'
 							className='btn btn-outline-primary'
+							onClick={() => {
+							if (!onCebiaExternalNavigate) return
+							window.setTimeout(onCebiaExternalNavigate, 0)
+						}}
 						>
 							Načíst historii vozidla (nová stránka)
 						</a>

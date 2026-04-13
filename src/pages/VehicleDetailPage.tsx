@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
 import VehicleInfo from '../components/VehicleInfo'
+import { CebiaRemindersModal } from '../components/CebiaRemindersModal'
+import { cebia } from '../config/affiliateCampaigns'
 import { useAuth } from '../contexts/AuthContext'
 import { VehicleDataArray } from '../types'
 import { addVehicle, fetchVehicles } from '../utils/clientZoneApi'
@@ -16,6 +18,8 @@ interface VehicleDetailPageProps {
 const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 	const params = useParams<{ code?: string }>()
 	const navigate = useNavigate()
+	const location = useLocation()
+	const isVinDetailPath = location.pathname.startsWith('/vin/')
 	const { user } = useAuth()
 	const [vehicleData, setVehicleData] = useState<VehicleDataArray | null>(null)
 	const [loading, setLoading] = useState(true)
@@ -26,6 +30,7 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 	const [saveTitle, setSaveTitle] = useState('')
 	const [isAlreadySaved, setIsAlreadySaved] = useState(false)
 	const [checkingSaved, setCheckingSaved] = useState(false)
+	const [vinPageCebiaRemindersModalOpen, setVinPageCebiaRemindersModalOpen] = useState(false)
 
 	useEffect(() => {
 		const controller = new AbortController()
@@ -263,6 +268,12 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 	const brand = getDataValue(vehicleData, 'TovarniZnacka', '')
 	const model = getDataValue(vehicleData, 'Typ', '')
 
+	const cleanVinForCebia = vinCode.replace(/[^a-zA-Z0-9]/g, '')
+	const cebiaVehicleDetailModalRetryUrl =
+		cleanVinForCebia.length === 17
+			? cebia.getTextLinkUrlWithVin(cleanVinForCebia, 'vehicle_detail_modal_reopen_cebia')
+			: cebia.getTextLinkUrl('vehicle_detail_modal_reopen_cebia')
+
 	const handleSaveVehicle = async () => {
 		if (!user || !vehicleData) {
 			navigate('/prihlaseni')
@@ -315,6 +326,11 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 				<VehicleInfo
 					data={vehicleData}
 					vinCode={vinCode}
+					onCebiaExternalNavigate={
+						!user && isVinDetailPath
+							? () => setVinPageCebiaRemindersModalOpen(true)
+							: undefined
+					}
 					saveAction={
 						isAlreadySaved
 							? {
@@ -436,6 +452,13 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 					}
 				/>
 			</div>
+			<CebiaRemindersModal
+				open={vinPageCebiaRemindersModalOpen}
+				onClose={() => setVinPageCebiaRemindersModalOpen(false)}
+				user={user}
+				cebiaRetryUrl={cebiaVehicleDetailModalRetryUrl}
+				intro='vehicle_detail'
+			/>
 			<Footer />
 		</>
 	)

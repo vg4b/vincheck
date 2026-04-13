@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
 import Navigation from "../components/Navigation";
 import VehicleInfo from "../components/VehicleInfo";
+import { CebiaRemindersModal } from "../components/CebiaRemindersModal";
 import { useAuth } from "../contexts/AuthContext";
 import { VehicleDataArray } from "../types";
 import { addVehicle } from "../utils/clientZoneApi";
@@ -92,6 +93,8 @@ const HomePage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [saveTitle, setSaveTitle] = useState("");
+  const [notFoundRemindersModalOpen, setNotFoundRemindersModalOpen] =
+    useState(false);
   const { user } = useAuth();
 
   const vinInputRef = useRef<HTMLInputElement>(null);
@@ -121,12 +124,24 @@ const HomePage: React.FC = () => {
       ? cebia.getTextLinkUrlWithVin(vin.trim(), "homepage_error")
       : cebia.getTextLinkUrl("homepage_error");
 
+  /** Opětovné otevření prověrky z modalu (po not_found) – vlastní data1 pro eHub */
+  const cebiaNotFoundModalRetryUrl =
+    searchMethod === "vin" && vin.trim().length === 17
+      ? cebia.getTextLinkUrlWithVin(vin.trim(), "homepage_not_found_modal_reopen_cebia")
+      : cebia.getTextLinkUrl("homepage_not_found_modal_reopen_cebia");
+
   useLayoutEffect(() => {
     if (lookupError) {
       lookupErrorRef.current?.scrollIntoView({
         behavior: "smooth",
         block: "nearest",
       });
+    }
+  }, [lookupError]);
+
+  useEffect(() => {
+    if (!lookupError || lookupError.kind !== "not_found") {
+      setNotFoundRemindersModalOpen(false);
     }
   }, [lookupError]);
 
@@ -528,9 +543,13 @@ const HomePage: React.FC = () => {
                     </p>
                     <a
                       href={cebiaNotFoundUrl}
-                      className="btn btn-primary"
                       target="_blank"
                       rel="noopener noreferrer"
+                      className="btn btn-primary"
+                      onClick={() => {
+                        // Nový tab z výchozí akce odkazu má přednost; modal až v další úloze (stejné jako VehicleInfo).
+                        window.setTimeout(() => setNotFoundRemindersModalOpen(true), 0);
+                      }}
                     >
                       Otevřít rozšířenou prověrku vozidla
                     </a>
@@ -968,6 +987,15 @@ const HomePage: React.FC = () => {
           </section>
         )}
       </main>
+
+      <CebiaRemindersModal
+        open={notFoundRemindersModalOpen}
+        onClose={() => setNotFoundRemindersModalOpen(false)}
+        user={user}
+        cebiaRetryUrl={cebiaNotFoundModalRetryUrl}
+        intro="not_found"
+      />
+
       <Footer />
     </>
   );
