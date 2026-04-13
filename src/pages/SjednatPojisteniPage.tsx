@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
-import { direct } from '../config/affiliateCampaigns'
+import { csob } from '../config/affiliateCampaigns'
 
 type PojisteniTyp = 'povinne' | 'havarijni' | 'oboje'
 type VozidloTyp = 'vin' | 'spz'
@@ -13,6 +13,32 @@ const STEPS = [
 	{ id: 3, title: 'Shrnutí' },
 ] as const
 
+const REMINDER_MODAL_COLUMNS: { emoji: string; label: string }[][] = [
+	[
+		{ emoji: '🔧', label: 'Termín STK' },
+		{ emoji: '🛡️', label: 'Povinné ručení' },
+		{ emoji: '🚗', label: 'Havarijní pojištění' },
+	],
+	[
+		{ emoji: '🔩', label: 'Servisní prohlídky' },
+		{ emoji: '🛞', label: 'Přezutí pneumatik' },
+		{ emoji: '🛣️', label: 'Dálniční známka' },
+	],
+]
+
+const ReminderModalLine: React.FC<{ emoji: string; label: string }> = ({ emoji, label }) => (
+	<li className="d-flex align-items-start gap-2">
+		<span
+			className="flex-shrink-0 d-inline-flex justify-content-center"
+			style={{ width: '1.5rem', lineHeight: 1.25 }}
+			aria-hidden
+		>
+			{emoji}
+		</span>
+		<span>{label}</span>
+	</li>
+)
+
 const SjednatPojisteniPage: React.FC = () => {
 	const [searchParams] = useSearchParams()
 	const vinFromUrl = searchParams.get('vin')?.replace(/[^a-zA-Z0-9]/g, '').trim() ?? ''
@@ -22,7 +48,8 @@ const SjednatPojisteniPage: React.FC = () => {
 	const [typ, setTyp] = useState<PojisteniTyp | null>(null)
 	const [vozidloTyp, setVozidloTyp] = useState<VozidloTyp | null>(initialVozidloTyp)
 	const [vinOrSpz, setVinOrSpz] = useState(vinFromUrl || spzFromUrl)
-	const [isRedirecting, setIsRedirecting] = useState(false)
+	const [showKalkulackaModal, setShowKalkulackaModal] = useState(false)
+	const [kalkulackaPopupBlocked, setKalkulackaPopupBlocked] = useState(false)
 
 	useEffect(() => {
 		document.title = 'Sjednat pojištění | VIN Info.cz'
@@ -35,32 +62,62 @@ const SjednatPojisteniPage: React.FC = () => {
 		}
 	}, [])
 
+	useEffect(() => {
+		if (!showKalkulackaModal) return
+		const prevOverflow = document.body.style.overflow
+		document.body.style.overflow = 'hidden'
+		return () => {
+			document.body.style.overflow = prevOverflow
+		}
+	}, [showKalkulackaModal])
+
+	useEffect(() => {
+		if (!showKalkulackaModal) return
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') {
+				setShowKalkulackaModal(false)
+				setKalkulackaPopupBlocked(false)
+			}
+		}
+		window.addEventListener('keydown', onKey)
+		return () => window.removeEventListener('keydown', onKey)
+	}, [showKalkulackaModal])
+
 	const cleanVinOrSpz = vinOrSpz.replace(/[^a-zA-Z0-9]/g, '').trim()
 	const isValidVin = vozidloTyp === 'vin' && cleanVinOrSpz.length === 17
 	const isValidSpz = vozidloTyp === 'spz' && cleanVinOrSpz.length >= 5 && cleanVinOrSpz.length <= 8
 	const hasVinOrSpz = isValidVin || isValidSpz
 
-	const getDirectUrl = (): string => {
-		const code = hasVinOrSpz ? cleanVinOrSpz : undefined
-		switch (typ) {
-			case 'povinne':
-				return direct.getDirectUrl(code)
-			case 'havarijni':
-				return direct.getHavarijniUrlWithVin(code)
-			case 'oboje':
-				return direct.getAutoUrl(code)
-			default:
-				return direct.getTextLinkUrl()
+	const getKalkulackaUrl = (): string => {
+		if (!typ) {
+			return csob.getVehicleKalkulackaUrl('povinne_ruceni', 'sjednat_pojisteni')
 		}
+		const kind =
+			typ === 'povinne'
+				? 'povinne_ruceni'
+				: typ === 'havarijni'
+					? 'havarijni'
+					: 'komplexni'
+		return csob.getVehicleKalkulackaUrl(kind, 'sjednat_pojisteni')
+	}
+
+	const openKalkulackaInNewTab = (): boolean => {
+		const url = getKalkulackaUrl()
+		const w = window.open(url, '_blank', 'noopener,noreferrer')
+		return Boolean(w)
 	}
 
 	const handleContinue = () => {
 		if (step < 3) {
 			setStep(step + 1)
-		} else {
-			setIsRedirecting(true)
-			window.location.href = getDirectUrl()
+			return
 		}
+		const opened = openKalkulackaInNewTab()
+		setKalkulackaPopupBlocked(!opened)
+		// Modal až poté, co se nový tab stihne otevřít (další úloha ve frontě)
+		window.setTimeout(() => {
+			setShowKalkulackaModal(true)
+		}, 0)
 	}
 
 	const handleBack = () => {
@@ -76,8 +133,8 @@ const SjednatPojisteniPage: React.FC = () => {
 	const benefits = [
 		{
 			icon: '💰',
-			title: 'Nízká cena',
-			desc: 'Výhodné pojistné při online sjednání',
+			title: 'Sleva online',
+			desc: 'Zvýhodnění při sjednání přes kalkulačku na webu',
 		},
 		{
 			icon: '📋',
@@ -97,7 +154,7 @@ const SjednatPojisteniPage: React.FC = () => {
 			<div className="container mt-5 mb-5">
 				<h1 className="mb-4">Sjednat pojištění</h1>
 				<p className="text-muted mb-4">
-					Vyberte typ pojištění a přejděte k online sjednání.
+					Vyberte typ pojištění a přejděte na kalkulačku. {csob.vehicleKalkulackaTagline}
 				</p>
 
 				<div className="row g-4">
@@ -225,7 +282,7 @@ const SjednatPojisteniPage: React.FC = () => {
 									</dd>
 								</dl>
 								<div className="alert alert-success mt-3 mb-0">
-									<strong>Připraveno.</strong> Kliknutím přejdete na srovnání nabídek, kde dokončíte sjednání.
+									<strong>Připraveno.</strong> Kliknutím se nejdřív otevře kalkulačka v novém tabu, poté se zobrazí tip k upozorněním v Moje VINInfo.
 								</div>
 							</>
 						)}
@@ -244,13 +301,9 @@ const SjednatPojisteniPage: React.FC = () => {
 								type="button"
 								className="btn btn-primary px-4"
 								onClick={handleContinue}
-								disabled={!canContinue() || isRedirecting}
+								disabled={!canContinue()}
 							>
-								{step < 3
-									? 'Pokračovat'
-									: isRedirecting
-										? 'Přesměrovávám...'
-										: 'Porovnat nabídky →'}
+								{step < 3 ? 'Pokračovat' : 'Na kalkulačku →'}
 							</button>
 						</div>
 					</div>
@@ -289,6 +342,126 @@ const SjednatPojisteniPage: React.FC = () => {
 					</div>
 				</div>
 			</div>
+
+			{showKalkulackaModal && (
+				<div
+					className="modal fade show d-block"
+					tabIndex={-1}
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="sjednat-kalkulacka-modal-title"
+					style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+					onClick={(e) => {
+						if (e.target === e.currentTarget) {
+							setShowKalkulackaModal(false)
+							setKalkulackaPopupBlocked(false)
+						}
+					}}
+				>
+					<div
+						className="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable"
+						onClick={(e) => e.stopPropagation()}
+					>
+						<div className="modal-content">
+							<div className="modal-header">
+								<h2 id="sjednat-kalkulacka-modal-title" className="modal-title h5 mb-0">
+									Upozornění na termíny
+								</h2>
+								<button
+									type="button"
+									className="btn-close"
+									aria-label="Zavřít"
+									onClick={() => {
+										setShowKalkulackaModal(false)
+										setKalkulackaPopupBlocked(false)
+									}}
+								/>
+							</div>
+							<div className="modal-body">
+								{!kalkulackaPopupBlocked && (
+									<p className="mb-3">
+										Kalkulačka pojištění vozidla se otevřela v <strong>novém tabu</strong>. Tady na VIN Info.cz
+										můžete dál prohlížet web nebo si níže nastavit upozornění.
+									</p>
+								)}
+								{kalkulackaPopupBlocked && (
+									<div className="alert alert-warning mb-3" role="alert">
+										<strong>Nový tab se nepodařilo otevřít.</strong> Povolte vyskakovací okna pro tento web, nebo
+										použijte tlačítko níže.
+									</div>
+								)}
+
+								<div className="border rounded p-3 bg-light mt-0">
+									<h3 className="h6 mb-2">Nechte se upozornit na důležité termíny</h3>
+									<p className="small mb-3">
+										V Moje VINInfo si uložíte vozidlo a nastavíte upozornění – nikdy nezmeškejte:
+									</p>
+									<div className="row small g-3 align-items-start">
+										{REMINDER_MODAL_COLUMNS.map((column, colIdx) => (
+											<div key={colIdx} className="col-sm-6">
+												<ul className="list-unstyled mb-0 d-flex flex-column gap-2">
+													{column.map((item) => (
+														<ReminderModalLine key={item.label} emoji={item.emoji} label={item.label} />
+													))}
+												</ul>
+											</div>
+										))}
+									</div>
+									<p className="small text-muted mb-3 mt-2">
+										📧 Pošleme vám email v termínu, který si zvolíte • ✨ 100 % zdarma
+									</p>
+									<p className="small mb-0">
+										<Link to="/klientska-zona">Přejít do Moje VINInfo</Link>
+										{' · '}
+										<Link to="/registrace">Vytvořit účet zdarma</Link>
+									</p>
+								</div>
+							</div>
+							<div className="modal-footer flex-wrap gap-2">
+								<button
+									type="button"
+									className="btn btn-primary"
+									onClick={() => {
+										setShowKalkulackaModal(false)
+										setKalkulackaPopupBlocked(false)
+									}}
+								>
+									Zavřít
+								</button>
+								{kalkulackaPopupBlocked && (
+									<>
+										<button
+											type="button"
+											className="btn btn-outline-primary"
+											onClick={() => {
+												if (openKalkulackaInNewTab()) {
+													setKalkulackaPopupBlocked(false)
+												}
+											}}
+										>
+											Zkusit znovu otevřít
+										</button>
+										<button
+											type="button"
+											className="btn btn-outline-secondary"
+											onClick={async () => {
+												try {
+													await navigator.clipboard.writeText(getKalkulackaUrl())
+												} catch {
+													/* ignore */
+												}
+											}}
+										>
+											Zkopírovat odkaz
+										</button>
+									</>
+								)}
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
 			<Footer />
 		</>
 	)

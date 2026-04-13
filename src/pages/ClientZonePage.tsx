@@ -21,7 +21,7 @@ import {
 import { OdometerSection } from '../components/OdometerSection'
 import { ApiError } from '../utils/apiClient'
 import { fetchVehicleInfo, formatValue, getDataValue } from '../utils/vehicleApi'
-import { cebia, csob, direct } from '../config/affiliateCampaigns'
+import { axaCestovniPojisteni, cebia, csob, dealora } from '../config/affiliateCampaigns'
 
 const reminderTypeLabels: Record<ReminderType, string> = {
 	stk: 'Termín STK',
@@ -1018,22 +1018,6 @@ const ClientZonePage: React.FC = () => {
 							<div className='col-md-6'>
 								<div className='card h-100'>
 									<div className='card-body'>
-										<h5 className='card-title'>Porovnání pojištění</h5>
-										<p className='card-text text-muted'>
-											Vyberte typ pojištění a přejděte k online sjednání. Povinné ručení i havarijní pojištění.
-										</p>
-										<Link
-											to='/sjednat-pojisteni'
-											className='btn btn-outline-primary'
-										>
-											Sjednat pojištění
-										</Link>
-									</div>
-								</div>
-							</div>
-							<div className='col-md-6'>
-								<div className='card h-100'>
-									<div className='card-body'>
 										<h5 className='card-title'>Prověření historie vozidla</h5>
 										<p className='card-text text-muted'>
 											Zjistěte kompletní historii vozidla - havárie, servisní záznamy, 
@@ -1054,28 +1038,56 @@ const ClientZonePage: React.FC = () => {
 							<div className='col-md-6'>
 								<div className='card h-100'>
 									<div className='card-body'>
+										<h5 className='card-title'>{dealora.shortLabel}</h5>
+										<p className='card-text text-muted'>
+											{dealora.tagline}.
+										</p>
+										<a
+											href={dealora.getUrl()}
+											target='_blank'
+											rel='noopener noreferrer'
+											className='btn btn-outline-primary'
+										>
+											{dealora.label}
+										</a>
+									</div>
+								</div>
+							</div>
+
+							<div className='col-md-6'>
+								<div className='card h-100'>
+									<div className='card-body'>
 										<h5 className='card-title'>Pojištění vozidla</h5>
 										<p className='card-text text-muted'>
-											{direct.tagline}
+											{csob.vehicleKalkulackaTagline} Povinné ručení i havarijní v jedné kalkulačce.
 										</p>
-										<div className='d-flex flex-wrap gap-2'>
-											<a
-												href={direct.getTextLinkUrl()}
-												target='_blank'
-												rel='noopener noreferrer'
-												className='btn btn-outline-primary'
-											>
-												Povinné ručení na {direct.shortLabel}
-											</a>
-											<a
-												href={direct.getHavarijniUrl()}
-												target='_blank'
-												rel='noopener noreferrer'
-												className='btn btn-outline-primary'
-											>
-												Havarijní na {direct.shortLabel}
-											</a>
-										</div>
+										<a
+											href={csob.getVehicleKalkulackaUrl('komplexni', 'client_zone_benefits_vehicle')}
+											target='_blank'
+											rel='noopener noreferrer'
+											className='btn btn-outline-primary'
+										>
+											Na kalkulačku vozidla
+										</a>
+									</div>
+								</div>
+							</div>
+
+							<div className='col-md-6'>
+								<div className='card h-100'>
+									<div className='card-body'>
+										<h5 className='card-title'>{axaCestovniPojisteni.headline}</h5>
+										<p className='card-text text-muted small mb-2'>
+											{axaCestovniPojisteni.partnerInfo}
+										</p>
+										<a
+											href={axaCestovniPojisteni.getUrl('client_zone_benefits')}
+											target='_blank'
+											rel='noopener noreferrer'
+											className='btn btn-outline-primary'
+										>
+											Sjednat cestovní pojištění
+										</a>
 									</div>
 								</div>
 							</div>
@@ -1143,14 +1155,16 @@ const ClientZonePage: React.FC = () => {
 																Prověřit historii
 															</a>
 														)}
-														<a
-															href={direct.getDirectUrl(vehicle.vin ?? undefined)}
-															target='_blank'
-															rel='noopener noreferrer'
+														<Link
+															to={
+																vehicle.vin
+																	? `/sjednat-pojisteni?vin=${encodeURIComponent(vehicle.vin)}`
+																	: '/sjednat-pojisteni'
+															}
 															className='btn btn-sm btn-outline-secondary'
 														>
-															Pojištění na Direct
-														</a>
+															Sjednat pojištění
+														</Link>
 													</div>
 												</div>
 											</div>

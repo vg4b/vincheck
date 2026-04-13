@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
-import { direct, csob } from '../config/affiliateCampaigns'
+import { csob } from '../config/affiliateCampaigns'
 
 const HavarijniPojisteniPage: React.FC = () => {
 	useEffect(() => {
@@ -33,14 +33,15 @@ const HavarijniPojisteniPage: React.FC = () => {
 				</div>
 
 				<p className='mt-3 mb-4'>
-					<strong>Hledáte havarijní pojištění?</strong> {direct.tagline}{' '}
+					<strong>Hledáte havarijní pojištění?</strong>{' '}
+					{csob.vehicleKalkulackaTagline}{' '}
 					<a
-						href={direct.getHavarijniUrl()}
+						href={csob.getVehicleKalkulackaUrl('havarijni', 'havarijni_page')}
 						target='_blank'
 						rel='noopener noreferrer'
 						className='fw-bold'
 					>
-						{direct.shortLabel} – sjednat havarijní pojištění 🔗
+						Otevřít kalkulačku havarijního pojištění 🔗
 					</a>
 				</p>
 
@@ -378,15 +379,15 @@ const HavarijniPojisteniPage: React.FC = () => {
 							Sjednejte si havarijní pojištění ještě dnes
 						</h3>
 						<p className='card-text mb-4'>
-							{direct.tagline}
+							{csob.vehicleKalkulackaTagline}
 						</p>
 						<a
-							href={direct.getHavarijniUrl()}
+							href={csob.getVehicleKalkulackaUrl('havarijni', 'havarijni_page_cta')}
 							className='btn btn-primary btn-lg'
 							target='_blank'
 							rel='noopener noreferrer'
 						>
-							{direct.shortLabel} – sjednat havarijní pojištění 🔗
+							Na kalkulačku havarijního pojištění 🔗
 						</a>
 						{csob.getValidCoupons().some((c) =>
 							['sleva_20_auto', 'ccs_karta_1000'].includes(c.id)

@@ -8,19 +8,12 @@ const EHUB_AID = '9a3cbf23'
 
 /** Campaign definitions */
 export const campaigns = {
-	/** Direct pojišťovna – povinné ručení, havarijní (CJ/Impact network) */
-	direct: {
-		/** CJ affiliate click URL */
-		affiliateClickUrl: 'https://www.anrdoezrs.net/click-101607830-15284807',
-		/** Destination: povinné ručení s VIN */
-		povinneRuceniUrl: 'https://www.direct.cz/auto/povinne-ruceni',
-		/** Destination: havarijní pojištění s VIN */
-		havarijniPojisteniUrl: 'https://www.direct.cz/auto/havarijni-pojisteni',
-		/** Destination: přehled autopojištění (povinné + havarijní) */
-		autoUrl: 'https://www.direct.cz/auto',
-		label: 'Pojištění na Direct.cz',
-		shortLabel: 'Direct pojišťovna',
-		tagline: 'Nízká cena, sjednání i správa pojištění online bez volání, vysoké plnění',
+	/** Dealora.cz – slevové kódy (shared FixWeb property) */
+	dealora: {
+		baseUrl: 'https://www.dealora.cz/',
+		label: 'Slevové kódy na Dealora.cz',
+		shortLabel: 'Dealora.cz',
+		tagline: 'Slevové kódy a kupony do oblíbených obchodů',
 	},
 
 	/** Cebia.cz - Vehicle history check (eHub network) */
@@ -100,6 +93,19 @@ export const csobCoupons = {
 
 export type CsobCouponId = keyof typeof csobCoupons
 
+/** Typ kalkulačky vozidel na kalkulacka.csobpoj.cz */
+export type CsobVehicleKalkulackaKind = 'povinne_ruceni' | 'havarijni' | 'komplexni'
+
+/**
+ * Dealora.cz – odkazy na slevové kódy
+ */
+export const dealora = {
+	getUrl: (): string => campaigns.dealora.baseUrl,
+	label: campaigns.dealora.label,
+	shortLabel: campaigns.dealora.shortLabel,
+	tagline: campaigns.dealora.tagline,
+} as const
+
 /** Build eHub click URL for a given banner ID */
 function buildEhubClickUrl(bannerId: string, data1?: string): string {
 	const base = `https://ehub.cz/system/scripts/click.php?a_aid=${EHUB_AID}&a_bid=${bannerId}`
@@ -162,61 +168,6 @@ export const cebia = {
 	shortLabel: campaigns.cebia.shortLabel,
 } as const
 
-/** Přidá ?vin= nebo ?spz= podle délky kódu (VIN = 17 znaků) */
-function appendVinOrSpzParam(baseUrl: string, code: string): string {
-	const sep = baseUrl.includes('?') ? '&' : '?'
-	const param = code.length === 17 ? 'vin' : 'spz'
-	return `${baseUrl}${sep}${param}=${encodeURIComponent(code)}`
-}
-
-/**
- * Direct pojišťovna – povinné ručení, havarijní (CJ/Impact affiliate)
- */
-export const direct = {
-	/** Affiliate URL pro povinné ručení (bez VIN/SPZ) */
-	getTextLinkUrl: (): string => {
-		const dest = campaigns.direct.povinneRuceniUrl
-		return `${campaigns.direct.affiliateClickUrl}?url=${encodeURIComponent(dest)}`
-	},
-
-	/** Affiliate URL pro povinné ručení s VIN nebo SPZ předvyplněným */
-	getDirectUrl: (vinOrSpz?: string): string => {
-		const base = campaigns.direct.affiliateClickUrl
-		const dest = vinOrSpz && vinOrSpz.length >= 5
-			? appendVinOrSpzParam(campaigns.direct.povinneRuceniUrl, vinOrSpz)
-			: campaigns.direct.povinneRuceniUrl
-		return `${base}?url=${encodeURIComponent(dest)}`
-	},
-
-	/** Affiliate URL pro havarijní pojištění (bez VIN/SPZ) */
-	getHavarijniUrl: (): string => {
-		const dest = campaigns.direct.havarijniPojisteniUrl
-		return `${campaigns.direct.affiliateClickUrl}?url=${encodeURIComponent(dest)}`
-	},
-
-	/** Affiliate URL pro havarijní pojištění s VIN nebo SPZ předvyplněným */
-	getHavarijniUrlWithVin: (vinOrSpz?: string): string => {
-		const base = campaigns.direct.affiliateClickUrl
-		const dest = vinOrSpz && vinOrSpz.length >= 5
-			? appendVinOrSpzParam(campaigns.direct.havarijniPojisteniUrl, vinOrSpz)
-			: campaigns.direct.havarijniPojisteniUrl
-		return `${base}?url=${encodeURIComponent(dest)}`
-	},
-
-	/** Affiliate URL pro autopojištění (povinné i havarijní) */
-	getAutoUrl: (vinOrSpz?: string): string => {
-		const base = campaigns.direct.affiliateClickUrl
-		const dest = vinOrSpz && vinOrSpz.length >= 5
-			? appendVinOrSpzParam(campaigns.direct.autoUrl, vinOrSpz)
-			: campaigns.direct.autoUrl
-		return `${base}?url=${encodeURIComponent(dest)}`
-	},
-
-	label: campaigns.direct.label,
-	shortLabel: campaigns.direct.shortLabel,
-	tagline: campaigns.direct.tagline,
-} as const
-
 /**
  * CSOB Pojišťovna – coupon-based offers via eHub
  */
@@ -247,16 +198,55 @@ export const csob = {
 	getAutopojisteniUrl: (): string =>
 		buildEhubClickUrlWithDest(CSOB_EHUB_BID, 'https://www.csobpoj.cz/pojisteni/pojisteni-vozidel'),
 
+	/** Text pro odkazy na kalkulačku vozidel (sleva při online sjednání) */
+	vehicleKalkulackaTagline: 'Pojištění se slevou za sjednání online.',
+
+	/**
+	 * Kalkulačka vozidel přes eHub (`a_bid=f5e0f8fb`) + `desturl` na kalkulacka.csobpoj.cz.
+	 * @param data1 – identifikátor umístění odkazu (tracking)
+	 */
+	getVehicleKalkulackaUrl: (kind: CsobVehicleKalkulackaKind, data1: string): string => {
+		const destUrls: Record<CsobVehicleKalkulackaKind, string> = {
+			povinne_ruceni: 'https://kalkulacka.csobpoj.cz/povinne-ruceni',
+			havarijni: 'https://kalkulacka.csobpoj.cz/havarijni-pojisteni',
+			komplexni: 'https://kalkulacka.csobpoj.cz/komplexni-pojisteni-vozidla',
+		}
+		return buildEhubClickUrlWithDest(CSOB_EHUB_BID, destUrls[kind], data1)
+	},
+
 	label: 'CSOB Pojišťovna',
 	shortLabel: 'CSOB Pojišťovna',
 	tagline: 'slevové kódy a bonusy',
+} as const
+
+/** Cestovní pojištění – CJ affiliate (dpbolvw.net) */
+const AXA_CESTOVNI_AFFILIATE_BASE = 'https://www.dpbolvw.net/click-101607830-12934852'
+
+/**
+ * Cestovní pojištění – affiliate s `sid` podle umístění odkazu.
+ */
+export const axaCestovniPojisteni = {
+	/**
+	 * @param placementSid – jednoznačný identifikátor místa (např. `client_zone_benefits`, `footer`)
+	 */
+	getUrl: (placementSid: string): string => {
+		const sep = AXA_CESTOVNI_AFFILIATE_BASE.includes('?') ? '&' : '?'
+		return `${AXA_CESTOVNI_AFFILIATE_BASE}${sep}sid=${encodeURIComponent(placementSid)}`
+	},
+
+	headline: 'Cestovní pojištění se slevou 50 %',
+
+	/** Krátký neutrální popis pro karty (bez jména partnera) */
+	partnerInfo:
+		'Léčebné výlohy, asistence, úraz, odpovědnost, zavazadla i rizika spojená s letem. Sjednáte online.',
 } as const
 
 /**
  * All affiliate campaigns as a map for iteration / documentation
  */
 export const allCampaigns = {
+	dealora,
 	cebia,
-	direct,
 	csob,
+	axaCestovniPojisteni,
 } as const

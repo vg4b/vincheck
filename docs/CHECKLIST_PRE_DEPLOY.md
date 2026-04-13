@@ -44,11 +44,10 @@
 - [ ] `VERCEL_PROJECT_PRODUCTION_URL` povolená v Vercel projektu
 - [ ] Odkazy v reminder e-mailech (přihlášení, Cebia, sjednat pojištění) – funkční
 
-## 7. Affiliate odkazy (Cebia, Direct, CSOB)
+## 7. Affiliate odkazy (Cebia, CSOB)
 
 - [ ] Cebia – všechny odkazy obsahují `data1` identifikátor
-- [ ] Direct pojišťovna – affiliate URL fungují
-- [ ] CSOB kupony – platnost `validFrom` / `validTo` odpovídá aktuálnímu období
+- [ ] CSOB – kalkulačka vozidla / kupony (eHub odkazy) – funkční; platnost kuponů `validFrom` / `validTo` odpovídá období
 
 ## 8. Frontend – manuální test
 
