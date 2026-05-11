@@ -1,4 +1,85 @@
-/* Performance optimizations */
+/* =========================================================
+   Brand palette — 4 colors, locked.
+   Every visible color on the site is one of these.
+   No raw hex outside this :root block.
+   ---------------------------------------------------------
+   1. Brand Green — primary, success, links, CTAs, focus
+   2. Ink         — text, structure, info-state alerts
+   3. Warn        — warnings only (amber/clay)
+   4. Alert       — danger only (red)
+   + Surface neutrals (white & soft white)
+   ========================================================= */
+:root {
+	/* 1. Brand Green */
+	--brand-50: #eaf4eb;
+	--brand-600: #2f7a3e;
+	--brand-700: #22612f;
+
+	/* 2. Ink (text & neutrals) */
+	--ink-300: #cbd5e1;
+	--ink-500: #64748b;
+	--ink-700: #334155;
+	--ink-900: #0f172a;
+
+	/* 3. Warn (amber) */
+	--warn-50: #fff8eb;
+	--warn-600: #b45309;
+	--warn-700: #7a3a0a;
+
+	/* 4. Alert (red) */
+	--alert-50: #fef2f2;
+	--alert-600: #b91c1c;
+	--alert-700: #8a1a1a;
+
+	/* Surfaces */
+	--surface: #ffffff;
+	--surface-soft: #f7f8fa;
+
+	/* Aliases — old token names kept so existing usages still resolve.
+	   Prefer the scoped tokens above in new code. */
+	--accent-amber: var(--warn-600);
+	--accent-red: var(--alert-600);
+
+	/* Spacing scale (4-based) */
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-5: 24px;
+	--space-6: 32px;
+	--space-7: 48px;
+	--space-8: 64px;
+	--space-9: 96px;
+
+	/* Radius */
+	--radius-sm: 6px;
+	--radius-md: 10px;
+	--radius-lg: 16px;
+
+	/* Shadows */
+	--shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04),
+		0 1px 3px rgba(15, 23, 42, 0.06);
+	--shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08),
+		0 2px 4px rgba(15, 23, 42, 0.06);
+
+	/* Bootstrap variable overrides — make existing .btn-primary,
+	   .text-primary, .alert-primary etc. inherit the new palette. */
+	--bs-primary: var(--brand-600);
+	--bs-primary-rgb: 47, 122, 62;
+	--bs-link-color: var(--brand-600);
+	--bs-link-color-rgb: 47, 122, 62;
+	--bs-link-hover-color: var(--brand-700);
+	--bs-body-color: var(--ink-700);
+	--bs-body-color-rgb: 51, 65, 85;
+	--bs-body-bg: var(--surface);
+	--bs-border-color: var(--ink-300);
+	--bs-heading-color: var(--ink-900);
+	--bs-emphasis-color: var(--ink-900);
+}
+
+/* =========================================================
+   Base
+   ========================================================= */
 * {
 	box-sizing: border-box;
 }
@@ -8,9 +89,42 @@ body {
 		"Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
 		"Helvetica Neue", Arial, sans-serif !important;
 	padding-top: 60px;
+	margin: 0;
+	color: var(--ink-700);
+	background-color: var(--surface);
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
-	margin: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	color: var(--ink-900);
+	letter-spacing: -0.01em;
+}
+
+h1,
+.h1 {
+	font-size: 2rem;
+	line-height: 1.25;
+	font-weight: 700;
+}
+
+h2,
+.h2 {
+	font-size: 1.5rem;
+	line-height: 1.33;
+	font-weight: 700;
+}
+
+h3,
+.h3 {
+	font-size: 1.25rem;
+	line-height: 1.4;
+	font-weight: 600;
 }
 
 code {
@@ -18,17 +132,215 @@ code {
 		source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
+/* =========================================================
+   Layout helpers / primitives
+   ========================================================= */
+.section {
+	padding-block: var(--space-7);
+}
+
+.section-tight {
+	padding-block: var(--space-6);
+}
+
+.surface-soft {
+	background-color: var(--surface-soft);
+}
+
+.card-soft {
+	background-color: var(--surface);
+	border: 1px solid var(--ink-300);
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-sm);
+	padding: var(--space-5);
+}
+
+.eyebrow {
+	display: inline-block;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--brand-600);
+	margin-bottom: var(--space-2);
+}
+
+.lead-tight {
+	max-width: 60ch;
+	color: var(--ink-700);
+	font-size: 1.0625rem;
+	line-height: 1.6;
+}
+
+.num {
+	font-variant-numeric: tabular-nums;
+}
+
+.text-muted-ink {
+	color: var(--ink-500) !important;
+}
+
+.text-brand {
+	color: var(--brand-600) !important;
+}
+
+.text-amber {
+	color: var(--accent-amber) !important;
+}
+
+/* Display heading for hero */
+.display-tight {
+	font-size: clamp(2rem, 4vw + 1rem, 2.75rem);
+	line-height: 1.15;
+	font-weight: 700;
+	letter-spacing: -0.015em;
+	color: var(--ink-900);
+}
+
+/* Subtle brand divider/underline used in section eyebrows or footer headings */
+.heading-accent {
+	box-shadow: inset 0 -2px 0 var(--brand-600);
+	padding-bottom: 2px;
+}
+
+/* =========================================================
+   Navbar
+   ========================================================= */
 .navbar {
-	background-color: #c6dbad !important;
-	padding-right: 40px !important;
-	padding-left: 40px !important;
+	background-color: var(--surface) !important;
+	border-bottom: 1px solid var(--ink-300);
+	padding-right: var(--space-5) !important;
+	padding-left: var(--space-5) !important;
 }
 
+.navbar .nav-link {
+	color: var(--ink-700);
+	font-weight: 500;
+}
+
+.navbar .nav-link:hover,
+.navbar .nav-link:focus {
+	color: var(--brand-700);
+}
+
+.navbar .nav-link.active,
+.navbar .dropdown-toggle.active {
+	background-color: var(--brand-50);
+	color: var(--brand-700);
+	font-weight: 600;
+}
+
+.navbar-brand {
+	color: var(--brand-700) !important;
+	font-weight: 700;
+}
+
+/* Mobile dropdown — neutralize the floating chrome so the submenu reads
+   as an indented inline sub-list (matches the rest of the collapsed nav).
+   !important is needed to beat Bootstrap's .dropdown-menu chrome
+   (background, border, shadow) which is applied via class selectors of
+   equal specificity AND inline utility classes (shadow-sm, border-0). */
+@media (max-width: 1199.98px) {
+	/* Force ul to full width so dropdown opening can't reflow the parent
+	   and shift the nav left (ms-auto would otherwise re-park it). */
+	.navbar .navbar-collapse .navbar-nav {
+		width: 100% !important;
+		margin-left: 0 !important;
+	}
+
+	/* Center every clickable target in the mobile nav. Bootstrap ships
+	   .dropdown-menu with text-align: left; the rest of the nav inherits
+	   center from elsewhere — forcing center here makes the toggle and
+	   submenu items match the siblings. */
+	.navbar .navbar-nav .nav-link,
+	.navbar .navbar-nav .dropdown-toggle,
+	.navbar .dropdown-menu,
+	.navbar .dropdown-menu .dropdown-item {
+		text-align: center !important;
+	}
+
+	/* Dropdown menu — strip the floating-card chrome so it reads as an
+	   inline continuation of the nav. */
+	.navbar-expand-xl .navbar-nav .dropdown-menu,
+	.navbar .dropdown-menu {
+		position: static !important;
+		float: none !important;
+		inset: auto !important;
+		transform: none !important;
+		width: 100% !important;
+		min-width: 0 !important;
+		background-color: transparent !important;
+		border: 0 !important;
+		box-shadow: none !important;
+		padding: 0 !important;
+		margin: 0 !important;
+	}
+
+	.navbar .dropdown-menu .dropdown-divider {
+		display: none !important;
+	}
+
+	.navbar .dropdown-menu .dropdown-item {
+		color: var(--ink-700) !important;
+		background: transparent;
+		font-weight: 500;
+	}
+
+	.navbar .dropdown-menu .dropdown-item:hover,
+	.navbar .dropdown-menu .dropdown-item:focus {
+		background-color: var(--brand-50) !important;
+		color: var(--brand-700) !important;
+	}
+
+	.navbar .dropdown-menu .dropdown-item.active,
+	.navbar .dropdown-menu .dropdown-item:active {
+		background-color: var(--brand-50) !important;
+		color: var(--brand-700) !important;
+		font-weight: 600;
+	}
+}
+
+/* Primary CTA pill in the navbar */
+.btn-brand {
+	background-color: var(--brand-600);
+	border: 1px solid var(--brand-600);
+	color: #fff;
+	border-radius: var(--radius-md);
+	padding: 0.5rem 1rem;
+	font-weight: 600;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-brand:hover,
+.btn-brand:focus {
+	background-color: var(--brand-700);
+	border-color: var(--brand-700);
+	color: #fff;
+}
+
+.btn-brand-outline {
+	background-color: transparent;
+	border: 1px solid var(--brand-600);
+	color: var(--brand-600);
+	border-radius: var(--radius-md);
+	padding: 0.5rem 1rem;
+	font-weight: 600;
+}
+
+.btn-brand-outline:hover,
+.btn-brand-outline:focus {
+	background-color: var(--brand-50);
+	color: var(--brand-700);
+	border-color: var(--brand-700);
+}
+
+/* =========================================================
+   Misc / legacy
+   ========================================================= */
 .container {
-	margin-top: 50px;
+	margin-top: var(--space-6);
 }
 
-/* Optimize image rendering */
 img {
 	max-width: 100%;
 	height: auto;
@@ -42,14 +354,369 @@ img {
 	max-width: 200px !important;
 	width: auto;
 	height: auto;
-	padding-right: 40px;
+	padding-right: var(--space-5);
 }
 
 #newSearch {
 	justify-content: center;
 }
 
-/* Prevent mobile browser from underlining auto-detected email links */
 .client-zone-email a {
 	text-decoration: none !important;
+}
+
+/* =========================================================
+   Bootstrap component refinements
+   ========================================================= */
+.card {
+	border: 1px solid var(--ink-300);
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-sm);
+}
+
+.nav-tabs {
+	border-bottom: 1px solid var(--ink-300);
+	gap: var(--space-2);
+}
+
+.nav-tabs .nav-link {
+	border: none;
+	border-bottom: 2px solid transparent;
+	color: var(--ink-500);
+	font-weight: 500;
+	padding: 0.5rem 0.25rem;
+	margin-bottom: -1px;
+	border-radius: 0;
+}
+
+.nav-tabs .nav-link:hover {
+	color: var(--ink-900);
+	border-bottom-color: var(--ink-300);
+	background: transparent;
+}
+
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+	color: var(--brand-700);
+	background: transparent;
+	border-color: transparent;
+	border-bottom-color: var(--brand-600);
+	font-weight: 600;
+}
+
+/* =========================================================
+   Alerts / infoboxes — icon + left accent stripe via CSS only
+   ========================================================= */
+.alert {
+	position: relative;
+	border-radius: var(--radius-md);
+	border: 1px solid transparent;
+	border-left-width: 4px;
+	padding: var(--space-4) var(--space-4) var(--space-4) calc(var(--space-4) + 28px + var(--space-3));
+	font-size: 0.9375rem;
+	line-height: 1.5;
+}
+
+.alert::before {
+	content: "";
+	position: absolute;
+	left: calc(var(--space-4) - 2px);
+	top: calc(var(--space-4) + 1px);
+	width: 22px;
+	height: 22px;
+	background-color: currentColor;
+	-webkit-mask-position: center;
+	mask-position: center;
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+	-webkit-mask-size: 22px 22px;
+	mask-size: 22px 22px;
+}
+
+.alert .alert-heading,
+.alert h1,
+.alert h2,
+.alert h3,
+.alert h4,
+.alert h5,
+.alert h6 {
+	color: inherit;
+	margin-bottom: var(--space-2);
+}
+
+.alert > :last-child {
+	margin-bottom: 0;
+}
+
+/* Info — ink/neutral (no separate blue family) */
+.alert-info {
+	background-color: var(--surface-soft);
+	border-color: var(--ink-300);
+	border-left-color: var(--ink-700);
+	color: var(--ink-900);
+}
+.alert-info::before {
+	background-color: var(--ink-700);
+	-webkit-mask-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4'/%3E%3Cpath d='M12 8h.01'/%3E%3C/svg%3E");
+	mask-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4'/%3E%3Cpath d='M12 8h.01'/%3E%3C/svg%3E");
+}
+
+/* Success — brand green */
+.alert-success {
+	background-color: var(--brand-50);
+	border-color: color-mix(in srgb, var(--brand-600) 25%, transparent);
+	border-left-color: var(--brand-600);
+	color: var(--brand-700);
+}
+.alert-success::before {
+	background-color: var(--brand-600);
+	-webkit-mask-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 11.08V12a10 10 0 1 1-5.93-9.14'/%3E%3Cpath d='m9 11 3 3L22 4'/%3E%3C/svg%3E");
+	mask-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 11.08V12a10 10 0 1 1-5.93-9.14'/%3E%3Cpath d='m9 11 3 3L22 4'/%3E%3C/svg%3E");
+}
+
+/* Warning — amber */
+.alert-warning {
+	background-color: var(--warn-50);
+	border-color: color-mix(in srgb, var(--warn-600) 25%, transparent);
+	border-left-color: var(--warn-600);
+	color: var(--warn-700);
+}
+.alert-warning::before {
+	background-color: var(--warn-600);
+	-webkit-mask-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z'/%3E%3Cpath d='M12 9v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
+	mask-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z'/%3E%3Cpath d='M12 9v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
+}
+
+/* Danger — red */
+.alert-danger {
+	background-color: var(--alert-50);
+	border-color: color-mix(in srgb, var(--alert-600) 25%, transparent);
+	border-left-color: var(--alert-600);
+	color: var(--alert-700);
+}
+.alert-danger::before {
+	background-color: var(--alert-600);
+	-webkit-mask-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='m15 9-6 6'/%3E%3Cpath d='m9 9 6 6'/%3E%3C/svg%3E");
+	mask-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='m15 9-6 6'/%3E%3Cpath d='m9 9 6 6'/%3E%3C/svg%3E");
+}
+
+/* Primary / Secondary — keep neutral so they don't fight content */
+.alert-primary,
+.alert-secondary {
+	background-color: var(--surface-soft);
+	border-color: var(--ink-300);
+	border-left-color: var(--ink-500);
+	color: var(--ink-900);
+}
+.alert-primary::before,
+.alert-secondary::before {
+	background-color: var(--ink-500);
+	-webkit-mask-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4'/%3E%3Cpath d='M12 8h.01'/%3E%3C/svg%3E");
+	mask-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4'/%3E%3Cpath d='M12 8h.01'/%3E%3C/svg%3E");
+}
+
+.form-control,
+.form-select {
+	border-radius: var(--radius-sm);
+	border-color: var(--ink-300);
+}
+
+.form-control:focus,
+.form-select:focus {
+	border-color: var(--brand-600);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-600) 18%, transparent);
+}
+
+.btn {
+	border-radius: var(--radius-sm);
+	font-weight: 500;
+}
+
+.btn-primary {
+	background-color: var(--brand-600);
+	border-color: var(--brand-600);
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+	background-color: var(--brand-700) !important;
+	border-color: var(--brand-700) !important;
+}
+
+.btn-outline-primary {
+	color: var(--brand-600);
+	border-color: var(--brand-600);
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+	background-color: var(--brand-50);
+	color: var(--brand-700);
+	border-color: var(--brand-700);
+}
+
+/* =========================================================
+   Plate-style title (echoes the brand-mark logo)
+   ========================================================= */
+.plate-title {
+	display: inline-flex;
+	align-items: stretch;
+	background-color: var(--surface);
+	border: 1.5px solid var(--ink-500);
+	border-radius: 8px;
+	overflow: hidden;
+	box-shadow: var(--shadow-sm);
+	padding: 0;
+	margin: 0;
+	font-family: "Montserrat", sans-serif;
+	font-weight: 800;
+	font-size: 1.0625rem;
+	line-height: 1.2;
+	letter-spacing: 0.04em;
+	color: var(--ink-900);
+	max-width: 100%;
+}
+
+.plate-title::before {
+	content: "";
+	flex: 0 0 12px;
+	background-color: var(--brand-600);
+}
+
+.plate-title > span {
+	padding: 6px 14px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* =========================================================
+   Icon badge (circular chip for highlighted icons)
+   ========================================================= */
+.icon-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	background-color: var(--surface);
+	color: var(--brand-600);
+	border: 1px solid color-mix(in srgb, var(--brand-600) 25%, transparent);
+	box-shadow: var(--shadow-sm);
+}
+
+.icon-badge--solid {
+	background-color: var(--brand-600);
+	color: #ffffff;
+	border-color: var(--brand-600);
+}
+
+/* =========================================================
+   Step card — clickable card-soft for numbered process steps
+   ========================================================= */
+.step-card {
+	display: block;
+	color: inherit;
+	text-decoration: none;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.step-card:hover,
+.step-card:focus-visible {
+	border-color: var(--brand-600);
+	box-shadow: var(--shadow-md);
+	color: inherit;
+	text-decoration: none;
+	transform: translateY(-1px);
+}
+
+/* =========================================================
+   Definition list (used by VehicleInfo grouped cards)
+   ========================================================= */
+.dl-grid {
+	display: grid;
+	grid-template-columns: minmax(160px, 1fr) 2fr;
+	gap: var(--space-2) var(--space-4);
+	margin: 0;
+}
+
+.dl-grid dt {
+	color: var(--ink-500);
+	font-weight: 500;
+	font-size: 0.9375rem;
+}
+
+.dl-grid dd {
+	color: var(--ink-900);
+	margin: 0;
+	font-weight: 600;
+	font-size: 0.9375rem;
+}
+
+@media (max-width: 575.98px) {
+	.dl-grid {
+		grid-template-columns: 1fr;
+		gap: 2px var(--space-2);
+	}
+	.dl-grid dt {
+		margin-top: var(--space-2);
+	}
+}
+
+/* =========================================================
+   Brand callout (used for the Cebia affiliate row)
+   ========================================================= */
+.brand-callout {
+	background-color: var(--brand-50);
+	border: 1px solid color-mix(in srgb, var(--brand-600) 25%, transparent);
+	border-radius: var(--radius-md);
+	padding: var(--space-4) var(--space-5);
+	color: var(--brand-700);
+}
+
+/* Inline links inside the callout — scoped so buttons (.btn) keep their own
+   color rules. Per palette: text links on --brand-50 → --brand-700. */
+.brand-callout a:not(.btn) {
+	color: var(--brand-700);
+	font-weight: 600;
+}
+
+/* Primary buttons inside the callout — palette: --brand-600 bg + --surface text. */
+.brand-callout .btn-primary,
+.brand-callout .btn-brand {
+	color: var(--surface);
+}
+.brand-callout .btn-primary:hover,
+.brand-callout .btn-primary:focus,
+.brand-callout .btn-brand:hover,
+.brand-callout .btn-brand:focus {
+	color: var(--surface);
+}
+
+/* =========================================================
+   Reminder row left-accent stripes (ClientZonePage)
+   ========================================================= */
+.reminder-row {
+	border-left: 4px solid var(--ink-300);
+	padding-left: var(--space-4);
+}
+
+.reminder-row.reminder-stk {
+	border-left-color: var(--brand-600);
+}
+
+.reminder-row.reminder-povinne_ruceni,
+.reminder-row.reminder-havarijni_pojisteni {
+	border-left-color: var(--accent-amber);
+}
+
+.reminder-row.reminder-servis,
+.reminder-row.reminder-prezuti_pneu {
+	border-left-color: var(--ink-500);
+}
+
+.reminder-row.reminder-dalnicni_znamka {
+	border-left-color: var(--accent-red);
 }

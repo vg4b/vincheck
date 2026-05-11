@@ -372,7 +372,7 @@ const HavarijniPojisteniPage: React.FC = () => {
 
 				<div
 					className='card mt-5 mb-5'
-					style={{ backgroundColor: '#f8f9fa', border: '2px solid #c6dbad' }}
+					style={{ backgroundColor: 'var(--surface-soft)', border: '1px solid color-mix(in srgb, var(--brand-600) 25%, transparent)' }}
 				>
 					<div className='card-body text-center'>
 						<h3 className='card-title mb-3'>

@@ -203,7 +203,7 @@ const OdometerChart: React.FC<{
 					<Line
 						type='monotone'
 						dataKey='km'
-						stroke='#5a8f3e'
+						stroke='#2f7a3e'
 						strokeWidth={2}
 						dot={{ r: 3 }}
 					/>

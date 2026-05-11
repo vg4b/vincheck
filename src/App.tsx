@@ -1,5 +1,4 @@
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
-import 'bootstrap/dist/css/bootstrap.min.css'
 import './App.css'
 import GoogleAnalytics from './components/GoogleAnalytics'
 import SklikAd from './components/SklikAd'

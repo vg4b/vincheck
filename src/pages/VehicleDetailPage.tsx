@@ -352,10 +352,7 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 					saveMessage={saveMessage}
 					promoSection={
 						!user ? (
-							<section
-								className='mt-5 p-4 rounded'
-								style={{ backgroundColor: '#c6dbad' }}
-							>
+							<section className='mt-5 brand-callout'>
 								<div className='row align-items-center'>
 									<div className='col-lg-8'>
 										<h2 className='h4 mb-3'>

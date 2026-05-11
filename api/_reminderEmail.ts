@@ -47,7 +47,7 @@ function getPromoBlockHtml(params: ReminderEmailParams): string {
 		return `
 		<div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #e9ecef;">
 			<p style="margin: 0 0 10px; font-size: 14px; color: #555;">Sjednejte si pojištění online během pár minut – bez telefonátů a za jedny z nejlepších cen na trhu.</p>
-			<a href="${sjednatUrl}" style="display: inline-block; background: #5a8f3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; font-size: 14px;">Sjednat pojištění online</a>
+			<a href="${sjednatUrl}" style="display: inline-block; background: #2f7a3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; font-size: 14px;">Sjednat pojištění online</a>
 		</div>`
 	}
 	if (reminderTypeRaw === 'stk' && hasVin) {
@@ -55,7 +55,7 @@ function getPromoBlockHtml(params: ReminderEmailParams): string {
 		return `
 		<div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #e9ecef;">
 			<p style="margin: 0 0 10px; font-size: 14px; color: #555;">Zvažujete koupi nového vozu? Prověřte si historii vozidla.</p>
-			<a href="${cebiaUrl}" style="display: inline-block; background: #5a8f3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; font-size: 14px;">Prověřit historii vozidla</a>
+			<a href="${cebiaUrl}" style="display: inline-block; background: #2f7a3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; font-size: 14px;">Prověřit historii vozidla</a>
 		</div>`
 	}
 	if (
@@ -67,7 +67,7 @@ function getPromoBlockHtml(params: ReminderEmailParams): string {
 		return `
 		<div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #e9ecef;">
 			<p style="margin: 0 0 10px; font-size: 14px; color: #555;">Prohlédněte si doporučené služby pro vaše vozidla.</p>
-			<a href="${benefitsUrl}" style="display: inline-block; background: #5a8f3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; font-size: 14px;">Moje výhody</a>
+			<a href="${benefitsUrl}" style="display: inline-block; background: #2f7a3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; font-size: 14px;">Moje výhody</a>
 		</div>`
 	}
 	return ''
@@ -86,24 +86,24 @@ export function generateReminderEmailHtml(params: ReminderEmailParams): string {
 	<title>Připomínka - VIN Info.cz</title>
 </head>
 <body style="font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
-	<div style="background-color: #c6dbad; padding: 25px 30px; border-radius: 8px 8px 0 0; text-align: center;">
+	<div style="background-color: #eaf4eb; padding: 25px 30px; border-radius: 8px 8px 0 0; text-align: center;">
 		<h1 style="margin: 0; font-size: 22px; color: #333; font-weight: 600;">VIN Info.cz</h1>
 	</div>
 
 	<div style="background: #ffffff; padding: 30px; border-left: 1px solid #e9ecef; border-right: 1px solid #e9ecef;">
 		<h2 style="color: #333; margin-top: 0; font-size: 20px;">Blíží se termín: ${reminderType}</h2>
 
-		<div style="background: #c6dbad; padding: 20px; border-radius: 8px; margin: 20px 0;">
+		<div style="background: #eaf4eb; padding: 20px; border-radius: 8px; margin: 20px 0;">
 			<p style="margin: 0 0 10px; color: #333;"><strong>Vozidlo:</strong> ${vehicleName}</p>
 			<p style="margin: 0 0 10px; color: #333;"><strong>Typ upozornění:</strong> ${reminderType}</p>
-			<p style="margin: 0; color: #333;"><strong>Termín:</strong> <span style="color: #c0392b; font-weight: bold;">${dueDate}</span></p>
+			<p style="margin: 0; color: #333;"><strong>Termín:</strong> <span style="color: #b91c1c; font-weight: bold;">${dueDate}</span></p>
 			${note ? `<p style="margin: 10px 0 0; color: #333;"><strong>Poznámka:</strong> ${note}</p>` : ''}
 		</div>
 
 		<p style="color: #555;">Nezapomeňte si včas zajistit splnění tohoto termínu. V případě potřeby můžete termín upravit v klientské zóně.</p>
 		${promoBlock}
 		<div style="text-align: center; margin: 30px 0;">
-			<a href="${baseUrl}/klientska-zona" style="display: inline-block; background: #5a8f3e; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: 600;">Přejít do Moje VINInfo</a>
+			<a href="${baseUrl}/klientska-zona" style="display: inline-block; background: #2f7a3e; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: 600;">Přejít do Moje VINInfo</a>
 		</div>
 	</div>
 

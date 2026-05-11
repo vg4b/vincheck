@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
+import Icon from "../components/Icon";
 import Navigation from "../components/Navigation";
 import VehicleInfo from "../components/VehicleInfo";
 import { CebiaRemindersModal } from "../components/CebiaRemindersModal";
@@ -299,14 +300,35 @@ const HomePage: React.FC = () => {
     <>
       <Navigation />
       <main className="container mt-5">
-        <header>
-          <h1>Kontrola VIN kódu zdarma - Prověření vozidla v registru ČR</h1>
-          <p className="lead">
-            Bezplatná kontrola vozidla v českém registru vozidel. Zkontrolujte
-            VIN kód, číslo TP nebo ORV a získejte okamžitý přístup k technickým
-            údajům, datu první registrace, platnosti STK a dalším důležitým
-            informacím o vozidle.
+        <header className="text-center mx-auto" style={{ maxWidth: "780px" }}>
+          <span className="eyebrow">Kontrola vozidla zdarma</span>
+          <h1 className="display-tight mb-3">
+            Prověřte vozidlo v registru ČR za minutu
+          </h1>
+          <p className="lead-tight mx-auto">
+            Zadejte VIN, číslo TP nebo ORV a získejte okamžitý přístup
+            k technickým údajům, datu první registrace a platnosti STK –
+            přímo z oficiálního registru.
           </p>
+
+          <ul className="list-unstyled d-flex flex-wrap justify-content-center column-gap-4 row-gap-2 mt-4 mb-5 small text-muted-ink">
+            <li className="d-inline-flex align-items-center gap-1">
+              <Icon name="check-circle" size={16} className="text-brand" />
+              Zdarma, bez registrace
+            </li>
+            <li className="d-inline-flex align-items-center gap-1">
+              <Icon name="shield-check" size={16} className="text-brand" />
+              Data z Ministerstva dopravy
+            </li>
+            <li className="d-inline-flex align-items-center gap-1">
+              <Icon name="bell" size={16} className="text-brand" />
+              STK &amp; pojištění upozornění
+            </li>
+            <li className="d-inline-flex align-items-center gap-1">
+              <Icon name="file-text" size={16} className="text-brand" />
+              Více než 90 údajů o vozidle
+            </li>
+          </ul>
         </header>
 
         <section aria-labelledby="search-heading">
@@ -628,14 +650,14 @@ const HomePage: React.FC = () => {
 
               {/* Moje VINInfo Promo Section */}
               <section
-                className="mt-5 p-4 rounded"
-                style={{ backgroundColor: '#c6dbad' }}
+                className="mt-5 brand-callout"
                 aria-labelledby="moje-vininfo-heading"
               >
+                <span className="eyebrow">Moje VINInfo</span>
                 <div className="row align-items-center">
                   <div className="col-lg-8">
                     <h3 id="moje-vininfo-heading" className="h4 mb-3">
-                      Moje VINInfo - Váš osobní asistent pro správu vozidel
+                      Váš osobní asistent pro správu vozidel
                     </h3>
                     <p className="mb-3">
                       Vytvořte si <strong>zdarma účet</strong> a mějte všechna svá vozidla 
@@ -737,11 +759,12 @@ const HomePage: React.FC = () => {
           )}
 
           {/* New Publisher Content Section for AdSense Approval */}
-          <article className="mt-5 pt-4 border-top">
+          <article className="section border-top">
             <div className="row justify-content-center">
               <div className="col-lg-10">
+                <span className="eyebrow">Průvodce</span>
                 <h2 className="mb-4">
-                  Vše o kontrole VIN kódu a historii vozidla
+                  <span className="heading-accent">Vše o kontrole VIN kódu a historii vozidla</span>
                 </h2>
 
                 <section className="mb-5">

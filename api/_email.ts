@@ -76,8 +76,8 @@ export async function sendEmail(params: SendEmailParams): Promise<boolean> {
 	return false
 }
 
-export async function sendVerificationEmail(email: string, code: string): Promise<boolean> {
-	const html = `<!DOCTYPE html>
+export function generateVerificationEmailHtml(code: string): string {
+	return `<!DOCTYPE html>
 <html lang="cs">
 <head>
 	<meta charset="UTF-8">
@@ -85,16 +85,16 @@ export async function sendVerificationEmail(email: string, code: string): Promis
 	<title>Ověření emailu - VIN Info.cz</title>
 </head>
 <body style="font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
-	<div style="background-color: #c6dbad; padding: 25px 30px; border-radius: 8px 8px 0 0; text-align: center;">
+	<div style="background-color: #eaf4eb; padding: 25px 30px; border-radius: 8px 8px 0 0; text-align: center;">
 		<h1 style="margin: 0; font-size: 22px; color: #333; font-weight: 600;">VIN Info.cz</h1>
 	</div>
 
 	<div style="background: #ffffff; padding: 30px; border-left: 1px solid #e9ecef; border-right: 1px solid #e9ecef;">
 		<h2 style="color: #333; margin-top: 0; font-size: 20px;">Vítejte v Moje VINInfo!</h2>
-		
+
 		<p style="color: #555;">Pro dokončení registrace zadejte následující ověřovací kód:</p>
 
-		<div style="background: #c6dbad; padding: 25px; border-radius: 8px; margin: 25px 0; text-align: center;">
+		<div style="background: #eaf4eb; padding: 25px; border-radius: 8px; margin: 25px 0; text-align: center;">
 			<p style="margin: 0; font-size: 36px; font-weight: bold; letter-spacing: 10px; color: #333;">${code}</p>
 		</div>
 
@@ -110,10 +110,12 @@ export async function sendVerificationEmail(email: string, code: string): Promis
 	</div>
 </body>
 </html>`
+}
 
+export async function sendVerificationEmail(email: string, code: string): Promise<boolean> {
 	return sendEmail({
 		to: email,
 		subject: 'Ověřovací kód pro VINInfo',
-		html
+		html: generateVerificationEmailHtml(code)
 	})
 }

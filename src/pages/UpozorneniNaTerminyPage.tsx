@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Footer from '../components/Footer'
+import Icon, { type IconName } from '../components/Icon'
 import Navigation from '../components/Navigation'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -21,18 +22,21 @@ const UpozorneniNaTerminyPage: React.FC = () => {
 		}
 	}, [])
 
-	const steps = [
+	const steps: { icon: IconName; title: string; desc: string; href: string }[] = [
 		{
+			icon: 'search',
 			title: 'Zkontrolujte vozidlo',
 			desc: 'Zadejte VIN, TP nebo ORV a ověřte údaje v registru',
 			href: '/'
 		},
 		{
+			icon: 'plus',
 			title: 'Uložte si vozidlo',
 			desc: 'Vytvořte si účet a přidejte vozidlo do Moje VINInfo',
 			href: user ? '/klientska-zona' : '/registrace'
 		},
 		{
+			icon: 'bell',
 			title: 'Nastavte upozornění',
 			desc: 'Vyberte typ (STK, pojištění, servis…), datum a kdy vás máme upozornit – pošleme vám email',
 			href: user ? '/klientska-zona' : '/registrace'
@@ -49,11 +53,11 @@ const UpozorneniNaTerminyPage: React.FC = () => {
 		{ icon: '📝', title: 'Jiné', desc: 'Vlastní poznámka' }
 	]
 
-	const benefits = [
-		{ icon: '📧', text: 'Email v termínu, který si zvolíte' },
-		{ icon: '✨', text: '100 % zdarma' },
-		{ icon: '🚗', text: 'Více vozidel na jednom místě' },
-		{ icon: '📊', text: 'Přehled termínů' }
+	const benefits: { icon: IconName; text: string }[] = [
+		{ icon: 'mail', text: 'Email v termínu, který si zvolíte' },
+		{ icon: 'check-circle', text: '100 % zdarma' },
+		{ icon: 'car', text: 'Více vozidel na jednom místě' },
+		{ icon: 'chart', text: 'Přehled termínů' }
 	]
 
 	return (
@@ -82,19 +86,17 @@ const UpozorneniNaTerminyPage: React.FC = () => {
 
 				{/* Jak to funguje */}
 				<section className='mb-5'>
-					<h2 className='h4 mb-4'>Jak to funguje</h2>
+					<h2 className='h4 mb-4'><span className='heading-accent'>Jak to funguje</span></h2>
 					<div className='row g-4'>
 						{steps.map((step, i) => (
 							<div key={i} className='col-md-4'>
-								<Link
-									to={step.href}
-									className='card h-100 border-0 shadow-sm text-decoration-none text-dark'
-								>
-									<div className='card-body'>
-										<span className='badge bg-primary mb-2'>{i + 1}</span>
-										<h3 className='h6 mb-2'>{step.title}</h3>
-										<p className='text-muted small mb-0'>{step.desc}</p>
-									</div>
+								<Link to={step.href} className='card-soft step-card h-100'>
+									<span className='icon-badge icon-badge--solid mb-3'>
+										<Icon name={step.icon} size={22} />
+									</span>
+									<span className='eyebrow d-block mb-1'>Krok {i + 1}</span>
+									<h3 className='h5 mb-2'>{step.title}</h3>
+									<p className='text-muted-ink small mb-0'>{step.desc}</p>
 								</Link>
 							</div>
 						))}
@@ -122,17 +124,17 @@ const UpozorneniNaTerminyPage: React.FC = () => {
 				</section>
 
 				{/* Proč Moje VINInfo */}
-				<section
-					className='mb-5 p-4 rounded'
-					style={{ backgroundColor: '#c6dbad' }}
-				>
-					<h2 className='h4 mb-4'>Proč Moje VINInfo?</h2>
+				<section className='mb-5'>
+					<span className='eyebrow'>Moje VINInfo</span>
+					<h2 className='h4 mb-4'><span className='heading-accent'>Proč Moje VINInfo?</span></h2>
 					<div className='row g-3'>
 						{benefits.map((item, i) => (
 							<div key={i} className='col-6 col-md-3'>
-								<div className='d-flex flex-column align-items-center text-center'>
-									<span className='fs-3 mb-1'>{item.icon}</span>
-									<span>{item.text}</span>
+								<div className='card-soft h-100 d-flex flex-column align-items-center text-center'>
+									<span className='icon-badge mb-3'>
+										<Icon name={item.icon} size={22} />
+									</span>
+									<span className='small text-muted-ink'>{item.text}</span>
 								</div>
 							</div>
 						))}

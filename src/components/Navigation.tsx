@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import BrandMark from './BrandMark'
 
 const Navigation: React.FC = () => {
 	const location = useLocation()
@@ -26,7 +27,6 @@ const Navigation: React.FC = () => {
 		setIsMenuOpen(false)
 	}
 
-	// Close menu when clicking outside
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			if (navRef.current && !navRef.current.contains(event.target as Node)) {
@@ -43,41 +43,27 @@ const Navigation: React.FC = () => {
 		}
 	}, [isMenuOpen])
 
-	// Close menu on route change
 	useEffect(() => {
 		setIsMenuOpen(false)
 	}, [location.pathname])
 
+	const navLinkClass = (path: string) =>
+		`nav-link px-3 rounded text-nowrap ${isActive(path) ? 'active' : ''}`
+
 	return (
-		<nav className='navbar navbar-expand-xl navbar-light fixed-top shadow-sm px-0' ref={navRef}>
-			<div className='container-fluid px-0 px-lg-5'>
-				{/* Logo */}
-				<Link
-					className='navbar-brand fw-bold'
-					to='/'
-					style={{ color: '#5a8f3e', padding: '12px' }}
-				>
+		<nav className='navbar navbar-expand-xl navbar-light fixed-top px-0' ref={navRef}>
+			<div className='container-fluid px-0 px-lg-4'>
+				<Link className='navbar-brand d-flex align-items-center gap-2' to='/'>
+					<BrandMark width={36} height={22} color='var(--brand-600)' />
 					<span className='d-none d-sm-inline'>VIN Info.cz</span>
 					<span className='d-sm-none'>VINInfo</span>
 				</Link>
 
 				<div className='d-flex d-xl-none align-items-center ms-auto'>
-					{/* Mobile: Quick access to Moje VINInfo (right aligned, before hamburger) */}
-					<Link
-						to='/klientska-zona'
-						className='btn btn-sm me-2'
-						style={{
-							backgroundColor: '#5a8f3e',
-							color: 'white',
-							borderRadius: '20px',
-							padding: '6px 12px',
-							fontSize: '0.8rem'
-						}}
-					>
+					<Link to='/klientska-zona' className='btn-brand btn-sm me-2'>
 						Můj účet
 					</Link>
 
-					{/* Hamburger */}
 					<button
 						className='navbar-toggler border-0'
 						type='button'
@@ -90,40 +76,30 @@ const Navigation: React.FC = () => {
 					</button>
 				</div>
 
-				{/* Menu */}
 				<div className={`collapse navbar-collapse ${isMenuOpen ? 'show' : ''}`} id='navbarNav'>
 					<ul className='navbar-nav ms-auto align-items-lg-center gap-lg-1 flex-nowrap'>
-						{/* Main Search */}
 						<li className='nav-item'>
-							<Link
-								className={`nav-link px-3 rounded text-nowrap ${isActive('/') ? 'active fw-semibold' : ''}`}
-								to='/'
-								onClick={closeMenu}
-								style={isActive('/') ? { backgroundColor: 'rgba(90, 143, 62, 0.1)', color: '#5a8f3e' } : {}}
-							>
+							<Link className={navLinkClass('/')} to='/' onClick={closeMenu}>
 								Kontrola vozidla
 							</Link>
 						</li>
 
-						{/* Insurance Dropdown */}
 						<li className='nav-item dropdown'>
-							<button
-								className={`nav-link px-3 rounded dropdown-toggle btn btn-link text-decoration-none text-nowrap ${
+							{/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+							<a
+								className={`nav-link px-3 rounded dropdown-toggle text-nowrap ${
 									isActive('/povinne-ruceni') || isActive('/havarijni-pojisteni') || isActive('/sjednat-pojisteni')
-										? 'active fw-semibold'
+										? 'active'
 										: ''
 								}`}
-								type='button'
+								href='#'
+								role='button'
 								data-bs-toggle='dropdown'
 								aria-expanded='false'
-								style={
-									isActive('/povinne-ruceni') || isActive('/havarijni-pojisteni') || isActive('/sjednat-pojisteni')
-										? { backgroundColor: 'rgba(90, 143, 62, 0.1)', color: '#5a8f3e' }
-										: {}
-								}
+								onClick={(e) => e.preventDefault()}
 							>
 								Pojištění
-							</button>
+							</a>
 							<ul className='dropdown-menu dropdown-menu-end shadow-sm border-0'>
 								<li>
 									<Link
@@ -156,81 +132,45 @@ const Navigation: React.FC = () => {
 							</ul>
 						</li>
 
-						{/* Vehicle History */}
 						<li className='nav-item'>
-							<Link
-								className={`nav-link px-3 rounded text-nowrap ${isActive('/kompletni-historie-vozu') ? 'active fw-semibold' : ''}`}
-								to='/kompletni-historie-vozu'
-								onClick={closeMenu}
-								style={isActive('/kompletni-historie-vozu') ? { backgroundColor: 'rgba(90, 143, 62, 0.1)', color: '#5a8f3e' } : {}}
-							>
+							<Link className={navLinkClass('/kompletni-historie-vozu')} to='/kompletni-historie-vozu' onClick={closeMenu}>
 								Historie vozu
 							</Link>
 						</li>
-						{/* Upozornění na termíny */}
+
 						<li className='nav-item'>
-							<Link
-								className={`nav-link px-3 rounded text-nowrap ${isActive('/upozorneni-na-terminy') ? 'active fw-semibold' : ''}`}
-								to='/upozorneni-na-terminy'
-								onClick={closeMenu}
-								style={isActive('/upozorneni-na-terminy') ? { backgroundColor: 'rgba(90, 143, 62, 0.1)', color: '#5a8f3e' } : {}}
-							>
+							<Link className={navLinkClass('/upozorneni-na-terminy')} to='/upozorneni-na-terminy' onClick={closeMenu}>
 								Upozornění
 							</Link>
 						</li>
 
-						{/* Divider (desktop only) */}
 						<li className='nav-item d-none d-xl-block'>
-							<span className='nav-link px-2 text-muted'>|</span>
+							<span className='nav-link px-2 text-muted-ink'>|</span>
 						</li>
 
-						{/* Moje VINInfo - Highlighted */}
 						<li className='nav-item d-none d-xl-block'>
-							<Link
-								to='/klientska-zona'
-								className='btn btn-sm text-nowrap'
-								onClick={closeMenu}
-								style={{
-									backgroundColor: isActive('/klientska-zona') ? '#4a7a32' : '#5a8f3e',
-									color: 'white',
-									borderRadius: '20px',
-									padding: '8px 16px'
-								}}
-							>
+							<Link to='/klientska-zona' className='btn-brand text-nowrap' onClick={closeMenu}>
 								Moje VINInfo
 							</Link>
 						</li>
 
-						{/* Mobile: Moje VINInfo as regular link */}
 						<li className='nav-item d-xl-none'>
-							<Link
-								className={`nav-link px-3 rounded text-nowrap ${isActive('/klientska-zona') ? 'active fw-semibold' : ''}`}
-								to='/klientska-zona'
-								onClick={closeMenu}
-								style={isActive('/klientska-zona') ? { backgroundColor: 'rgba(90, 143, 62, 0.1)', color: '#5a8f3e' } : {}}
-							>
+							<Link className={navLinkClass('/klientska-zona')} to='/klientska-zona' onClick={closeMenu}>
 								Moje VINInfo
 							</Link>
 						</li>
 
-						{/* Auth */}
 						<li className='nav-item'>
 							{user ? (
 								<button
 									type='button'
-									className='nav-link px-3 btn btn-link text-decoration-none text-nowrap'
+									className='nav-link px-3 btn btn-link text-decoration-none text-nowrap text-muted-ink'
 									onClick={handleLogout}
-									style={{ color: '#6c757d' }}
 								>
 									Odhlásit
 								</button>
 							) : (
-								<Link
-									className={`nav-link px-3 rounded text-nowrap ${isActive('/prihlaseni') ? 'active fw-semibold' : ''}`}
-									to='/prihlaseni'
-									onClick={closeMenu}
-									style={isActive('/prihlaseni') ? { backgroundColor: 'rgba(90, 143, 62, 0.1)', color: '#5a8f3e' } : {}}
-								>
+								<Link className={navLinkClass('/prihlaseni')} to='/prihlaseni' onClick={closeMenu}>
 									Přihlášení
 								</Link>
 							)}

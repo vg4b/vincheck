@@ -648,7 +648,7 @@ const ClientZonePage: React.FC = () => {
 
 				{activeTab === 'vehicles' && (
 					<section className='mt-4'>
-						<h2 className='h4'>Uložená vozidla</h2>
+						<h2 className='h4'><span className='heading-accent'>Uložená vozidla</span></h2>
 						<p className='text-muted'>
 							Vozidlo můžete přidat ručně nebo z výsledků vyhledávání.
 						</p>
@@ -702,10 +702,12 @@ const ClientZonePage: React.FC = () => {
 											<div className='card-body'>
 												<div className='d-flex align-items-start justify-content-between'>
 													<div>
-													<h3 className='h5'>
-														{vehicle.title?.trim()
-															? vehicle.title
-															: `${vehicle.brand ?? 'Neznámá značka'} ${vehicle.model ?? ''}`.trim()}
+													<h3 className='plate-title'>
+														<span>
+															{vehicle.title?.trim()
+																? vehicle.title
+																: `${vehicle.brand ?? 'Neznámá značka'} ${vehicle.model ?? ''}`.trim()}
+														</span>
 													</h3>
 													{titleEditingId === vehicle.id && (
 													<div className='mt-3'>
@@ -936,7 +938,7 @@ const ClientZonePage: React.FC = () => {
 
 				{activeTab === 'alerts' && (
 					<section className='mt-4'>
-						<h2 className='h4'>Moje upozornění</h2>
+						<h2 className='h4'><span className='heading-accent'>Moje upozornění</span></h2>
 						{upcomingReminders.length === 0 ? (
 							<div className='alert alert-info'>
 								Zatím nemáte žádná upozornění.
@@ -1009,7 +1011,7 @@ const ClientZonePage: React.FC = () => {
 
 				{activeTab === 'benefits' && (
 					<section className='mt-4'>
-						<h2 className='h4'>Moje výhody</h2>
+						<h2 className='h4'><span className='heading-accent'>Moje výhody</span></h2>
 						<p className='text-muted'>
 							Doporučené služby pro vaše vozidla.
 						</p>
@@ -1178,7 +1180,7 @@ const ClientZonePage: React.FC = () => {
 
 				{activeTab === 'settings' && (
 					<section className='mt-4'>
-						<h2 className='h4'>Nastavení</h2>
+						<h2 className='h4'><span className='heading-accent'>Nastavení</span></h2>
 						<p className='text-muted'>
 							Spravujte své preference pro emailová upozornění.
 						</p>

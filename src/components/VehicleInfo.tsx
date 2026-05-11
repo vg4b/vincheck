@@ -1,9 +1,26 @@
 import React, { useMemo } from 'react'
 import type { VehicleDataArray } from '../types'
-import { groupVehicleFieldsByCategory } from '../utils/vehicleFieldCategories'
+import {
+	groupVehicleFieldsByCategory,
+	type VehicleFieldCategoryId,
+} from '../utils/vehicleFieldCategories'
 import { getDataValue, getLogoSrc } from '../utils/vehicleApi'
 import { Link } from 'react-router-dom'
 import { cebia } from '../config/affiliateCampaigns'
+import Icon, { type IconName } from './Icon'
+
+const CATEGORY_ICONS: Record<VehicleFieldCategoryId, IconName> = {
+	doklady_evidence: 'file-text',
+	druh_typ_homologace: 'shield',
+	oznaceni_vyroba: 'info',
+	motor_palivo_spotreba: 'chart',
+	emise: 'alert-triangle',
+	karoserie: 'car',
+	rozmery_hmotnosti: 'chart',
+	napravy_pneu: 'car',
+	hluk_rychlost: 'bell',
+	ostatni: 'info',
+}
 
 interface VehicleInfoProps {
 	data: VehicleDataArray
@@ -79,7 +96,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 
 	const isExpired =
 		techInspectionDate && techInspectionDate.getTime() < currentDate.getTime()
-	const color = isExpired ? 'red' : 'green'
+	const stkColor = isExpired ? 'var(--accent-red)' : 'var(--brand-600)'
 
 	const filteredData = useMemo(
 		() =>
@@ -102,14 +119,19 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 		let promoInserted = false
 
 		const buildPromoRow = () => (
-			<tr key='cebia-inline-promo' className='table-warning'>
-				<th className='align-middle'>Historie a původ vozidla</th>
+			<tr
+				key='cebia-inline-promo'
+				style={{ backgroundColor: 'var(--brand-50)' }}
+			>
+				<th className='align-middle' style={{ color: 'var(--brand-700)' }}>
+					Historie a původ vozidla
+				</th>
 				<td className='text-end'>
 					<a
 						href={cebia.getDirectUrl(vinCode, 'vehicle_info_table')}
 						target='_blank'
 						rel='noopener noreferrer'
-						className='btn btn-primary btn-sm fw-bold'
+						className='btn-brand btn-sm'
 						onClick={() => {
 							if (!onCebiaExternalNavigate) return
 							window.setTimeout(onCebiaExternalNavigate, 0)
@@ -151,11 +173,17 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 					className='vehicle-info-detail-group mb-4'
 					aria-labelledby={headingId}
 				>
-					<div className='rounded-3 border shadow-sm overflow-hidden bg-body'>
+					<div className='card-soft overflow-hidden p-0'>
 						<h3
 							id={headingId}
-							className='h6 mb-0 fw-semibold px-3 py-2 text-body border-bottom bg-primary-subtle'
+							className='h6 mb-0 fw-semibold px-3 py-2 border-bottom d-flex align-items-center gap-2'
+							style={{ backgroundColor: 'var(--surface-soft)', color: 'var(--ink-900)' }}
 						>
+							<Icon
+								name={CATEGORY_ICONS[group.categoryId] ?? 'info'}
+								size={18}
+								className='text-brand'
+							/>
 							{group.label}
 						</h3>
 						<div className='table-responsive'>
@@ -170,12 +198,20 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 
 		const trailingPromo =
 			!promoInserted && filteredData.length > 0 ? (
-				<div className='table-responsive mb-4' key='cebia-promo-trailing'>
-					<div className='rounded-3 border border-warning overflow-hidden shadow-sm'>
-						<table className='table table-sm table-warning mb-0'>
-							<tbody>{buildPromoRow()}</tbody>
-						</table>
-					</div>
+				<div className='brand-callout mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3' key='cebia-promo-trailing'>
+					<span><strong>Historie a původ vozidla</strong></span>
+					<a
+						href={cebia.getDirectUrl(vinCode, 'vehicle_info_table')}
+						target='_blank'
+						rel='noopener noreferrer'
+						className='btn-brand btn-sm'
+						onClick={() => {
+							if (!onCebiaExternalNavigate) return
+							window.setTimeout(onCebiaExternalNavigate, 0)
+						}}
+					>
+						Prověřit historii na Cebia.cz ➜
+					</a>
 				</div>
 			) : null
 
@@ -195,7 +231,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 
 	return (
 		<div className='mt-4 mb-5'>
-			<div className='row mt-5 mb-5 align-items-center'>
+			<div className='card-soft row mt-5 mb-5 align-items-center mx-0'>
 				{/* Brand logo column */}
 				<div className='col-md-3 text-center'>
 					<img
@@ -214,26 +250,38 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 
 				{/* Vehicle info column */}
 				<div className='col-md-4'>
-					<div className='vehicle-info'>
-						<div>
-							<strong>Značka:</strong> {brand}
+					<div className='vehicle-info d-flex flex-column gap-2'>
+						<div className='d-flex align-items-center gap-2'>
+							<Icon name='car' size={16} className='text-muted-ink' />
+							<span><strong>Značka:</strong> {brand}</span>
 						</div>
-						<div>
-							<strong>Model:</strong> {model}
+						<div className='d-flex align-items-center gap-2'>
+							<Icon name='info' size={16} className='text-muted-ink' />
+							<span><strong>Model:</strong> {model}</span>
 						</div>
-						<div>
-							<strong>Obchodní označení:</strong> {obchodniOznaceni}
+						<div className='d-flex align-items-center gap-2'>
+							<Icon name='info' size={16} className='text-muted-ink' />
+							<span><strong>Obchodní označení:</strong> {obchodniOznaceni}</span>
 						</div>
-						<div>
-							<strong>Datum první registrace:</strong> {firstRegistration}
+						<div className='d-flex align-items-center gap-2'>
+							<Icon name='calendar' size={16} className='text-muted-ink' />
+							<span><strong>Datum první registrace:</strong> {firstRegistration}</span>
 						</div>
-						<div>
-							<strong>VIN:</strong> {vinCode}
+						<div className='d-flex align-items-center gap-2'>
+							<Icon name='file-text' size={16} className='text-muted-ink' />
+							<span><strong>VIN:</strong> <span className='num'>{vinCode}</span></span>
 						</div>
-						<div>
-						<strong>STK do:</strong>{' '}
-						<span style={{ color }}>{techInspection}</span>
-					</div>
+						<div className='d-flex align-items-center gap-2'>
+							<Icon
+								name='shield-check'
+								size={16}
+								style={{ color: stkColor }}
+							/>
+							<span>
+								<strong>STK do:</strong>{' '}
+								<span style={{ color: stkColor, fontWeight: 600 }}>{techInspection}</span>
+							</span>
+						</div>
 					</div>
 				</div>
 
@@ -241,7 +289,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 				<div className='col-md-4'>
 					{/* <div>
 						<strong>Pravidelná technická prohlídka do:</strong>{' '}
-						<span style={{ color }}>{techInspection}</span>
+						<span style={{ color: stkColor, fontWeight: 600 }}>{techInspection}</span>
 					</div> */}
 
 					{/* Insurance buttons */}

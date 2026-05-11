@@ -169,7 +169,7 @@ const SjednatPojisteniPage: React.FC = () => {
 								s.id <= step ? 'text-primary fw-bold' : 'text-muted'
 							}`}
 							style={{
-								borderBottom: s.id <= step ? '3px solid var(--bs-primary)' : '3px solid #dee2e6',
+								borderBottom: s.id <= step ? '3px solid var(--brand-600)' : '3px solid var(--ink-300)',
 							}}
 						>
 							{s.id}. {s.title}
