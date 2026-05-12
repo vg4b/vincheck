@@ -77,6 +77,7 @@ export function generateReminderEmailHtml(params: ReminderEmailParams): string {
 	const { vehicleName, reminderType, dueDate, note, unsubscribeUrl, baseUrl } =
 		params
 	const promoBlock = getPromoBlockHtml(params)
+	const preheader = `${reminderType} pro ${vehicleName} — termín ${dueDate}.`
 
 	return `<!DOCTYPE html>
 <html lang="cs">
@@ -86,6 +87,7 @@ export function generateReminderEmailHtml(params: ReminderEmailParams): string {
 	<title>Připomínka - VIN Info.cz</title>
 </head>
 <body style="font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+	<div style="display:none!important;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#f5f5f5;opacity:0;">${preheader}</div>
 	<div style="background-color: #eaf4eb; padding: 25px 30px; border-radius: 8px 8px 0 0; text-align: center;">
 		<h1 style="margin: 0; font-size: 22px; color: #333; font-weight: 600;">VIN Info.cz</h1>
 	</div>
@@ -115,6 +117,31 @@ export function generateReminderEmailHtml(params: ReminderEmailParams): string {
 	</div>
 </body>
 </html>`
+}
+
+export function generateReminderEmailText(params: ReminderEmailParams): string {
+	const { vehicleName, reminderType, dueDate, note, unsubscribeUrl, baseUrl } =
+		params
+	const lines: string[] = [
+		`Blíží se termín: ${reminderType}`,
+		'',
+		`Vozidlo:        ${vehicleName}`,
+		`Typ upozornění: ${reminderType}`,
+		`Termín:         ${dueDate}`
+	]
+	if (note) {
+		lines.push(`Poznámka:       ${note}`)
+	}
+	lines.push(
+		'',
+		'Nezapomeňte si včas zajistit splnění tohoto termínu. V případě potřeby můžete termín upravit v klientské zóně.',
+		'',
+		`Přejít do Moje VINInfo: ${baseUrl}/klientska-zona`,
+		'',
+		'— VIN Info.cz (https://vininfo.cz)',
+		`Odhlásit se z odběru notifikací: ${unsubscribeUrl}`
+	)
+	return lines.join('\n')
 }
 
 interface SendReminderEmailParams {
@@ -149,7 +176,7 @@ export async function sendReminderEmailNow(
 		const unsubscribeUrl = `${getBaseUrl()}/api/email/unsubscribe?token=${unsubscribeToken}`
 
 		const baseUrl = getBaseUrl()
-		const emailHtml = generateReminderEmailHtml({
+		const templateParams = {
 			vehicleName,
 			reminderType:
 				reminderTypeLabels[params.reminderType] || params.reminderType,
@@ -159,12 +186,22 @@ export async function sendReminderEmailNow(
 			unsubscribeUrl,
 			vehicleVin: params.vehicleVin,
 			baseUrl
-		})
+		}
+		const emailHtml = generateReminderEmailHtml(templateParams)
+		const emailText = generateReminderEmailText(templateParams)
 
 		const success = await sendEmail({
 			to: params.userEmail,
 			subject: `Připomínka: ${reminderTypeLabels[params.reminderType] || params.reminderType} - ${vehicleName}`,
-			html: emailHtml
+			html: emailHtml,
+			text: emailText,
+			// RFC 8058 — lets Gmail / Apple Mail show a native one-click
+			// Unsubscribe button next to the sender name. Reuses the
+			// existing unsubscribeUrl token so no new endpoint is needed.
+			headers: {
+				'List-Unsubscribe': `<${unsubscribeUrl}>`,
+				'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+			}
 		})
 
 		if (!success) {

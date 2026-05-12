@@ -4,10 +4,32 @@ const getResendApiKey = (): string | null => {
 	return process.env.RESEND_API_KEY || null
 }
 
+/**
+ * From-address. Avoids "noreply" per Resend's deliverability guidance
+ * (https://resend.com/docs/dashboard/emails/deliverability-insights —
+ * no-reply addresses lower trust and engagement signals).
+ */
+const EMAIL_FROM = 'VIN Info.cz <vininfo@mail.vininfo.cz>'
+
+/**
+ * Reply-To target — a real monitored inbox so users who reply land
+ * somewhere a human reads. Matches the contact address shown in the
+ * site footer.
+ *
+ * Note: MX inbound for mail.vininfo.cz is configured for a future
+ * webhook-based reply handler (Resend inbound requires a webhook —
+ * https://resend.com/docs/dashboard/receiving/forward-emails). Until
+ * that lands, replies go to the existing fixweb.cz mailbox.
+ */
+const EMAIL_REPLY_TO = 'vininfo@fixweb.cz'
+
 interface SendEmailParams {
 	to: string
 	subject: string
 	html: string
+	text?: string
+	replyTo?: string
+	headers?: Record<string, string>
 }
 
 // Helper to delay execution
@@ -32,10 +54,13 @@ export async function sendEmail(params: SendEmailParams): Promise<boolean> {
 					'Authorization': `Bearer ${apiKey}`
 				},
 				body: JSON.stringify({
-					from: 'VINInfo <noreply@mail.vininfo.cz>',
+					from: EMAIL_FROM,
 					to: params.to,
 					subject: params.subject,
-					html: params.html
+					html: params.html,
+					...(params.text ? { text: params.text } : {}),
+					reply_to: params.replyTo ?? EMAIL_REPLY_TO,
+					...(params.headers ? { headers: params.headers } : {})
 				})
 			})
 
@@ -77,6 +102,7 @@ export async function sendEmail(params: SendEmailParams): Promise<boolean> {
 }
 
 export function generateVerificationEmailHtml(code: string): string {
+	const preheader = 'Dokončete registraci na VIN Info.cz — váš ověřovací kód uvnitř.'
 	return `<!DOCTYPE html>
 <html lang="cs">
 <head>
@@ -85,6 +111,7 @@ export function generateVerificationEmailHtml(code: string): string {
 	<title>Ověření emailu - VIN Info.cz</title>
 </head>
 <body style="font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+	<div style="display:none!important;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#f5f5f5;opacity:0;">${preheader}</div>
 	<div style="background-color: #eaf4eb; padding: 25px 30px; border-radius: 8px 8px 0 0; text-align: center;">
 		<h1 style="margin: 0; font-size: 22px; color: #333; font-weight: 600;">VIN Info.cz</h1>
 	</div>
@@ -112,10 +139,27 @@ export function generateVerificationEmailHtml(code: string): string {
 </html>`
 }
 
+export function generateVerificationEmailText(code: string): string {
+	return [
+		'Vítejte v Moje VINInfo!',
+		'',
+		'Pro dokončení registrace zadejte následující ověřovací kód:',
+		'',
+		`    ${code}`,
+		'',
+		'Kód je platný 24 hodin od odeslání.',
+		'',
+		'Pokud jste si nevytvořili účet na VIN Info.cz, tento email můžete ignorovat.',
+		'',
+		'— VIN Info.cz (https://vininfo.cz)'
+	].join('\n')
+}
+
 export async function sendVerificationEmail(email: string, code: string): Promise<boolean> {
 	return sendEmail({
 		to: email,
 		subject: 'Ověřovací kód pro VINInfo',
-		html: generateVerificationEmailHtml(code)
+		html: generateVerificationEmailHtml(code),
+		text: generateVerificationEmailText(code)
 	})
 }
