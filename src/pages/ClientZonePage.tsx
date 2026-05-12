@@ -700,8 +700,8 @@ const ClientZonePage: React.FC = () => {
 									<div key={vehicle.id} className='col-12 col-lg-6'>
 										<div className='card h-100 shadow-sm'>
 											<div className='card-body'>
-												<div className='d-flex align-items-start justify-content-between'>
-													<div>
+												<div className='d-flex flex-column flex-md-row justify-content-md-between align-items-md-start gap-3'>
+													<div className='flex-grow-1' style={{ minWidth: 0 }}>
 													<h3 className='plate-title'>
 														<span>
 															{vehicle.title?.trim()
@@ -806,17 +806,17 @@ const ClientZonePage: React.FC = () => {
 														</Link>
 													</div>
 													</div>
-													<div className='btn-group'>
+													<div className='btn-group flex-shrink-0 align-self-stretch align-self-md-auto'>
 														<button
 															type='button'
-															className='btn btn-outline-primary btn-sm'
+															className='btn btn-outline-primary btn-sm text-nowrap'
 															onClick={() => handleStartEditTitle(vehicle)}
 														>
 															Upravit název
 														</button>
 														<button
 															type='button'
-															className='btn btn-outline-danger btn-sm'
+															className='btn btn-outline-danger btn-sm text-nowrap'
 															onClick={() => handleDeleteVehicle(vehicle.id)}
 														>
 															Odebrat
