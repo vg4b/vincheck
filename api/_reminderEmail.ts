@@ -1,5 +1,5 @@
 import { sql } from '@vercel/postgres'
-import { sendEmail } from './_email'
+import { EMAIL_HEAD_STYLES, EMAIL_LOGO_URL, sendEmail } from './_email'
 import { formatDate, getBaseUrl } from './_utils'
 import { generateUnsubscribeToken } from './email/unsubscribe'
 
@@ -32,6 +32,24 @@ interface ReminderEmailParams {
 	baseUrl: string
 }
 
+function promoBlockHtml(message: string, href: string, label: string): string {
+	return `
+		<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+			<tr>
+				<td class="email-footer email-border" style="background-color: #f8f9fa; padding: 16px; border-radius: 8px; border: 1px solid #e9ecef;">
+					<p class="email-text" style="margin: 0 0 10px; font-size: 14px; color: #555;">${message}</p>
+					<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+						<tr>
+							<td style="background-color: #2f7a3e; border-radius: 5px;">
+								<a href="${href}" style="display: inline-block; padding: 10px 20px; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px;">${label}</a>
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+		</table>`
+}
+
 function getPromoBlockHtml(params: ReminderEmailParams): string {
 	const { reminderTypeRaw, vehicleVin, baseUrl } = params
 	const vin = vehicleVin?.trim()
@@ -44,31 +62,29 @@ function getPromoBlockHtml(params: ReminderEmailParams): string {
 		const sjednatUrl = hasVin
 			? `${baseUrl}/sjednat-pojisteni?vin=${encodeURIComponent(vin)}`
 			: `${baseUrl}/sjednat-pojisteni`
-		return `
-		<div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #e9ecef;">
-			<p style="margin: 0 0 10px; font-size: 14px; color: #555;">Sjednejte si pojištění online během pár minut – bez telefonátů a za jedny z nejlepších cen na trhu.</p>
-			<a href="${sjednatUrl}" style="display: inline-block; background: #2f7a3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; font-size: 14px;">Sjednat pojištění online</a>
-		</div>`
+		return promoBlockHtml(
+			'Sjednejte si pojištění online během pár minut – bez telefonátů a za jedny z nejlepších cen na trhu.',
+			sjednatUrl,
+			'Sjednat pojištění online'
+		)
 	}
 	if (reminderTypeRaw === 'stk' && hasVin) {
-		const cebiaUrl = getCebiaAffiliateUrl(vin)
-		return `
-		<div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #e9ecef;">
-			<p style="margin: 0 0 10px; font-size: 14px; color: #555;">Zvažujete koupi nového vozu? Prověřte si historii vozidla.</p>
-			<a href="${cebiaUrl}" style="display: inline-block; background: #2f7a3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; font-size: 14px;">Prověřit historii vozidla</a>
-		</div>`
+		return promoBlockHtml(
+			'Zvažujete koupi nového vozu? Prověřte si historii vozidla.',
+			getCebiaAffiliateUrl(vin),
+			'Prověřit historii vozidla'
+		)
 	}
 	if (
 		['servis', 'prezuti_pneu', 'dalnicni_znamka', 'jine'].includes(
 			reminderTypeRaw
 		)
 	) {
-		const benefitsUrl = `${baseUrl}/klientska-zona?tab=benefits`
-		return `
-		<div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #e9ecef;">
-			<p style="margin: 0 0 10px; font-size: 14px; color: #555;">Prohlédněte si doporučené služby pro vaše vozidla.</p>
-			<a href="${benefitsUrl}" style="display: inline-block; background: #2f7a3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: 600; font-size: 14px;">Moje výhody</a>
-		</div>`
+		return promoBlockHtml(
+			'Prohlédněte si doporučené služby pro vaše vozidla.',
+			`${baseUrl}/klientska-zona?tab=benefits`,
+			'Moje výhody'
+		)
 	}
 	return ''
 }
@@ -84,37 +100,57 @@ export function generateReminderEmailHtml(params: ReminderEmailParams): string {
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="color-scheme" content="light dark">
+	<meta name="supported-color-schemes" content="light dark">
 	<title>Připomínka - VIN Info.cz</title>
+	${EMAIL_HEAD_STYLES}
 </head>
-<body style="font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+<body class="email-body" style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333;">
 	<div style="display:none!important;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#f5f5f5;opacity:0;">${preheader}</div>
-	<div style="background-color: #eaf4eb; padding: 25px 30px; border-radius: 8px 8px 0 0; text-align: center;">
-		<h1 style="margin: 0; font-size: 22px; color: #333; font-weight: 600;">VIN Info.cz</h1>
-	</div>
-
-	<div style="background: #ffffff; padding: 30px; border-left: 1px solid #e9ecef; border-right: 1px solid #e9ecef;">
-		<h2 style="color: #333; margin-top: 0; font-size: 20px;">Blíží se termín: ${reminderType}</h2>
-
-		<div style="background: #eaf4eb; padding: 20px; border-radius: 8px; margin: 20px 0;">
-			<p style="margin: 0 0 10px; color: #333;"><strong>Vozidlo:</strong> ${vehicleName}</p>
-			<p style="margin: 0 0 10px; color: #333;"><strong>Typ upozornění:</strong> ${reminderType}</p>
-			<p style="margin: 0; color: #333;"><strong>Termín:</strong> <span style="color: #b91c1c; font-weight: bold;">${dueDate}</span></p>
-			${note ? `<p style="margin: 10px 0 0; color: #333;"><strong>Poznámka:</strong> ${note}</p>` : ''}
-		</div>
-
-		<p style="color: #555;">Nezapomeňte si včas zajistit splnění tohoto termínu. V případě potřeby můžete termín upravit v klientské zóně.</p>
-		${promoBlock}
-		<div style="text-align: center; margin: 30px 0;">
-			<a href="${baseUrl}/klientska-zona" style="display: inline-block; background: #2f7a3e; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: 600;">Přejít do Moje VINInfo</a>
-		</div>
-	</div>
-
-	<div style="background: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px; border: 1px solid #e9ecef; border-top: none; text-align: center; font-size: 12px; color: #888;">
-		<p style="margin: 0 0 10px;">Tento email byl odeslán ze služby <a href="https://vininfo.cz" style="color: #555; text-decoration: none;">VIN Info.cz</a></p>
-		<p style="margin: 0;">
-			<a href="${unsubscribeUrl}" style="color: #888;">Odhlásit se z odběru notifikací</a>
-		</p>
-	</div>
+	<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="email-body" style="background-color: #f5f5f5;">
+		<tr>
+			<td align="center" style="padding: 20px;">
+				<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; width: 100%;">
+					<tr>
+						<td class="email-tint" style="background-color: #eaf4eb; padding: 25px 30px; border-radius: 8px 8px 0 0; text-align: center;">
+							<img src="${EMAIL_LOGO_URL}" alt="" width="44" height="28" style="display: inline-block; vertical-align: middle; margin-right: 10px; border: 0;">
+							<span class="email-text" style="display: inline-block; vertical-align: middle; font-size: 22px; color: #333; font-weight: 600;">VIN Info.cz</span>
+						</td>
+					</tr>
+					<tr>
+						<td class="email-surface email-pad email-border" style="background-color: #ffffff; padding: 30px; border-left: 1px solid #e9ecef; border-right: 1px solid #e9ecef;">
+							<h2 class="email-h2" style="color: #333; margin: 0 0 16px; font-size: 20px;">Blíží se termín: ${reminderType}</h2>
+							<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 20px 0;">
+								<tr>
+									<td class="email-tint" style="background-color: #eaf4eb; padding: 20px; border-radius: 8px;">
+										<p class="email-text" style="margin: 0 0 10px; color: #333;"><strong>Vozidlo:</strong> ${vehicleName}</p>
+										<p class="email-text" style="margin: 0 0 10px; color: #333;"><strong>Typ upozornění:</strong> ${reminderType}</p>
+										<p class="email-text" style="margin: 0; color: #333;"><strong>Termín:</strong> <span style="color: #b91c1c; font-weight: bold;">${dueDate}</span></p>
+										${note ? `<p class="email-text" style="margin: 10px 0 0; color: #333;"><strong>Poznámka:</strong> ${note}</p>` : ''}
+									</td>
+								</tr>
+							</table>
+							<p class="email-text" style="color: #555; margin: 0 0 16px;">Nezapomeňte si včas zajistit splnění tohoto termínu. V případě potřeby můžete termín upravit v klientské zóně.</p>
+							${promoBlock}
+							<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 30px auto;">
+								<tr>
+									<td style="background-color: #2f7a3e; border-radius: 5px;">
+										<a href="${baseUrl}/klientska-zona" style="display: inline-block; padding: 12px 30px; color: #ffffff; text-decoration: none; font-weight: 600;">Přejít do Moje VINInfo</a>
+									</td>
+								</tr>
+							</table>
+						</td>
+					</tr>
+					<tr>
+						<td class="email-footer email-border email-text-muted" style="background-color: #f8f9fa; padding: 20px; border: 1px solid #e9ecef; border-top: none; border-radius: 0 0 8px 8px; text-align: center; font-size: 12px; color: #888;">
+							<p style="margin: 0 0 10px;">Tento email byl odeslán ze služby <a href="https://vininfo.cz" style="color: #555; text-decoration: none;">VIN Info.cz</a></p>
+							<p style="margin: 0;"><a href="${unsubscribeUrl}" style="color: #888;">Odhlásit se z odběru notifikací</a></p>
+						</td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+	</table>
 </body>
 </html>`
 }

@@ -8,14 +8,25 @@
  * Does NOT send any actual emails. No network calls. No env vars required.
  */
 
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import { generateVerificationEmailHtml } from '../api/_email'
+import { EMAIL_LOGO_URL, generateVerificationEmailHtml } from '../api/_email'
 import { generateReminderEmailHtml } from '../api/_reminderEmail'
 
 const OUT_DIR = resolve(__dirname, '..', 'tmp')
 mkdirSync(OUT_DIR, { recursive: true })
+
+// Copy the production logo into tmp/ and rewrite absolute URLs to a local
+// path so the browser preview actually shows the image (instead of the
+// production URL which may not be deployed yet).
+const LOGO_SRC = resolve(__dirname, '..', 'public', 'logo-email.png')
+const LOGO_DEST = resolve(OUT_DIR, 'logo-email.png')
+copyFileSync(LOGO_SRC, LOGO_DEST)
+
+function rewriteForPreview(html: string): string {
+	return html.split(EMAIL_LOGO_URL).join('./logo-email.png')
+}
 
 const SAMPLE_BASE_URL = 'https://vininfo.cz'
 const SAMPLE_UNSUBSCRIBE_URL = `${SAMPLE_BASE_URL}/api/email/unsubscribe?token=preview-token`
@@ -113,7 +124,7 @@ const variants: Variant[] = [
 const indexLinks: string[] = []
 for (const v of variants) {
 	const filePath = resolve(OUT_DIR, `preview-${v.name}.html`)
-	writeFileSync(filePath, v.html, 'utf-8')
+	writeFileSync(filePath, rewriteForPreview(v.html), 'utf-8')
 	indexLinks.push(`<li><a href="preview-${v.name}.html">${v.name}</a></li>`)
 	console.log(`  ✓ ${filePath}`)
 }
