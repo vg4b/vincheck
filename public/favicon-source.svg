@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   viewBox="0 0 32 32"
+   fill="none"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="favicon-source.svg"
+   inkscape:version="1.4 (e7c3feb1, 2024-10-09)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="5.3657056"
+     inkscape:cx="8.4797795"
+     inkscape:cy="16.120899"
+     inkscape:window-width="1920"
+     inkscape:window-height="1080"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg1" />
+  <path
+     id="rect1"
+     style="fill:#ffffff;stroke:#2f7a3e;stroke-width:2"
+     d="m 4.5,6 h 23 C 29.439,6 31,7.561 31,9.5 v 13 C 31,24.439 29.439,26 27.5,26 H 4.5 C 2.561,26 1,24.439 1,22.5 V 9.5 C 1,7.561 2.561,6 4.5,6 Z" />
+  <path
+     d="M1 9.5 A3.5 3.5 0 0 1 4.5 6 H9 V26 H4.5 A3.5 3.5 0 0 1 1 22.5 Z"
+     fill="#2f7a3e"
+     id="path1" />
+  <path
+     d="m 16.919987,21.5 -3.887,-9.1 h 2.782 l 3.276,7.878 h -1.638 l 3.354,-7.878 h 2.548 l -3.9,9.1 z m 7.368017,0 v -9.1 h 2.574 v 9.1 z"
+     id="text1"
+     style="font-weight:800;font-size:13px;font-family:Montserrat, 'Helvetica Neue', Arial, sans-serif;letter-spacing:0.4;text-anchor:middle;fill:#22612f"
+     aria-label="VI" />
+</svg>
