@@ -262,9 +262,9 @@ Resend's official React-based templating framework. Beautiful DX, but adds a bui
 | Phase 2A.3 — preheader text | ✅ Shipped (2026-05-12) |
 | Phase 2A.4 — plain-text fallback | ✅ Shipped (2026-05-12) |
 | Phase 2A.5 — inbound reply webhook | ⬜ Deferred (MX in place, code pending) |
-| Phase 2B.5 — hosted PNG logo | ⬜ Next |
-| Phase 2B.6 — table-based layout | ⬜ |
-| Phase 2C.7 — dark mode | ⬜ |
-| Phase 2C.8 — tighter mobile breakpoint | ⬜ |
+| Phase 2B.5 — hosted PNG logo | ✅ Shipped (2026-05-12) |
+| Phase 2B.6 — table-based layout | ✅ Shipped (2026-05-12) |
+| Phase 2C.7 — dark mode | ✅ Shipped (2026-05-12) |
+| Phase 2C.8 — tighter mobile breakpoint | ✅ Shipped (2026-05-12) |
 | Cross-cutting: Postmaster Tools enrollment | ⬜ |
 | Cross-cutting: DMARC tightening | ⬜ |
