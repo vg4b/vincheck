@@ -178,7 +178,7 @@ export function generateVerificationEmailHtml(code: string): string {
 								</tr>
 							</table>
 							<p class="email-text" style="color: #555; margin: 0 0 16px;">Kód je platný 24 hodin od odeslání.</p>
-							<p class="email-text-muted" style="color: #888; font-size: 14px; margin: 25px 0 0;">Pokud jste si u nás neregistrovali, tento email můžete ignorovat.</p>
+							<p class="email-text-muted" style="color: #888; font-size: 14px; margin: 25px 0 0;">Pokud jste se u nás neregistrovali, tento email můžete ignorovat.</p>
 						</td>
 					</tr>
 					<tr>
@@ -204,7 +204,7 @@ export function generateVerificationEmailText(code: string): string {
 		'',
 		'Kód je platný 24 hodin od odeslání.',
 		'',
-		'Pokud jste si u nás neregistrovali, tento email můžete ignorovat.',
+		'Pokud jste se u nás neregistrovali, tento email můžete ignorovat.',
 		'',
 		'— VINInfo.cz (https://vininfo.cz)'
 	].join('\n')
