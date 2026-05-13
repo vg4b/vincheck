@@ -204,4 +204,4 @@ No new dependencies. No new components. All primitives (`.dl-grid`, `.num`, `.he
 
 ## Status
 
-⬜ Planned (2026-05-12). Pending user signal to execute.
+✅ Shipped (2026-05-13).

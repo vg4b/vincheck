@@ -8,7 +8,12 @@ Today the "Přidat vozidlo ručně" form on `/klientska-zona` requires a 17-char
 <form>
   <h3 class="h6">Přidat vozidlo ručně</h3>
   <label class="form-label">VIN</label>
-  <input class="form-control" placeholder="Zadejte VIN (17 znaků)" required type="text">
+  <input
+    class="form-control"
+    placeholder="Zadejte VIN (17 znaků)"
+    required
+    type="text"
+  />
   <button type="submit" class="btn btn-primary w-100">Přidat</button>
 </form>
 ```
@@ -52,7 +57,7 @@ When the user clicks **"VIN nemám"**, the form swaps to:
 │                                             │
 │  Název vozidla *                            │
 │  [_________________________________]        │
-│  např. "Rodinný Octavia", "VW Passat"       │
+│  např. "Rodinná Octavia", "VW Passat"       │
 │                                             │
 │  Značka (volitelné)        Model (volitelné)│
 │  [______________]          [______________] │
@@ -69,10 +74,10 @@ Title becomes the required field (validation: 1–60 chars). Brand/model optiona
 
 ### Validation rules
 
-| Mode | Required | Optional |
-|---|---|---|
-| Mám VIN | VIN (17 chars, alphanumeric, no I/O/Q) | Title, brand, model — can be filled from registry lookup after save |
-| VIN nemám | Title (1–60 chars) | Brand, model |
+| Mode      | Required                               | Optional                                                            |
+| --------- | -------------------------------------- | ------------------------------------------------------------------- |
+| Mám VIN   | VIN (17 chars, alphanumeric, no I/O/Q) | Title, brand, model — can be filled from registry lookup after save |
+| VIN nemám | Title (1–60 chars)                     | Brand, model                                                        |
 
 Server-side check (in `api/client/vehicles.ts` POST handler): require either `vin` (17 chars) or `title` (non-empty after trim).
 
@@ -101,13 +106,13 @@ User saves vehicle without VIN, later finds it and wants to enrich the card with
 
 ## Files to modify
 
-| File | Change |
-|---|---|
-| `src/pages/ClientZonePage.tsx` | Replace the `AddVehicleForm` (or equivalent inline form) with the two-mode version. Conditionally render registry/Cebia/STK links per `vehicle.vin`. |
-| `src/utils/clientZoneApi.ts` | `addVehicle()` signature already accepts optional `vin` and required other fields — check; widen if needed so `title` can be required and `vin` optional. |
-| `api/client/vehicles.ts` | POST handler: require `vin OR title`. Validate. Allow null `vin` to be stored. |
-| `api/client/_db_schema.sql` (or whichever migration file lives in the repo) | If unique constraint blocks NULL-VIN rows for same user, swap to partial unique index. **Verify first — likely no change needed.** |
-| `src/types/index.ts` | `ClientVehicle.vin` type — confirm it's `string \| null` already (per the existing render handling `vehicle.vin ?? 'N/A'`). |
+| File                                                                        | Change                                                                                                                                                    |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/pages/ClientZonePage.tsx`                                              | Replace the `AddVehicleForm` (or equivalent inline form) with the two-mode version. Conditionally render registry/Cebia/STK links per `vehicle.vin`.      |
+| `src/utils/clientZoneApi.ts`                                                | `addVehicle()` signature already accepts optional `vin` and required other fields — check; widen if needed so `title` can be required and `vin` optional. |
+| `api/client/vehicles.ts`                                                    | POST handler: require `vin OR title`. Validate. Allow null `vin` to be stored.                                                                            |
+| `api/client/_db_schema.sql` (or whichever migration file lives in the repo) | If unique constraint blocks NULL-VIN rows for same user, swap to partial unique index. **Verify first — likely no change needed.**                        |
+| `src/types/index.ts`                                                        | `ClientVehicle.vin` type — confirm it's `string \| null` already (per the existing render handling `vehicle.vin ?? 'N/A'`).                               |
 
 ## Pre-implementation investigation (do this first)
 
