@@ -239,7 +239,7 @@ export const OdometerSection: React.FC<{
 
 	return (
 		<div className='mt-3 border rounded p-3'>
-			<h4 className='h6'>Stav tachometru</h4>
+			<h4 className='h6'><span className='heading-accent'>Stav tachometru</span></h4>
 			<OdometerForm vehicleId={vehicleId} readings={readings} onAdd={handleAdd} />
 
 			{readings.length === 0 ? (

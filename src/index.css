@@ -560,7 +560,7 @@ img {
    Plate-style title (echoes the brand-mark logo)
    ========================================================= */
 .plate-title {
-	display: inline-flex;
+	display: flex;
 	align-items: stretch;
 	background-color: var(--surface);
 	border: 1.5px solid var(--ink-500);
@@ -569,13 +569,14 @@ img {
 	box-shadow: var(--shadow-sm);
 	padding: 0;
 	margin: 0;
-	font-family: "Montserrat", sans-serif;
-	font-weight: 800;
-	font-size: 1.0625rem;
-	line-height: 1.2;
-	letter-spacing: 0.04em;
-	color: var(--ink-900);
+	width: 100%;
 	max-width: 100%;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.plate-title:focus-within {
+	border-color: var(--brand-600);
+	box-shadow: var(--shadow-md);
 }
 
 .plate-title::before {
@@ -584,11 +585,100 @@ img {
 	background-color: var(--brand-600);
 }
 
-.plate-title > span {
-	padding: 6px 14px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+/* The clickable face — text + pencil. Triggers edit mode on click. */
+.plate-title__face {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 14px;
+	background: transparent;
+	border: 0;
+	cursor: pointer;
+	text-align: left;
+	font-family: "Montserrat", sans-serif;
+	font-weight: 800;
+	font-size: 1.0625rem;
+	line-height: 1.2;
+	letter-spacing: 0.04em;
+	color: var(--ink-900);
+	transition: background-color 0.15s ease;
+}
+
+.plate-title__face > span {
+	flex: 1;
+	min-width: 0;
+	word-break: break-word;
+	overflow-wrap: break-word;
+}
+
+.plate-title__face:hover,
+.plate-title__face:focus-visible {
+	background-color: var(--brand-50);
+	outline: none;
+}
+
+.plate-title__hint {
+	flex-shrink: 0;
+	color: var(--ink-500);
+	opacity: 0.7;
+	transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.plate-title__face:hover .plate-title__hint,
+.plate-title__face:focus-visible .plate-title__hint {
+	color: var(--brand-600);
+	opacity: 1;
+}
+
+/* Delete button (X) — destructive action, separated from the editable face. */
+.plate-title__delete {
+	flex-shrink: 0;
+	padding: 0 14px;
+	background: transparent;
+	border: 0;
+	border-left: 1px solid var(--ink-300);
+	color: var(--ink-500);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.plate-title__delete:hover,
+.plate-title__delete:focus-visible {
+	background-color: var(--alert-50);
+	color: var(--alert-600);
+	outline: none;
+}
+
+.plate-title__delete:disabled {
+	cursor: progress;
+	color: var(--alert-600);
+	background-color: var(--alert-50);
+	opacity: 1;
+}
+
+/* Edit mode — inline input replaces the face + delete buttons. */
+.plate-title--editing {
+	cursor: text;
+}
+
+.plate-title__input {
+	flex: 1;
+	min-width: 0;
+	padding: 8px 14px;
+	border: 0;
+	background: transparent;
+	outline: 0;
+	font-family: "Montserrat", sans-serif;
+	font-weight: 800;
+	font-size: 1.0625rem;
+	line-height: 1.2;
+	letter-spacing: 0.04em;
+	color: var(--ink-900);
+	width: 100%;
 }
 
 /* =========================================================
@@ -611,6 +701,93 @@ img {
 	background-color: var(--brand-600);
 	color: #ffffff;
 	border-color: var(--brand-600);
+}
+
+/* =========================================================
+   STK stat pill — prominent date display with semantic status
+   ========================================================= */
+.stk-stat {
+	display: inline-flex;
+	align-items: baseline;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius-sm);
+	background-color: var(--brand-50);
+	margin: var(--space-3) 0;
+}
+
+.stk-stat__label {
+	font-size: 0.8125rem;
+	color: var(--ink-500);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	font-weight: 600;
+}
+
+.stk-stat__value {
+	font-size: 1.0625rem;
+	font-weight: 700;
+	color: var(--brand-700);
+}
+
+.stk-stat[data-status="warn"] {
+	background-color: var(--warn-50);
+}
+.stk-stat[data-status="warn"] .stk-stat__value {
+	color: var(--warn-700);
+}
+
+.stk-stat[data-status="alert"] {
+	background-color: var(--alert-50);
+}
+.stk-stat[data-status="alert"] .stk-stat__value {
+	color: var(--alert-700);
+}
+
+/* =========================================================
+   Vehicle action links — primary internal nav + muted affiliate
+   ========================================================= */
+.vehicle-actions {
+	list-style: none;
+	padding: 0;
+	margin: var(--space-4) 0 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.vehicle-actions a {
+	color: var(--brand-700);
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	font-weight: 500;
+}
+
+.vehicle-actions a:hover,
+.vehicle-actions a:focus-visible {
+	color: var(--brand-600);
+	text-decoration: underline;
+}
+
+.vehicle-actions__affiliate a {
+	color: var(--ink-500);
+	font-size: 0.875rem;
+}
+
+.vehicle-actions__affiliate a:hover,
+.vehicle-actions__affiliate a:focus-visible {
+	color: var(--ink-700);
+}
+
+/* =========================================================
+   Card-body form labels — consistent with .dl-grid label sizing
+   ========================================================= */
+.card-body .form-label {
+	font-size: 0.875rem;
+	color: var(--ink-700);
+	font-weight: 500;
 }
 
 /* =========================================================

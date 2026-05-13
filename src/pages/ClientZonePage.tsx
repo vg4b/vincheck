@@ -18,6 +18,7 @@ import {
 	updatePreferences,
 	UserPreferences
 } from '../utils/clientZoneApi'
+import Icon from '../components/Icon'
 import { OdometerSection } from '../components/OdometerSection'
 import { ApiError } from '../utils/apiClient'
 import { fetchVehicleInfo, formatValue, getDataValue } from '../utils/vehicleApi'
@@ -121,6 +122,8 @@ const ClientZonePage: React.FC = () => {
 	const [titleSavingId, setTitleSavingId] = useState<string | null>(null)
 	const [titleError, setTitleError] = useState<Record<string, string>>({})
 	const [titleEditingId, setTitleEditingId] = useState<string | null>(null)
+	const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(null)
+	const [deleteConfirmVehicleId, setDeleteConfirmVehicleId] = useState<string | null>(null)
 	const [preferences, setPreferences] = useState<UserPreferences | null>(null)
 	const [preferencesLoading, setPreferencesLoading] = useState(false)
 	const [preferencesSaving, setPreferencesSaving] = useState(false)
@@ -351,14 +354,20 @@ const ClientZonePage: React.FC = () => {
 	}
 
 	const handleDeleteVehicle = async (vehicleId: string) => {
-		await deleteVehicle(vehicleId)
-		setVehicles((prev) => prev.filter((item) => item.id !== vehicleId))
-		setReminders((prev) => prev.filter((item) => item.vehicle_id !== vehicleId))
-		setOdometerReadingsByVehicle((prev) => {
-			const next = { ...prev }
-			delete next[vehicleId]
-			return next
-		})
+		if (deletingVehicleId) return
+		setDeletingVehicleId(vehicleId)
+		try {
+			await deleteVehicle(vehicleId)
+			setVehicles((prev) => prev.filter((item) => item.id !== vehicleId))
+			setReminders((prev) => prev.filter((item) => item.vehicle_id !== vehicleId))
+			setOdometerReadingsByVehicle((prev) => {
+				const next = { ...prev }
+				delete next[vehicleId]
+				return next
+			})
+		} finally {
+			setDeletingVehicleId(null)
+		}
 	}
 
 	const handleTitleChange = (vehicleId: string, value: string) => {
@@ -693,54 +702,91 @@ const ClientZonePage: React.FC = () => {
 								}
 							}
 
-							const isExpired =
+							const isExpired = Boolean(
 								techInspectionDate && techInspectionDate.getTime() < currentDate.getTime()
-							const techInspectionColor = isExpired ? 'red' : 'green'
+							)
+							const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000
+							const stkStatus: 'ok' | 'warn' | 'alert' = !techInspectionDate
+								? 'ok'
+								: isExpired
+									? 'alert'
+									: techInspectionDate.getTime() - currentDate.getTime() < SIXTY_DAYS_MS
+										? 'warn'
+										: 'ok'
 								return (
 									<div key={vehicle.id} className='col-12 col-lg-6'>
 										<div className='card h-100 shadow-sm'>
 											<div className='card-body'>
-												<div className='d-flex flex-column flex-md-row justify-content-md-between align-items-md-start gap-3'>
-													<div className='flex-grow-1' style={{ minWidth: 0 }}>
-													<h3 className='plate-title'>
-														<span>
-															{vehicle.title?.trim()
-																? vehicle.title
-																: `${vehicle.brand ?? 'Neznámá značka'} ${vehicle.model ?? ''}`.trim()}
-														</span>
+												{titleEditingId === vehicle.id ? (
+													<h3 className='plate-title plate-title--editing'>
+														<input
+															type='text'
+															className='plate-title__input'
+															value={titleDrafts[vehicle.id] ?? vehicle.title ?? ''}
+															onChange={(event) =>
+																handleTitleChange(vehicle.id, event.target.value)
+															}
+															placeholder='Např. Rodinný Golf'
+															maxLength={TITLE_MAX_LENGTH}
+															autoFocus
+															onKeyDown={(event) => {
+																if (event.key === 'Enter') {
+																	event.preventDefault()
+																	handleSaveTitle(vehicle)
+																} else if (event.key === 'Escape') {
+																	event.preventDefault()
+																	handleCancelEditTitle(vehicle.id)
+																}
+															}}
+														/>
 													</h3>
-													{titleEditingId === vehicle.id && (
-													<div className='mt-3'>
-														<label className='form-label'>Název vozidla</label>
-														<div className='input-group'>
-															<input
-																type='text'
-																className='form-control'
-																value={
-																	titleDrafts[vehicle.id] ?? vehicle.title ?? ''
-																}
-																onChange={(event) =>
-																	handleTitleChange(
-																		vehicle.id,
-																		event.target.value
-																	)
-																}
-																placeholder='Např. Rodinný Golf'
-																maxLength={TITLE_MAX_LENGTH}
-															/>
+												) : (
+													<h3 className='plate-title'>
+														<button
+															type='button'
+															className='plate-title__face'
+															onClick={() => handleStartEditTitle(vehicle)}
+															aria-label='Upravit název vozidla'
+															title='Klikněte pro úpravu názvu'
+														>
+															<span>
+																{vehicle.title?.trim()
+																	? vehicle.title
+																	: `${vehicle.brand ?? 'Neznámá značka'} ${vehicle.model ?? ''}`.trim()}
+															</span>
+															<Icon name='pencil' size={14} className='plate-title__hint' />
+														</button>
+														<button
+															type='button'
+															className='plate-title__delete'
+															onClick={() =>
+																setDeleteConfirmVehicleId(
+																	deleteConfirmVehicleId === vehicle.id ? null : vehicle.id
+																)
+															}
+															disabled={deletingVehicleId === vehicle.id}
+															aria-label='Odebrat vozidlo'
+															aria-expanded={deleteConfirmVehicleId === vehicle.id}
+															title='Odebrat vozidlo'
+														>
+															<Icon name='x' size={16} />
+														</button>
+													</h3>
+												)}
+												{titleEditingId === vehicle.id && (
+													<>
+														<div className='d-flex gap-2 mt-2'>
 															<button
 																type='button'
-																className='btn btn-outline-primary'
+																className='btn btn-primary btn-sm'
 																onClick={() => handleSaveTitle(vehicle)}
 																disabled={titleSavingId === vehicle.id}
 															>
-																{titleSavingId === vehicle.id
-																	? 'Ukládám...'
-																	: 'Uložit'}
+																{titleSavingId === vehicle.id ? 'Ukládám...' : 'Uložit'}
 															</button>
 															<button
 																type='button'
-																className='btn btn-outline-secondary'
+																className='btn btn-outline-secondary btn-sm'
 																onClick={() => handleCancelEditTitle(vehicle.id)}
 																disabled={titleSavingId === vehicle.id}
 															>
@@ -752,125 +798,121 @@ const ClientZonePage: React.FC = () => {
 																{titleError[vehicle.id]}
 															</div>
 														)}
+													</>
+												)}
+												{deleteConfirmVehicleId === vehicle.id && titleEditingId !== vehicle.id && (
+													<div className='alert alert-danger d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mt-2 mb-0 py-2'>
+														<span className='small'>
+															Opravdu odebrat vozidlo? Smazána budou i všechna upozornění a záznamy tachometru.
+														</span>
+														<div className='d-flex gap-2 flex-shrink-0'>
+															<button
+																type='button'
+																className='btn btn-danger btn-sm'
+																onClick={async () => {
+																	await handleDeleteVehicle(vehicle.id)
+																	setDeleteConfirmVehicleId(null)
+																}}
+																disabled={deletingVehicleId === vehicle.id}
+															>
+																{deletingVehicleId === vehicle.id ? (
+																	<>
+																		<span
+																			className='spinner-border spinner-border-sm me-2'
+																			role='status'
+																			aria-hidden='true'
+																			style={{ width: 12, height: 12 }}
+																		/>
+																		Odebírám…
+																	</>
+																) : (
+																	'Ano, odebrat'
+																)}
+															</button>
+															<button
+																type='button'
+																className='btn btn-outline-secondary btn-sm'
+																onClick={() => setDeleteConfirmVehicleId(null)}
+																disabled={deletingVehicleId === vehicle.id}
+															>
+																Zrušit
+															</button>
+														</div>
 													</div>
 												)}
-													{vehicle.title && (
-														<p className='mb-1 text-muted'>
-															{vehicle.brand ?? 'Neznámá značka'}{' '}
-															{vehicle.model ?? ''}
-														</p>
-													)}
-														<p className='mb-1 text-muted'>
-															VIN: {vehicle.vin ?? 'N/A'}
-														</p>
-														{vehicle.tp && (
-															<p className='mb-1 text-muted'>TP: {vehicle.tp}</p>
-														)}
-													{vehicle.orv && (
-														<p className='mb-1 text-muted'>ORV: {vehicle.orv}</p>
-													)}
-													<p className='mb-1 text-muted'>
-														STK do:{' '}
-														<span style={{ color: techInspectionColor }}>
-															{techInspection}
-														</span>
-													</p>
-													<div className='mt-2'>
-														{(vehicle.vin || vehicle.tp || vehicle.orv) && (
-															<Link
-																to={
-																	vehicle.vin
-																		? `/vin/${encodeURIComponent(vehicle.vin)}`
-																		: vehicle.tp
-																			? `/tp/${encodeURIComponent(vehicle.tp)}`
-																			: `/orv/${encodeURIComponent(vehicle.orv!)}`
-																}
-																className='link-primary d-block'
-															>
-																Info z registru vozidel →
-															</Link>
-														)}
-														<a
-															href={cebia.getDirectUrl(vehicle.vin ?? undefined, 'client_zone_vehicle')}
-															target='_blank'
-															rel='noopener noreferrer'
-															className='link-primary d-block'
-														>
-															Prověřit historii vozidla ➜
-														</a>
-														<Link
-															to={vehicle.vin ? `/sjednat-pojisteni?vin=${encodeURIComponent(vehicle.vin)}` : '/sjednat-pojisteni'}
-															className='link-primary d-block'
-														>
-															Sjednat pojištění →
-														</Link>
-													</div>
-													</div>
-													<div className='btn-group flex-shrink-0 align-self-stretch align-self-md-auto'>
-														<button
-															type='button'
-															className='btn btn-outline-primary btn-sm text-nowrap'
-															onClick={() => handleStartEditTitle(vehicle)}
-														>
-															Upravit název
-														</button>
-														<button
-															type='button'
-															className='btn btn-outline-danger btn-sm text-nowrap'
-															onClick={() => handleDeleteVehicle(vehicle.id)}
-														>
-															Odebrat
-														</button>
-													</div>
-												</div>
-												{/* {titleEditingId === vehicle.id && (
-													<div className='mt-3'>
-														<label className='form-label'>Název vozidla</label>
-														<div className='input-group'>
-															<input
-																type='text'
-																className='form-control'
-																value={
-																	titleDrafts[vehicle.id] ?? vehicle.title ?? ''
-																}
-																onChange={(event) =>
-																	handleTitleChange(
-																		vehicle.id,
-																		event.target.value
-																	)
-																}
-																placeholder='Např. Rodinný Golf'
-																maxLength={TITLE_MAX_LENGTH}
-															/>
-															<button
-																type='button'
-																className='btn btn-outline-primary'
-																onClick={() => handleSaveTitle(vehicle)}
-																disabled={titleSavingId === vehicle.id}
-															>
-																{titleSavingId === vehicle.id
-																	? 'Ukládám...'
-																	: 'Uložit'}
-															</button>
-															<button
-																type='button'
-																className='btn btn-outline-secondary'
-																onClick={() => handleCancelEditTitle(vehicle.id)}
-																disabled={titleSavingId === vehicle.id}
-															>
-																Zrušit
-															</button>
+												{techInspectionDate && (
+														<div className='stk-stat' data-status={stkStatus}>
+															<span className='stk-stat__label'>STK do</span>
+															<span className='stk-stat__value num'>{techInspection}</span>
 														</div>
-														{titleError[vehicle.id] && (
-															<div className='text-danger small mt-1'>
-																{titleError[vehicle.id]}
-															</div>
+													)}
+													<dl className='dl-grid mt-3 mb-3'>
+														{vehicle.title && (vehicle.brand || vehicle.model) && (
+															<>
+																<dt>Značka / Model</dt>
+																<dd>{`${vehicle.brand ?? ''} ${vehicle.model ?? ''}`.trim() || '—'}</dd>
+															</>
 														)}
-													</div>
-												)} */}
+														{vehicle.vin && (
+															<>
+																<dt>VIN</dt>
+																<dd className='num'>{vehicle.vin}</dd>
+															</>
+														)}
+														{vehicle.tp && (
+															<>
+																<dt>Číslo TP</dt>
+																<dd className='num'>{vehicle.tp}</dd>
+															</>
+														)}
+														{vehicle.orv && (
+															<>
+																<dt>Číslo ORV</dt>
+																<dd className='num'>{vehicle.orv}</dd>
+															</>
+														)}
+													</dl>
+													<ul className='vehicle-actions'>
+														{(vehicle.vin || vehicle.tp || vehicle.orv) && (
+															<li>
+																<Link
+																	to={
+																		vehicle.vin
+																			? `/vin/${encodeURIComponent(vehicle.vin)}`
+																			: vehicle.tp
+																				? `/tp/${encodeURIComponent(vehicle.tp)}`
+																				: `/orv/${encodeURIComponent(vehicle.orv!)}`
+																	}
+																>
+																	<Icon name='chevron-right' size={16} />
+																	Info z registru vozidel
+																</Link>
+															</li>
+														)}
+														<li>
+															<Link
+																to={vehicle.vin ? `/sjednat-pojisteni?vin=${encodeURIComponent(vehicle.vin)}` : '/sjednat-pojisteni'}
+															>
+																<Icon name='chevron-right' size={16} />
+																Sjednat pojištění
+															</Link>
+														</li>
+														<li className='vehicle-actions__affiliate'>
+															<a
+																href={cebia.getDirectUrl(vehicle.vin ?? undefined, 'client_zone_vehicle')}
+																target='_blank'
+																rel='noopener noreferrer'
+																title='Partnerský odkaz'
+															>
+																<Icon name='external-link' size={14} />
+																Prověřit historii vozidla
+															</a>
+														</li>
+													</ul>
 
-												<div className='mt-3'>
-													<h4 className='h6'>Upozornění</h4>
+												<hr style={{ borderTop: '1px solid var(--ink-300)', margin: 'var(--space-5) 0 var(--space-4)' }} />
+												<div>
+													<h4 className='h6'><span className='heading-accent'>Upozornění</span></h4>
 													{vehicleReminders.length === 0 ? (
 														<p className='text-muted'>
 															Zatím nemáte žádná upozornění.
@@ -1475,6 +1517,7 @@ const AddVehicleForm: React.FC<{
 	}) => Promise<void>
 }> = ({ onAdd }) => {
 	const [code, setCode] = useState('')
+	const [customTitle, setCustomTitle] = useState('')
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState('')
 	const [success, setSuccess] = useState('')
@@ -1499,16 +1542,19 @@ const AddVehicleForm: React.FC<{
 			const tp = getDataValue(data, 'CisloTp', '').trim()
 			const orv = getDataValue(data, 'CisloOrv', '').trim()
 
+			const trimmedTitle = customTitle.trim()
 			await onAdd({
 				vin,
 				tp: tp || undefined,
 				orv: orv || undefined,
+				title: trimmedTitle ? trimmedTitle.slice(0, TITLE_MAX_LENGTH) : undefined,
 				brand,
 				model,
 				snapshot: data
 			})
 			setSuccess('Vozidlo bylo přidáno.')
 			setCode('')
+			setCustomTitle('')
 		} catch (err) {
 			if (err instanceof Error && err.message) {
 				setError(err.message)
@@ -1543,6 +1589,20 @@ const AddVehicleForm: React.FC<{
 					>
 						{loading ? 'Přidávám...' : 'Přidat'}
 					</button>
+				</div>
+				<div className='col-12'>
+					<label className='form-label'>Vlastní název <span className='text-muted-ink'>(volitelné)</span></label>
+					<input
+						type='text'
+						className='form-control'
+						value={customTitle}
+						onChange={(event) => setCustomTitle(event.target.value)}
+						placeholder='např. Auto bílé, Rodinná Octavia'
+						maxLength={TITLE_MAX_LENGTH}
+					/>
+					<div className='form-text text-muted-ink'>
+						Pomůže vám rozlišit více vozidel. Můžete změnit kdykoliv později.
+					</div>
 				</div>
 			</div>
 			{error && (
