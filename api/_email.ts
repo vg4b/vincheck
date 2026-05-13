@@ -9,7 +9,7 @@ const getResendApiKey = (): string | null => {
  * (https://resend.com/docs/dashboard/emails/deliverability-insights —
  * no-reply addresses lower trust and engagement signals).
  */
-const EMAIL_FROM = 'VIN Info.cz <vininfo@mail.vininfo.cz>'
+const EMAIL_FROM = 'VINInfo.cz <vininfo@mail.vininfo.cz>'
 
 /**
  * Reply-To target — a real monitored inbox so users who reply land
@@ -139,7 +139,7 @@ export async function sendEmail(params: SendEmailParams): Promise<boolean> {
 }
 
 export function generateVerificationEmailHtml(code: string): string {
-	const preheader = 'Dokončete registraci na VIN Info.cz — váš ověřovací kód uvnitř.'
+	const preheader = 'Dokončete registraci na VINInfo.cz — váš ověřovací kód uvnitř.'
 	return `<!DOCTYPE html>
 <html lang="cs">
 <head>
@@ -162,7 +162,7 @@ export function generateVerificationEmailHtml(code: string): string {
 						<td class="email-tint" style="background-color: #eaf4eb; padding: 25px 30px; border-radius: 8px 8px 0 0; text-align: center;">
 							<a href="https://vininfo.cz" style="display: inline-block; text-decoration: none; color: inherit;">
 								<img src="${EMAIL_LOGO_URL}" alt="" width="44" height="28" style="display: inline-block; vertical-align: middle; margin-right: 10px; border: 0;">
-								<span class="email-text" style="display: inline-block; vertical-align: middle; font-size: 22px; color: #333; font-weight: 600;">VIN Info&#8203;.cz</span>
+								<span class="email-text" style="display: inline-block; vertical-align: middle; font-size: 22px; color: #333; font-weight: 600;">VINInfo.cz</span>
 							</a>
 						</td>
 					</tr>
@@ -178,12 +178,12 @@ export function generateVerificationEmailHtml(code: string): string {
 								</tr>
 							</table>
 							<p class="email-text" style="color: #555; margin: 0 0 16px;">Kód je platný 24 hodin od odeslání.</p>
-							<p class="email-text-muted" style="color: #888; font-size: 14px; margin: 25px 0 0;">Pokud jste si nevytvořili účet na VIN Info&#8203;.cz, tento email můžete ignorovat.</p>
+							<p class="email-text-muted" style="color: #888; font-size: 14px; margin: 25px 0 0;">Pokud jste si u nás neregistrovali, tento email můžete ignorovat.</p>
 						</td>
 					</tr>
 					<tr>
 						<td class="email-footer email-border email-text-muted" style="background-color: #f8f9fa; padding: 20px; border: 1px solid #e9ecef; border-top: none; border-radius: 0 0 8px 8px; text-align: center; font-size: 12px; color: #888;">
-							<p style="margin: 0;">Tento email byl odeslán ze služby <a href="https://vininfo.cz" style="color: #555; text-decoration: none;">VIN Info.cz</a></p>
+							<p style="margin: 0;">Tento email byl odeslán ze služby <a href="https://vininfo.cz" style="color: #555; text-decoration: none;">VINInfo.cz</a></p>
 						</td>
 					</tr>
 				</table>
@@ -204,9 +204,9 @@ export function generateVerificationEmailText(code: string): string {
 		'',
 		'Kód je platný 24 hodin od odeslání.',
 		'',
-		'Pokud jste si nevytvořili účet na VIN Info.cz, tento email můžete ignorovat.',
+		'Pokud jste si u nás neregistrovali, tento email můžete ignorovat.',
 		'',
-		'— VIN Info.cz (https://vininfo.cz)'
+		'— VINInfo.cz (https://vininfo.cz)'
 	].join('\n')
 }
 
