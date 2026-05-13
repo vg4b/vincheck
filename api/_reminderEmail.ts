@@ -102,6 +102,8 @@ export function generateReminderEmailHtml(params: ReminderEmailParams): string {
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="color-scheme" content="light dark">
 	<meta name="supported-color-schemes" content="light dark">
+	<meta name="format-detection" content="telephone=no,date=no,address=no,email=no">
+	<meta name="x-apple-disable-message-reformatting">
 	<title>Připomínka - VIN Info.cz</title>
 	${EMAIL_HEAD_STYLES}
 </head>
@@ -113,8 +115,10 @@ export function generateReminderEmailHtml(params: ReminderEmailParams): string {
 				<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; width: 100%;">
 					<tr>
 						<td class="email-tint" style="background-color: #eaf4eb; padding: 25px 30px; border-radius: 8px 8px 0 0; text-align: center;">
-							<img src="${EMAIL_LOGO_URL}" alt="" width="44" height="28" style="display: inline-block; vertical-align: middle; margin-right: 10px; border: 0;">
-							<span class="email-text" style="display: inline-block; vertical-align: middle; font-size: 22px; color: #333; font-weight: 600;">VIN Info.cz</span>
+							<a href="https://vininfo.cz" style="display: inline-block; text-decoration: none; color: inherit;">
+								<img src="${EMAIL_LOGO_URL}" alt="" width="44" height="28" style="display: inline-block; vertical-align: middle; margin-right: 10px; border: 0;">
+								<span class="email-text" style="display: inline-block; vertical-align: middle; font-size: 22px; color: #333; font-weight: 600;">VIN Info&#8203;.cz</span>
+							</a>
 						</td>
 					</tr>
 					<tr>
