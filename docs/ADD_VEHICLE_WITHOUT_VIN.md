@@ -146,4 +146,13 @@ Until the constraint is verified, treat as Medium overall.
 
 ## Status
 
-⬜ Planned (2026-05-12). Investigation step 1–3 above must complete before estimating fully.
+✅ Shipped (2026-05-13). Investigation confirmed:
+
+- DB partial unique index `WHERE vin IS NOT NULL` already in place (`api/_db.ts:67-71`) — no migration needed.
+- `addVehicle()` API client already accepts optional `vin` + `title`.
+- Backend POST validation widened to also accept title-only payloads.
+- AddVehicleForm switched to a two-mode UI (Mám VIN / VIN nemám) with the
+  no-VIN mode requiring title and offering optional brand/model.
+- Vehicle card: the Cebia affiliate link is hidden when the vehicle has no
+  VIN. STK stat row was already conditional on a parseable date so VIN-less
+  vehicles render without it naturally.

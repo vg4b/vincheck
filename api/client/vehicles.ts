@@ -51,10 +51,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 				? title.trim().slice(0, TITLE_MAX_LENGTH)
 				: null
 
-		if (!vin && !tp && !orv) {
+		if (!vin && !tp && !orv && !normalizedTitle) {
 			return res
 				.status(400)
-				.json({ error: 'VIN, TP, or ORV is required' })
+				.json({ error: 'VIN, TP, ORV, or title is required' })
 		}
 
 		const existingVehicle = await sql`

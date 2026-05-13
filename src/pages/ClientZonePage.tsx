@@ -897,17 +897,19 @@ const ClientZonePage: React.FC = () => {
 																Sjednat pojištění
 															</Link>
 														</li>
+														{vehicle.vin && (
 														<li className='vehicle-actions__affiliate'>
 															<a
-																href={cebia.getDirectUrl(vehicle.vin ?? undefined, 'client_zone_vehicle')}
+																href={cebia.getDirectUrl(vehicle.vin, 'client_zone_vehicle')}
 																target='_blank'
-																rel='noopener noreferrer'
+								  								rel='noopener noreferrer'
 																title='Partnerský odkaz'
 															>
 																<Icon name='external-link' size={14} />
 																Prověřit historii vozidla
 															</a>
 														</li>
+														)}
 													</ul>
 
 												<hr style={{ borderTop: '1px solid var(--ink-300)', margin: 'var(--space-5) 0 var(--space-4)' }} />
@@ -1516,95 +1518,227 @@ const AddVehicleForm: React.FC<{
 		snapshot?: VehicleDataArray
 	}) => Promise<void>
 }> = ({ onAdd }) => {
+	const [mode, setMode] = useState<'vin' | 'no-vin'>('vin')
 	const [code, setCode] = useState('')
 	const [customTitle, setCustomTitle] = useState('')
+	const [customBrand, setCustomBrand] = useState('')
+	const [customModel, setCustomModel] = useState('')
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState('')
 	const [success, setSuccess] = useState('')
+
+	const resetFields = () => {
+		setCode('')
+		setCustomTitle('')
+		setCustomBrand('')
+		setCustomModel('')
+	}
 
 	const handleSubmit = async (event: React.FormEvent) => {
 		event.preventDefault()
 		setError('')
 		setSuccess('')
 
-		const cleanCode = code.replace(/[^a-zA-Z0-9]/g, '')
-		if (cleanCode.length !== 17) {
-			setError('Zkontrolujte zadaný kód.')
-			return
-		}
-
-		setLoading(true)
-		try {
-			const data = await fetchVehicleInfo(cleanCode, undefined, undefined)
-			const brand = getDataValue(data, 'TovarniZnacka', '')
-			const model = getDataValue(data, 'Typ', '')
-			const vin = getDataValue(data, 'VIN', cleanCode)
-			const tp = getDataValue(data, 'CisloTp', '').trim()
-			const orv = getDataValue(data, 'CisloOrv', '').trim()
-
-			const trimmedTitle = customTitle.trim()
-			await onAdd({
-				vin,
-				tp: tp || undefined,
-				orv: orv || undefined,
-				title: trimmedTitle ? trimmedTitle.slice(0, TITLE_MAX_LENGTH) : undefined,
-				brand,
-				model,
-				snapshot: data
-			})
-			setSuccess('Vozidlo bylo přidáno.')
-			setCode('')
-			setCustomTitle('')
-		} catch (err) {
-			if (err instanceof Error && err.message) {
-				setError(err.message)
-			} else {
-				setError('Nepodařilo se přidat vozidlo.')
+		if (mode === 'vin') {
+			const cleanCode = code.replace(/[^a-zA-Z0-9]/g, '')
+			if (cleanCode.length !== 17) {
+				setError('Zkontrolujte zadaný kód.')
+				return
 			}
-		} finally {
-			setLoading(false)
+			setLoading(true)
+			try {
+				const data = await fetchVehicleInfo(cleanCode, undefined, undefined)
+				const brand = getDataValue(data, 'TovarniZnacka', '')
+				const model = getDataValue(data, 'Typ', '')
+				const vin = getDataValue(data, 'VIN', cleanCode)
+				const tp = getDataValue(data, 'CisloTp', '').trim()
+				const orv = getDataValue(data, 'CisloOrv', '').trim()
+				const trimmedTitle = customTitle.trim()
+				await onAdd({
+					vin,
+					tp: tp || undefined,
+					orv: orv || undefined,
+					title: trimmedTitle ? trimmedTitle.slice(0, TITLE_MAX_LENGTH) : undefined,
+					brand,
+					model,
+					snapshot: data
+				})
+				setSuccess('Vozidlo bylo přidáno.')
+				resetFields()
+			} catch (err) {
+				if (err instanceof Error && err.message) {
+					setError(err.message)
+				} else {
+					setError('Nepodařilo se přidat vozidlo.')
+				}
+			} finally {
+				setLoading(false)
+			}
+		} else {
+			const trimmedTitle = customTitle.trim()
+			if (!trimmedTitle) {
+				setError('Zadejte název vozidla.')
+				return
+			}
+			setLoading(true)
+			try {
+				const trimmedBrand = customBrand.trim()
+				const trimmedModel = customModel.trim()
+				await onAdd({
+					title: trimmedTitle.slice(0, TITLE_MAX_LENGTH),
+					brand: trimmedBrand || undefined,
+					model: trimmedModel || undefined
+				})
+				setSuccess('Vozidlo bylo přidáno.')
+				resetFields()
+			} catch (err) {
+				if (err instanceof Error && err.message) {
+					setError(err.message)
+				} else {
+					setError('Nepodařilo se přidat vozidlo.')
+				}
+			} finally {
+				setLoading(false)
+			}
 		}
 	}
 
 	return (
 		<form className='border rounded p-3 mb-4' onSubmit={handleSubmit}>
 			<h3 className='h6'>Přidat vozidlo ručně</h3>
-			<div className='row g-2 align-items-end'>
-				<div className='col-md-8'>
-					<label className='form-label'>VIN</label>
-					<input
-						type='text'
-						className='form-control'
-						value={code}
-						onChange={(event) => setCode(event.target.value)}
-						placeholder='Zadejte VIN (17 znaků)'
-						required
-					/>
-				</div>
-				<div className='col-md-4 d-flex'>
-					<button
-						type='submit'
-						className='btn btn-primary w-100'
-						disabled={loading}
-					>
-						{loading ? 'Přidávám...' : 'Přidat'}
-					</button>
-				</div>
-				<div className='col-12'>
-					<label className='form-label'>Vlastní název <span className='text-muted-ink'>(volitelné)</span></label>
-					<input
-						type='text'
-						className='form-control'
-						value={customTitle}
-						onChange={(event) => setCustomTitle(event.target.value)}
-						placeholder='např. Auto bílé, Rodinná Octavia'
-						maxLength={TITLE_MAX_LENGTH}
-					/>
-					<div className='form-text text-muted-ink'>
-						Pomůže vám rozlišit více vozidel. Můžete změnit kdykoliv později.
+
+			<div className='btn-group w-100 mb-3' role='radiogroup' aria-label='Způsob přidání vozidla'>
+				<input
+					type='radio'
+					className='btn-check'
+					name='addVehicleMode'
+					id='addVehicleMode-vin'
+					autoComplete='off'
+					checked={mode === 'vin'}
+					onChange={() => {
+						setMode('vin')
+						setError('')
+						setSuccess('')
+					}}
+				/>
+				<label className='btn btn-outline-primary' htmlFor='addVehicleMode-vin'>
+					Mám VIN
+				</label>
+				<input
+					type='radio'
+					className='btn-check'
+					name='addVehicleMode'
+					id='addVehicleMode-no-vin'
+					autoComplete='off'
+					checked={mode === 'no-vin'}
+					onChange={() => {
+						setMode('no-vin')
+						setError('')
+						setSuccess('')
+					}}
+				/>
+				<label className='btn btn-outline-primary' htmlFor='addVehicleMode-no-vin'>
+					VIN nemám
+				</label>
+			</div>
+
+			{mode === 'vin' ? (
+				<div className='row g-2 align-items-end'>
+					<div className='col-md-8'>
+						<label className='form-label'>VIN</label>
+						<input
+							type='text'
+							className='form-control'
+							value={code}
+							onChange={(event) => setCode(event.target.value)}
+							placeholder='Zadejte VIN (17 znaků)'
+							required
+						/>
+					</div>
+					<div className='col-md-4 d-flex'>
+						<button
+							type='submit'
+							className='btn btn-primary w-100'
+							disabled={loading}
+						>
+							{loading ? 'Přidávám...' : 'Přidat'}
+						</button>
+					</div>
+					<div className='col-12'>
+						<label className='form-label'>
+							Vlastní název <span className='text-muted-ink'>(volitelné)</span>
+						</label>
+						<input
+							type='text'
+							className='form-control'
+							value={customTitle}
+							onChange={(event) => setCustomTitle(event.target.value)}
+							placeholder='např. Auto bílé, Rodinná Octavia'
+							maxLength={TITLE_MAX_LENGTH}
+						/>
+						<div className='form-text text-muted-ink'>
+							Pomůže vám rozlišit více vozidel. Můžete změnit kdykoliv později.
+						</div>
 					</div>
 				</div>
-			</div>
+			) : (
+				<div className='row g-2 align-items-end'>
+					<div className='col-12'>
+						<label className='form-label'>Název vozidla</label>
+						<input
+							type='text'
+							className='form-control'
+							value={customTitle}
+							onChange={(event) => setCustomTitle(event.target.value)}
+							placeholder='např. Auto bílé, Rodinná Octavia'
+							maxLength={TITLE_MAX_LENGTH}
+							required
+						/>
+					</div>
+					<div className='col-md-6'>
+						<label className='form-label'>
+							Značka <span className='text-muted-ink'>(volitelné)</span>
+						</label>
+						<input
+							type='text'
+							className='form-control'
+							value={customBrand}
+							onChange={(event) => setCustomBrand(event.target.value)}
+							placeholder='např. Škoda'
+							maxLength={40}
+						/>
+					</div>
+					<div className='col-md-6'>
+						<label className='form-label'>
+							Model <span className='text-muted-ink'>(volitelné)</span>
+						</label>
+						<input
+							type='text'
+							className='form-control'
+							value={customModel}
+							onChange={(event) => setCustomModel(event.target.value)}
+							placeholder='např. Octavia'
+							maxLength={40}
+						/>
+					</div>
+					<div className='col-12'>
+						<div className='alert alert-info small mb-0' role='note'>
+							Bez VIN nenačteme údaje z registru. Upozornění a stav tachometru
+							fungují normálně.
+						</div>
+					</div>
+					<div className='col-12'>
+						<button
+							type='submit'
+							className='btn btn-primary w-100'
+							disabled={loading}
+						>
+							{loading ? 'Přidávám...' : 'Přidat'}
+						</button>
+					</div>
+				</div>
+			)}
+
 			{error && (
 				<div className='alert alert-danger mt-3' role='alert'>
 					{error}
