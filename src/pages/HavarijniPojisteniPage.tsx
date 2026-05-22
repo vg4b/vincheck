@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
 import { csob } from '../config/affiliateCampaigns'
@@ -33,16 +34,14 @@ const HavarijniPojisteniPage: React.FC = () => {
 				</div>
 
 				<p className='mt-3 mb-4'>
-					<strong>Hledáte havarijní pojištění?</strong>{' '}
-					{csob.vehicleKalkulackaTagline}{' '}
-					<a
-						href={csob.getVehicleKalkulackaUrl('havarijni', 'havarijni_page')}
-						target='_blank'
-						rel='noopener noreferrer'
+					<strong>Hledáte havarijní pojištění?</strong> Porovnejte si nabídky
+					pojišťoven online.{' '}
+					<Link
+						to='/sjednat-pojisteni?typ=havarijni&src=havarijni_page'
 						className='fw-bold'
 					>
-						Otevřít kalkulačku havarijního pojištění 🔗
-					</a>
+						Přejít na srovnání havarijního pojištění
+					</Link>
 				</p>
 
 				<article>
@@ -372,26 +371,30 @@ const HavarijniPojisteniPage: React.FC = () => {
 
 				<div
 					className='card mt-5 mb-5'
-					style={{ backgroundColor: 'var(--surface-soft)', border: '1px solid color-mix(in srgb, var(--brand-600) 25%, transparent)' }}
+					style={{
+						backgroundColor: 'var(--surface-soft)',
+						border:
+							'1px solid color-mix(in srgb, var(--brand-600) 25%, transparent)'
+					}}
 				>
 					<div className='card-body text-center'>
 						<h3 className='card-title mb-3'>
 							Sjednejte si havarijní pojištění ještě dnes
 						</h3>
 						<p className='card-text mb-4'>
-							{csob.vehicleKalkulackaTagline}
+							Porovnejte si nabídky pojišťoven online během pár minut.
 						</p>
-						<a
-							href={csob.getVehicleKalkulackaUrl('havarijni', 'havarijni_page_cta')}
+						<Link
+							to='/sjednat-pojisteni?typ=havarijni&src=havarijni_page'
 							className='btn btn-primary btn-lg'
-							target='_blank'
-							rel='noopener noreferrer'
 						>
-							Na kalkulačku havarijního pojištění 🔗
-						</a>
-						{csob.getValidCoupons().some((c) =>
-							['sleva_20_auto', 'ccs_karta_1000'].includes(c.id)
-						) && (
+							Porovnat havarijní pojištění
+						</Link>
+						{csob
+							.getValidCoupons()
+							.some((c) =>
+								['sleva_20_auto', 'ccs_karta_1000'].includes(c.id)
+							) && (
 							<div className='mt-4 pt-4 border-top'>
 								<p className='text-muted small mb-2'>
 									{csob.shortLabel} – {csob.tagline}
@@ -399,7 +402,9 @@ const HavarijniPojisteniPage: React.FC = () => {
 								<div className='d-flex flex-wrap gap-2 justify-content-center'>
 									{csob
 										.getValidCoupons()
-										.filter((c) => ['sleva_20_auto', 'ccs_karta_1000'].includes(c.id))
+										.filter((c) =>
+											['sleva_20_auto', 'ccs_karta_1000'].includes(c.id)
+										)
 										.map(({ id, shortLabel }) => (
 											<a
 												key={id}

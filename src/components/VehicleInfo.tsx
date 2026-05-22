@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react'
-import type { VehicleDataArray } from '../types'
-import {
-	groupVehicleFieldsByCategory,
-	type VehicleFieldCategoryId,
-} from '../utils/vehicleFieldCategories'
-import { getDataValue, getLogoSrc } from '../utils/vehicleApi'
 import { Link } from 'react-router-dom'
 import { cebia } from '../config/affiliateCampaigns'
+import type { VehicleDataArray } from '../types'
+import { getDataValue, getLogoSrc } from '../utils/vehicleApi'
+import {
+	groupVehicleFieldsByCategory,
+	type VehicleFieldCategoryId
+} from '../utils/vehicleFieldCategories'
 import Icon, { type IconName } from './Icon'
 
 const CATEGORY_ICONS: Record<VehicleFieldCategoryId, IconName> = {
@@ -19,7 +19,7 @@ const CATEGORY_ICONS: Record<VehicleFieldCategoryId, IconName> = {
 	rozmery_hmotnosti: 'chart',
 	napravy_pneu: 'car',
 	hluk_rychlost: 'bell',
-	ostatni: 'info',
+	ostatni: 'info'
 }
 
 interface VehicleInfoProps {
@@ -53,7 +53,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	saveAction,
 	saveMessage,
 	promoSection,
-	onCebiaExternalNavigate,
+	onCebiaExternalNavigate
 }) => {
 	const brand = getDataValue(data, 'TovarniZnacka', 'Neznámá značka')
 	const brandLogoSrc = getLogoSrc(brand)
@@ -177,7 +177,10 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 						<h3
 							id={headingId}
 							className='h6 mb-0 fw-semibold px-3 py-2 border-bottom d-flex align-items-center gap-2'
-							style={{ backgroundColor: 'var(--surface-soft)', color: 'var(--ink-900)' }}
+							style={{
+								backgroundColor: 'var(--surface-soft)',
+								color: 'var(--ink-900)'
+							}}
 						>
 							<Icon
 								name={CATEGORY_ICONS[group.categoryId] ?? 'info'}
@@ -198,8 +201,13 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 
 		const trailingPromo =
 			!promoInserted && filteredData.length > 0 ? (
-				<div className='brand-callout mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3' key='cebia-promo-trailing'>
-					<span><strong>Historie a původ vozidla</strong></span>
+				<div
+					className='brand-callout mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3'
+					key='cebia-promo-trailing'
+				>
+					<span>
+						<strong>Historie a původ vozidla</strong>
+					</span>
 					<a
 						href={cebia.getDirectUrl(vinCode, 'vehicle_info_table')}
 						target='_blank'
@@ -240,7 +248,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 						loading='lazy'
 						decoding='async'
 						className='img-fluid logo-img brand-logo'
-						style={{ maxWidth: '200px', height: 'auto',  }}
+						style={{ maxWidth: '200px', height: 'auto' }}
 						onError={(e) => {
 							// Fallback if logo not found
 							e.currentTarget.style.display = 'none'
@@ -253,33 +261,41 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 					<div className='vehicle-info d-flex flex-column gap-2'>
 						<div className='d-flex align-items-center gap-2'>
 							<Icon name='car' size={16} className='text-muted-ink' />
-							<span><strong>Značka:</strong> {brand}</span>
+							<span>
+								<strong>Značka:</strong> {brand}
+							</span>
 						</div>
 						<div className='d-flex align-items-center gap-2'>
 							<Icon name='info' size={16} className='text-muted-ink' />
-							<span><strong>Model:</strong> {model}</span>
+							<span>
+								<strong>Model:</strong> {model}
+							</span>
 						</div>
 						<div className='d-flex align-items-center gap-2'>
 							<Icon name='info' size={16} className='text-muted-ink' />
-							<span><strong>Obchodní označení:</strong> {obchodniOznaceni}</span>
+							<span>
+								<strong>Obchodní označení:</strong> {obchodniOznaceni}
+							</span>
 						</div>
 						<div className='d-flex align-items-center gap-2'>
 							<Icon name='calendar' size={16} className='text-muted-ink' />
-							<span><strong>Datum první registrace:</strong> {firstRegistration}</span>
+							<span>
+								<strong>Datum první registrace:</strong> {firstRegistration}
+							</span>
 						</div>
 						<div className='d-flex align-items-center gap-2'>
 							<Icon name='file-text' size={16} className='text-muted-ink' />
-							<span><strong>VIN:</strong> <span className='num'>{vinCode}</span></span>
+							<span>
+								<strong>VIN:</strong> <span className='num'>{vinCode}</span>
+							</span>
 						</div>
 						<div className='d-flex align-items-center gap-2'>
-							<Icon
-								name='shield-check'
-								size={16}
-								style={{ color: stkColor }}
-							/>
+							<Icon name='shield-check' size={16} style={{ color: stkColor }} />
 							<span>
 								<strong>STK do:</strong>{' '}
-								<span style={{ color: stkColor, fontWeight: 600 }}>{techInspection}</span>
+								<span style={{ color: stkColor, fontWeight: 600 }}>
+									{techInspection}
+								</span>
 							</span>
 						</div>
 					</div>
@@ -310,7 +326,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 							</div>
 						)}
 						<Link
-							to={`/sjednat-pojisteni?vin=${encodeURIComponent(vinCode)}`}
+							to='/sjednat-pojisteni?typ=povinne&src=vehicle_info'
 							className='btn btn-outline-primary'
 							role='button'
 						>
@@ -341,9 +357,9 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 							rel='noopener noreferrer'
 							className='btn btn-outline-primary'
 							onClick={() => {
-							if (!onCebiaExternalNavigate) return
-							window.setTimeout(onCebiaExternalNavigate, 0)
-						}}
+								if (!onCebiaExternalNavigate) return
+								window.setTimeout(onCebiaExternalNavigate, 0)
+							}}
 						>
 							Načíst historii vozidla (nová stránka)
 						</a>
@@ -353,10 +369,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 
 			{/* Banner (max šířka na desktopu – původně 100 % kontejneru působilo přerostle) */}
 			<div className='mt-5 mb-5'>
-				<div
-					className='mx-auto px-1'
-					style={{ maxWidth: 'min(100%, 640px)' }}
-				>
+				<div className='mx-auto px-1' style={{ maxWidth: 'min(100%, 640px)' }}>
 					<a
 						href={cebia.getGraphicBannerUrl('vehicle_info_banner')}
 						target='_top'

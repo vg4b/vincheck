@@ -13,7 +13,7 @@ export const campaigns = {
 		baseUrl: 'https://www.dealora.cz/',
 		label: 'Slevové kódy na Dealora.cz',
 		shortLabel: 'Dealora.cz',
-		tagline: 'Slevové kódy a kupony do oblíbených obchodů',
+		tagline: 'Slevové kódy a kupony do oblíbených obchodů'
 	},
 
 	/** Cebia.cz - Vehicle history check (eHub network) */
@@ -29,9 +29,8 @@ export const campaigns = {
 		/** Impression tracking pixel URL */
 		impressionPixel: 'https://ehub.cz/system/scripts/imp.php',
 		label: 'Prověřit historii na Cebia.cz',
-		shortLabel: 'Cebia.cz',
-	},
-
+		shortLabel: 'Cebia.cz'
+	}
 } as const
 
 /**
@@ -47,7 +46,7 @@ export const csobCoupons = {
 		destUrl: 'https://www.csobpoj.cz/specialni-nabidka-autopojisteni-s-darkem',
 		validFrom: '2026-01-01',
 		validTo: '2026-03-31',
-		sortOrder: 0,
+		sortOrder: 0
 	},
 	ekniha_cestovni: {
 		label: 'Dárek k cestovnímu pojištění - e-kniha zdarma',
@@ -55,7 +54,7 @@ export const csobCoupons = {
 		destUrl: 'https://www.csobpoj.cz/pojisteni/cestovni-pojisteni/',
 		validFrom: '2026-01-21',
 		validTo: '2026-04-06',
-		sortOrder: 1,
+		sortOrder: 1
 	},
 	sleva_10_odpovednost: {
 		label: 'Sleva 10 % na pojištění odpovědnosti při online sjednání',
@@ -63,7 +62,7 @@ export const csobCoupons = {
 		destUrl: 'https://www.csobpoj.cz/pojisteni/pojisteni-odpovednosti',
 		validFrom: '2026-02-01',
 		validTo: '2026-02-28',
-		sortOrder: 2,
+		sortOrder: 2
 	},
 	sleva_20_auto: {
 		label: 'Sleva 20 % na autopojištění při online sjednání',
@@ -71,7 +70,7 @@ export const csobCoupons = {
 		destUrl: 'https://www.csobpoj.cz/pojisteni/pojisteni-vozidel',
 		validFrom: '2026-02-01',
 		validTo: '2026-02-28',
-		sortOrder: 3,
+		sortOrder: 3
 	},
 	sleva_10_majetek: {
 		label: 'Sleva 10 % na pojištění majetku při online sjednání',
@@ -79,7 +78,7 @@ export const csobCoupons = {
 		destUrl: 'https://www.csobpoj.cz/pojisteni/pojisteni-majetku',
 		validFrom: '2026-02-01',
 		validTo: '2026-02-28',
-		sortOrder: 4,
+		sortOrder: 4
 	},
 	sleva_20_cestovni: {
 		label: 'Sleva 20 % na cestovní pojištění při online sjednání',
@@ -87,14 +86,11 @@ export const csobCoupons = {
 		destUrl: 'https://www.csobpoj.cz/pojisteni/cestovni-pojisteni',
 		validFrom: '2026-02-01',
 		validTo: '2026-02-28',
-		sortOrder: 5,
-	},
+		sortOrder: 5
+	}
 } as const
 
 export type CsobCouponId = keyof typeof csobCoupons
-
-/** Typ kalkulačky vozidel na kalkulacka.csobpoj.cz */
-export type CsobVehicleKalkulackaKind = 'povinne_ruceni' | 'havarijni' | 'komplexni'
 
 /**
  * Dealora.cz – odkazy na slevové kódy
@@ -103,7 +99,7 @@ export const dealora = {
 	getUrl: (): string => campaigns.dealora.baseUrl,
 	label: campaigns.dealora.label,
 	shortLabel: campaigns.dealora.shortLabel,
-	tagline: campaigns.dealora.tagline,
+	tagline: campaigns.dealora.tagline
 } as const
 
 /** Build eHub click URL for a given banner ID */
@@ -113,7 +109,11 @@ function buildEhubClickUrl(bannerId: string, data1?: string): string {
 }
 
 /** Build eHub click URL with desturl (for CSOB coupon links) */
-function buildEhubClickUrlWithDest(bannerId: string, destUrl: string, data1?: string): string {
+function buildEhubClickUrlWithDest(
+	bannerId: string,
+	destUrl: string,
+	data1?: string
+): string {
 	const base = `https://ehub.cz/system/scripts/click.php?a_aid=${EHUB_AID}&a_bid=${bannerId}&desturl=${encodeURIComponent(destUrl)}`
 	return data1 ? `${base}&data1=${encodeURIComponent(data1)}` : base
 }
@@ -137,7 +137,7 @@ export const cebia = {
 			? buildEhubClickUrlWithDest(
 					campaigns.cebia.textBannerId,
 					`${campaigns.cebia.baseUrl}/?vin=${encodeURIComponent(vin)}`,
-					data1,
+					data1
 				)
 			: buildEhubClickUrl(campaigns.cebia.textBannerId, data1),
 
@@ -165,7 +165,7 @@ export const cebia = {
 		buildEhubImpressionUrl(campaigns.cebia.graphicBannerId),
 
 	label: campaigns.cebia.label,
-	shortLabel: campaigns.cebia.shortLabel,
+	shortLabel: campaigns.cebia.shortLabel
 } as const
 
 /**
@@ -179,16 +179,40 @@ export const csob = {
 	},
 
 	/** All coupons, sorted by sortOrder */
-	getAllCoupons: (): Array<{ id: CsobCouponId; label: string; shortLabel: string; validFrom: string; validTo: string }> =>
-		(Object.entries(csobCoupons) as [CsobCouponId, (typeof csobCoupons)[CsobCouponId]][])
+	getAllCoupons: (): Array<{
+		id: CsobCouponId
+		label: string
+		shortLabel: string
+		validFrom: string
+		validTo: string
+	}> =>
+		(
+			Object.entries(csobCoupons) as [
+				CsobCouponId,
+				(typeof csobCoupons)[CsobCouponId]
+			][]
+		)
 			.map(([id, c]) => ({ id, ...c }))
 			.sort((a, b) => a.sortOrder - b.sortOrder)
-			.map(({ id, label, shortLabel, validFrom, validTo }) => ({ id, label, shortLabel, validFrom, validTo })),
+			.map(({ id, label, shortLabel, validFrom, validTo }) => ({
+				id,
+				label,
+				shortLabel,
+				validFrom,
+				validTo
+			})),
 
 	/** Coupons valid for a given date (default: today) */
-	getValidCoupons: (asOfDate?: string): Array<{ id: CsobCouponId; label: string; shortLabel: string }> => {
+	getValidCoupons: (
+		asOfDate?: string
+	): Array<{ id: CsobCouponId; label: string; shortLabel: string }> => {
 		const date = asOfDate ?? new Date().toISOString().slice(0, 10)
-		return (Object.entries(csobCoupons) as [CsobCouponId, (typeof csobCoupons)[CsobCouponId]][])
+		return (
+			Object.entries(csobCoupons) as [
+				CsobCouponId,
+				(typeof csobCoupons)[CsobCouponId]
+			][]
+		)
 			.filter(([, c]) => c.validFrom <= date && date <= c.validTo)
 			.map(([id, c]) => ({ id, label: c.label, shortLabel: c.shortLabel }))
 			.sort((a, b) => csobCoupons[a.id].sortOrder - csobCoupons[b.id].sortOrder)
@@ -196,31 +220,19 @@ export const csob = {
 
 	/** General landing (autopojištění) – use when no specific coupon fits */
 	getAutopojisteniUrl: (): string =>
-		buildEhubClickUrlWithDest(CSOB_EHUB_BID, 'https://www.csobpoj.cz/pojisteni/pojisteni-vozidel'),
-
-	/** Text pro odkazy na kalkulačku vozidel (sleva při online sjednání) */
-	vehicleKalkulackaTagline: 'Pojištění se slevou za sjednání online.',
-
-	/**
-	 * Kalkulačka vozidel přes eHub (`a_bid=f5e0f8fb`) + `desturl` na kalkulacka.csobpoj.cz.
-	 * @param data1 – identifikátor umístění odkazu (tracking)
-	 */
-	getVehicleKalkulackaUrl: (kind: CsobVehicleKalkulackaKind, data1: string): string => {
-		const destUrls: Record<CsobVehicleKalkulackaKind, string> = {
-			povinne_ruceni: 'https://kalkulacka.csobpoj.cz/povinne-ruceni',
-			havarijni: 'https://kalkulacka.csobpoj.cz/havarijni-pojisteni',
-			komplexni: 'https://kalkulacka.csobpoj.cz/komplexni-pojisteni-vozidla',
-		}
-		return buildEhubClickUrlWithDest(CSOB_EHUB_BID, destUrls[kind], data1)
-	},
+		buildEhubClickUrlWithDest(
+			CSOB_EHUB_BID,
+			'https://www.csobpoj.cz/pojisteni/pojisteni-vozidel'
+		),
 
 	label: 'CSOB Pojišťovna',
 	shortLabel: 'CSOB Pojišťovna',
-	tagline: 'slevové kódy a bonusy',
+	tagline: 'slevové kódy a bonusy'
 } as const
 
 /** Cestovní pojištění – CJ affiliate (dpbolvw.net) */
-const AXA_CESTOVNI_AFFILIATE_BASE = 'https://www.dpbolvw.net/click-101607830-12934852'
+const AXA_CESTOVNI_AFFILIATE_BASE =
+	'https://www.dpbolvw.net/click-101607830-12934852'
 
 /**
  * Cestovní pojištění – affiliate s `sid` podle umístění odkazu.
@@ -238,7 +250,112 @@ export const axaCestovniPojisteni = {
 
 	/** Krátký neutrální popis pro karty (bez jména partnera) */
 	partnerInfo:
-		'Léčebné výlohy, asistence, úraz, odpovědnost, zavazadla i rizika spojená s letem. Sjednáte online.',
+		'Léčebné výlohy, asistence, úraz, odpovědnost, zavazadla i rizika spojená s letem. Sjednáte online.'
+} as const
+
+/**
+ * ePojištění – srovnávač pojištění vozidel (HasOffers / go2cloud affiliate).
+ * Integrace přes iframe creative; `aff_sub` slouží k atribuci leadu na umístění.
+ */
+const EPOJISTENI_AFF_BASE = 'https://espolupracecz.go2cloud.org/aff_c'
+const EPOJISTENI_OFFER_ID = '2'
+const EPOJISTENI_AFF_ID = '6692'
+
+/** Typ pojištění vozidla – jedna iframe creativa na typ. */
+export type InsuranceKind = 'povinne' | 'havarijni'
+
+/** Identifikátor umístění odkazu – předává se jako `aff_sub` (atribuce leadu). */
+export type InsurancePlacement =
+	| 'sjednat_page'
+	| 'email_reminder'
+	| 'vehicle_card'
+	| 'vehicle_card_due'
+	| 'client_zone_benefits'
+	| 'povinne_page'
+	| 'havarijni_page'
+	| 'vehicle_info'
+	| 'footer'
+	| 'nav'
+
+/**
+ * Identifikátory creativy iframe formuláře srovnávače podle typu pojištění –
+ * přesně jak je skládá tracking odkaz vygenerovaný v portálu eSpolupráce.
+ * `url_id` vybírá vstupní formulář, `file_id` je ID creativy (reporting).
+ * POV = „Iframe formular ePojištění POV" (1000×2100),
+ * HAV = „Iframe formular ePojištění HAV" (1000×2400).
+ */
+const EPOJISTENI_URL_IDS: Record<InsuranceKind, string> = {
+	povinne: '1401',
+	havarijni: '1856'
+}
+const EPOJISTENI_FILE_IDS: Record<InsuranceKind, string> = {
+	povinne: '40146',
+	havarijni: '40694'
+}
+
+/**
+ * Volitelný CSS styl iframe formuláře z Formstyleru eSpolupráce (sladí formulář
+ * s brandem VIN Info.cz). Vytvoří se v portálu eSpolupráce → Rady a Návody →
+ * Formstyler; výsledkem je odkaz na CSS (cdn.eoit.cz). Předává se formuláři přes
+ * vlastní proměnnou `use-style`. Prázdný řetězec = výchozí styl ePojištění.
+ */
+const EPOJISTENI_FORM_STYLE_URL =
+	'https://cdn.eoit.cz/css/38be4807-5ee3-44b1-802b-543298d7a4c1'
+
+export const epojisteni = {
+	displayName: 'ePojištění',
+
+	/** Seznam spolupracujících pojišťoven (podmínka kampaně eSpolupráce). */
+	partnersUrl: 'https://www.epojisteni.cz/pojistovny',
+
+	/**
+	 * Pojišťovny, jejichž nabídky ePojištění srovnává. Podmínka kampaně:
+	 * tento seznam musí být uveden na webu. Zdroj: `partnersUrl` (ověřeno 2026-05-19).
+	 */
+	partnerInsurers: [
+		'Allianz pojišťovna',
+		'Inter Partner Assistance',
+		'Česká podnikatelská pojišťovna',
+		'ČSOB pojišťovna',
+		'Direct pojišťovna',
+		'ERV pojišťovna',
+		'Generali Česká pojišťovna',
+		'Kooperativa pojišťovna',
+		'Maxima pojišťovna',
+		'MetLife',
+		'NN Životní pojišťovna',
+		'Pillow pojišťovna',
+		'Slavia pojišťovna',
+		'Union pojišťovna',
+		'UNIQA pojišťovna',
+		'Pojišťovna VZP'
+	],
+
+	/**
+	 * `src` iframe formuláře srovnávače pro daný typ pojištění.
+	 * @param kind - povinné ručení / havarijní pojištění
+	 * @param placement - umístění odkazu (`aff_sub`, atribuce leadu)
+	 */
+	getIframeUrl: (
+		kind: InsuranceKind,
+		placement: InsurancePlacement
+	): string => {
+		const params = new URLSearchParams({
+			offer_id: EPOJISTENI_OFFER_ID,
+			aff_id: EPOJISTENI_AFF_ID,
+			aff_sub: placement,
+			url_id: EPOJISTENI_URL_IDS[kind],
+			file_id: EPOJISTENI_FILE_IDS[kind]
+		})
+		let url = `${EPOJISTENI_AFF_BASE}?${params.toString()}`
+		// `use-style` (CSS z Formstyleru) se připojuje jako HOLÁ URL – přesně
+		// jak ji generuje tracking odkaz v portálu eSpolupráce, bez URL-kódování.
+		// URL-kódovaná hodnota se do formuláře (`StyleUrl`) nepropíše.
+		if (EPOJISTENI_FORM_STYLE_URL) {
+			url += `&use-style=${EPOJISTENI_FORM_STYLE_URL}`
+		}
+		return url
+	}
 } as const
 
 /**
@@ -249,4 +366,5 @@ export const allCampaigns = {
 	cebia,
 	csob,
 	axaCestovniPojisteni,
+	epojisteni
 } as const

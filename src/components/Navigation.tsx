@@ -51,7 +51,10 @@ const Navigation: React.FC = () => {
 		`nav-link px-3 rounded text-nowrap ${isActive(path) ? 'active' : ''}`
 
 	return (
-		<nav className='navbar navbar-expand-xl navbar-light fixed-top px-0' ref={navRef}>
+		<nav
+			className='navbar navbar-expand-xl navbar-light fixed-top px-0'
+			ref={navRef}
+		>
 			<div className='container-fluid px-0 px-lg-4'>
 				<Link className='navbar-brand d-flex align-items-center gap-2' to='/'>
 					<BrandMark width={36} height={22} color='var(--brand-600)' />
@@ -76,7 +79,10 @@ const Navigation: React.FC = () => {
 					</button>
 				</div>
 
-				<div className={`collapse navbar-collapse ${isMenuOpen ? 'show' : ''}`} id='navbarNav'>
+				<div
+					className={`collapse navbar-collapse ${isMenuOpen ? 'show' : ''}`}
+					id='navbarNav'
+				>
 					<ul className='navbar-nav ms-auto align-items-lg-center gap-lg-1 flex-nowrap'>
 						<li className='nav-item'>
 							<Link className={navLinkClass('/')} to='/' onClick={closeMenu}>
@@ -88,7 +94,9 @@ const Navigation: React.FC = () => {
 							{/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
 							<a
 								className={`nav-link px-3 rounded dropdown-toggle text-nowrap ${
-									isActive('/povinne-ruceni') || isActive('/havarijni-pojisteni') || isActive('/sjednat-pojisteni')
+									isActive('/povinne-ruceni') ||
+									isActive('/havarijni-pojisteni') ||
+									isActive('/sjednat-pojisteni')
 										? 'active'
 										: ''
 								}`}
@@ -104,13 +112,15 @@ const Navigation: React.FC = () => {
 								<li>
 									<Link
 										className={`dropdown-item fw-semibold ${isActive('/sjednat-pojisteni') ? 'active' : ''}`}
-										to='/sjednat-pojisteni'
+										to='/sjednat-pojisteni?src=nav'
 										onClick={closeMenu}
 									>
 										Sjednat pojištění
 									</Link>
 								</li>
-								<li><hr className='dropdown-divider' /></li>
+								<li>
+									<hr className='dropdown-divider' />
+								</li>
 								<li>
 									<Link
 										className={`dropdown-item ${isActive('/povinne-ruceni') ? 'active' : ''}`}
@@ -133,13 +143,21 @@ const Navigation: React.FC = () => {
 						</li>
 
 						<li className='nav-item'>
-							<Link className={navLinkClass('/kompletni-historie-vozu')} to='/kompletni-historie-vozu' onClick={closeMenu}>
+							<Link
+								className={navLinkClass('/kompletni-historie-vozu')}
+								to='/kompletni-historie-vozu'
+								onClick={closeMenu}
+							>
 								Historie vozu
 							</Link>
 						</li>
 
 						<li className='nav-item'>
-							<Link className={navLinkClass('/upozorneni-na-terminy')} to='/upozorneni-na-terminy' onClick={closeMenu}>
+							<Link
+								className={navLinkClass('/upozorneni-na-terminy')}
+								to='/upozorneni-na-terminy'
+								onClick={closeMenu}
+							>
 								Upozornění
 							</Link>
 						</li>
@@ -149,13 +167,21 @@ const Navigation: React.FC = () => {
 						</li>
 
 						<li className='nav-item d-none d-xl-block'>
-							<Link to='/klientska-zona' className='btn-brand text-nowrap' onClick={closeMenu}>
+							<Link
+								to='/klientska-zona'
+								className='btn-brand text-nowrap'
+								onClick={closeMenu}
+							>
 								Moje VINInfo
 							</Link>
 						</li>
 
 						<li className='nav-item d-xl-none'>
-							<Link className={navLinkClass('/klientska-zona')} to='/klientska-zona' onClick={closeMenu}>
+							<Link
+								className={navLinkClass('/klientska-zona')}
+								to='/klientska-zona'
+								onClick={closeMenu}
+							>
 								Moje VINInfo
 							</Link>
 						</li>
@@ -170,7 +196,11 @@ const Navigation: React.FC = () => {
 									Odhlásit
 								</button>
 							) : (
-								<Link className={navLinkClass('/prihlaseni')} to='/prihlaseni' onClick={closeMenu}>
+								<Link
+									className={navLinkClass('/prihlaseni')}
+									to='/prihlaseni'
+									onClick={closeMenu}
+								>
 									Přihlášení
 								</Link>
 							)}

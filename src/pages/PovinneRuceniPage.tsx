@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
 import { csob } from '../config/affiliateCampaigns'
@@ -30,16 +31,14 @@ const PovinneRuceniPage: React.FC = () => {
 				</div>
 
 				<p className='mt-3 mb-4'>
-					<strong>Hledáte povinné ručení?</strong>{' '}
-					{csob.vehicleKalkulackaTagline}{' '}
-					<a
-						href={csob.getVehicleKalkulackaUrl('povinne_ruceni', 'povinne_ruceni_page')}
-						target='_blank'
-						rel='noopener noreferrer'
+					<strong>Hledáte povinné ručení?</strong> Porovnejte si nabídky
+					pojišťoven online.{' '}
+					<Link
+						to='/sjednat-pojisteni?typ=povinne&src=povinne_page'
 						className='fw-bold'
 					>
-						Otevřít kalkulačku povinného ručení 🔗
-					</a>
+						Přejít na srovnání povinného ručení
+					</Link>
 				</p>
 
 				<article>
@@ -235,26 +234,34 @@ const PovinneRuceniPage: React.FC = () => {
 
 				<div
 					className='card mt-5 mb-5'
-					style={{ backgroundColor: 'var(--surface-soft)', border: '1px solid color-mix(in srgb, var(--brand-600) 25%, transparent)' }}
+					style={{
+						backgroundColor: 'var(--surface-soft)',
+						border:
+							'1px solid color-mix(in srgb, var(--brand-600) 25%, transparent)'
+					}}
 				>
 					<div className='card-body text-center'>
 						<h3 className='card-title mb-3'>
 							Sjednejte si povinné ručení ještě dnes
 						</h3>
 						<p className='card-text mb-4'>
-							{csob.vehicleKalkulackaTagline}
+							Porovnejte si nabídky pojišťoven online během pár minut.
 						</p>
-						<a
-							href={csob.getVehicleKalkulackaUrl('povinne_ruceni', 'povinne_ruceni_page_cta')}
+						<Link
+							to='/sjednat-pojisteni?typ=povinne&src=povinne_page'
 							className='btn btn-primary btn-lg'
-							target='_blank'
-							rel='noopener noreferrer'
 						>
-							Na kalkulačku povinného ručení 🔗
-						</a>
-						{csob.getValidCoupons().some((c) =>
-							['sleva_10_odpovednost', 'sleva_20_auto', 'ccs_karta_1000'].includes(c.id)
-						) && (
+							Porovnat povinné ručení
+						</Link>
+						{csob
+							.getValidCoupons()
+							.some((c) =>
+								[
+									'sleva_10_odpovednost',
+									'sleva_20_auto',
+									'ccs_karta_1000'
+								].includes(c.id)
+							) && (
 							<div className='mt-4 pt-4 border-top'>
 								<p className='text-muted small mb-2'>
 									{csob.shortLabel} – {csob.tagline}
@@ -263,7 +270,11 @@ const PovinneRuceniPage: React.FC = () => {
 									{csob
 										.getValidCoupons()
 										.filter((c) =>
-											['sleva_10_odpovednost', 'sleva_20_auto', 'ccs_karta_1000'].includes(c.id)
+											[
+												'sleva_10_odpovednost',
+												'sleva_20_auto',
+												'ccs_karta_1000'
+											].includes(c.id)
 										)
 										.map(({ id, shortLabel }) => (
 											<a
