@@ -1,10 +1,16 @@
-import { VehicleData, VehicleDataArray, VehicleDataItem } from '../types'
+import type {
+	VehicleData,
+	VehicleDataArray,
+	VehicleDataItem,
+	VehicleHistory
+} from '../types'
 
 export type VehicleLookupErrorKind = 'not_found' | 'server_error' | 'unknown'
 
 const defaultLookupMessages: Record<VehicleLookupErrorKind, string> = {
 	not_found: 'Vozidlo v českém registru silničních vozidel nebylo nalezeno.',
-	server_error: 'Služba registru je dočasně nedostupná. Zkuste to prosím později.',
+	server_error:
+		'Služba registru je dočasně nedostupná. Zkuste to prosím později.',
 	unknown: 'Nepodařilo se načíst údaje o vozidle. Zkuste to znovu.'
 }
 
@@ -29,7 +35,7 @@ const getProxyApiUrl = (): string => {
 	if (typeof window !== 'undefined') {
 		return '/api/vehicle'
 	}
-	
+
 	// Fallback for SSR or non-browser environments
 	return 'https://vincheck-six.vercel.app/api/vehicle'
 }
@@ -309,13 +315,19 @@ export type FetchVehicleInfoOptions = {
 	signal?: AbortSignal
 }
 
-// Main function to fetch vehicle info
-export async function fetchVehicleInfo(
+export type FetchVehicleInfoResult = {
+	fields: VehicleDataArray
+	history: VehicleHistory | null
+}
+
+// Fetch vehicle info plus the additive `History` block (present only when the
+// response was served from our registry cache — a live-API fallback omits it).
+export async function fetchVehicleInfoWithHistory(
 	vin?: string,
 	tp?: string,
 	orv?: string,
 	options?: FetchVehicleInfoOptions
-): Promise<VehicleDataArray> {
+): Promise<FetchVehicleInfoResult> {
 	// Get the API URL at runtime
 	const apiUrl = getProxyApiUrl()
 	// Build proxy URL with query parameters
@@ -369,11 +381,27 @@ export async function fetchVehicleInfo(
 		throw new VehicleLookupError('unknown')
 	}
 
-	const data = transformApiResponse(responseData)
+	const fields = transformApiResponse(responseData)
 
-	if (!Array.isArray(data) || data.length === 0) {
+	if (!Array.isArray(fields) || fields.length === 0) {
 		throw new VehicleLookupError('not_found')
 	}
 
-	return data
+	const history =
+		!Array.isArray(responseData) && responseData.History
+			? responseData.History
+			: null
+
+	return { fields, history }
+}
+
+// Backward-compatible wrapper for callers that only need the field array.
+export async function fetchVehicleInfo(
+	vin?: string,
+	tp?: string,
+	orv?: string,
+	options?: FetchVehicleInfoOptions
+): Promise<VehicleDataArray> {
+	const { fields } = await fetchVehicleInfoWithHistory(vin, tp, orv, options)
+	return fields
 }

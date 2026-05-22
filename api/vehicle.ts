@@ -95,7 +95,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 		}
 		if (cached && isCacheFresh(cached.snapshot)) {
 			setEdgeCacheHeaders(res)
-			return res.status(200).json(cached.response)
+			// History is additive — present only on a cache hit (the live-API
+			// fallback below can't produce it). See docs/VEHICLE_HISTORY_PANEL.md.
+			return res
+				.status(200)
+				.json({ ...cached.response, History: cached.history })
 		}
 	}
 

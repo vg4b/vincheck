@@ -1,15 +1,19 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { CebiaRemindersModal } from '../components/CebiaRemindersModal'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
 import VehicleInfo from '../components/VehicleInfo'
-import { CebiaRemindersModal } from '../components/CebiaRemindersModal'
 import { cebia } from '../config/affiliateCampaigns'
 import { useAuth } from '../contexts/AuthContext'
-import { VehicleDataArray } from '../types'
-import { addVehicle, fetchVehicles } from '../utils/clientZoneApi'
+import { VehicleDataArray, VehicleHistory } from '../types'
 import { ApiError } from '../utils/apiClient'
-import { VehicleLookupError, fetchVehicleInfo, getDataValue } from '../utils/vehicleApi'
+import { addVehicle, fetchVehicles } from '../utils/clientZoneApi'
+import {
+	fetchVehicleInfoWithHistory,
+	getDataValue,
+	VehicleLookupError
+} from '../utils/vehicleApi'
 
 interface VehicleDetailPageProps {
 	type?: 'vin' | 'tp' | 'orv'
@@ -22,6 +26,9 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 	const isVinDetailPath = location.pathname.startsWith('/vin/')
 	const { user } = useAuth()
 	const [vehicleData, setVehicleData] = useState<VehicleDataArray | null>(null)
+	const [vehicleHistory, setVehicleHistory] = useState<VehicleHistory | null>(
+		null
+	)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState('')
 	const [willRedirectHome, setWillRedirectHome] = useState(false)
@@ -30,7 +37,8 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 	const [saveTitle, setSaveTitle] = useState('')
 	const [isAlreadySaved, setIsAlreadySaved] = useState(false)
 	const [checkingSaved, setCheckingSaved] = useState(false)
-	const [vinPageCebiaRemindersModalOpen, setVinPageCebiaRemindersModalOpen] = useState(false)
+	const [vinPageCebiaRemindersModalOpen, setVinPageCebiaRemindersModalOpen] =
+		useState(false)
 
 	useEffect(() => {
 		const controller = new AbortController()
@@ -106,10 +114,14 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 				const tpParam = searchType === 'tp' ? cleanCode : undefined
 				const orvParam = searchType === 'orv' ? cleanCode : undefined
 
-				const data = await fetchVehicleInfo(vinParam, tpParam, orvParam, {
-					signal
-				})
+				const { fields: data, history } = await fetchVehicleInfoWithHistory(
+					vinParam,
+					tpParam,
+					orvParam,
+					{ signal }
+				)
 				setVehicleData(data)
+				setVehicleHistory(history)
 
 				// Update page title
 				const vinCode = getDataValue(data, 'VIN', cleanCode)
@@ -271,7 +283,10 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 	const cleanVinForCebia = vinCode.replace(/[^a-zA-Z0-9]/g, '')
 	const cebiaVehicleDetailModalRetryUrl =
 		cleanVinForCebia.length === 17
-			? cebia.getTextLinkUrlWithVin(cleanVinForCebia, 'vehicle_detail_modal_reopen_cebia')
+			? cebia.getTextLinkUrlWithVin(
+					cleanVinForCebia,
+					'vehicle_detail_modal_reopen_cebia'
+				)
 			: cebia.getTextLinkUrl('vehicle_detail_modal_reopen_cebia')
 
 	const handleSaveVehicle = async () => {
@@ -326,6 +341,7 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 				<VehicleInfo
 					data={vehicleData}
 					vinCode={vinCode}
+					history={vehicleHistory}
 					onCebiaExternalNavigate={
 						!user && isVinDetailPath
 							? () => setVinPageCebiaRemindersModalOpen(true)
@@ -336,8 +352,7 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 							? {
 									label: 'Už uloženo v Moje VINInfo',
 									disabled: true,
-									onClick: () => {},
-									
+									onClick: () => {}
 								}
 							: {
 									label: user
@@ -359,8 +374,9 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 											Nechte se upozornit na důležité termíny
 										</h2>
 										<p className='mb-3'>
-											Vytvořte si <strong>zdarma účet</strong> a uložte si toto vozidlo 
-											do Moje VINInfo. Nastavte si upozornění a nikdy nezmeškejte:
+											Vytvořte si <strong>zdarma účet</strong> a uložte si toto
+											vozidlo do Moje VINInfo. Nastavte si upozornění a nikdy
+											nezmeškejte:
 										</p>
 										<div className='row'>
 											<div className='col-sm-6'>
@@ -380,7 +396,8 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 										</div>
 										<p className='mt-3 mb-0'>
 											<small className='text-muted'>
-												📧 Pošleme vám email v termínu, který si zvolíte • ✨ 100% zdarma
+												📧 Pošleme vám email v termínu, který si zvolíte • ✨
+												100% zdarma
 											</small>
 										</p>
 									</div>
@@ -410,12 +427,15 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 											✅ Toto vozidlo máte uložené v Moje VINInfo
 										</h2>
 										<p className='mb-0 text-muted'>
-											Spravujte upozornění na STK, pojištění, servis a další termíny 
-											přímo v klientské zóně.
+											Spravujte upozornění na STK, pojištění, servis a další
+											termíny přímo v klientské zóně.
 										</p>
 									</div>
 									<div className='col-lg-4 text-center text-lg-end mt-3 mt-lg-0'>
-										<a href='/klientska-zona' className='btn btn-outline-primary'>
+										<a
+											href='/klientska-zona'
+											className='btn btn-outline-primary'
+										>
 											Přejít do Moje VINInfo
 										</a>
 									</div>
@@ -429,8 +449,9 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 											💡 Uložte si vozidlo a nastavte upozornění
 										</h2>
 										<p className='mb-0 text-muted'>
-											V Moje VINInfo si můžete nastavit upozornění na STK, pojištění, 
-											servis a další termíny. Pošleme vám email v termínu, který si zvolíte.
+											V Moje VINInfo si můžete nastavit upozornění na STK,
+											pojištění, servis a další termíny. Pošleme vám email v
+											termínu, který si zvolíte.
 										</p>
 									</div>
 									<div className='col-lg-4 text-center text-lg-end mt-3 mt-lg-0'>

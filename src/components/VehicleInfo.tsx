@@ -1,13 +1,14 @@
 import React, { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { cebia } from '../config/affiliateCampaigns'
-import type { VehicleDataArray } from '../types'
+import type { VehicleDataArray, VehicleHistory } from '../types'
 import { getDataValue, getLogoSrc } from '../utils/vehicleApi'
 import {
 	groupVehicleFieldsByCategory,
 	type VehicleFieldCategoryId
 } from '../utils/vehicleFieldCategories'
 import Icon, { type IconName } from './Icon'
+import VehicleHistoryPanel from './VehicleHistoryPanel'
 
 const CATEGORY_ICONS: Record<VehicleFieldCategoryId, IconName> = {
 	doklady_evidence: 'file-text',
@@ -31,6 +32,8 @@ interface VehicleInfoProps {
 		onClick: () => void
 	}
 	saveMessage?: string
+	/** Public-registry history-lite; present only on a cache hit. */
+	history?: VehicleHistory | null
 	promoSection?: React.ReactNode
 	/**
 	 * Po kliknutí na Cebia odkaz v novém tabu (např. modal na detailu VIN).
@@ -52,6 +55,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	vinCode,
 	saveAction,
 	saveMessage,
+	history,
 	promoSection,
 	onCebiaExternalNavigate
 }) => {
@@ -342,6 +346,8 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 					</div>
 				</div>
 			</div>
+
+			{history && <VehicleHistoryPanel history={history} />}
 
 			{/* Promo section (if provided) */}
 			{promoSection}

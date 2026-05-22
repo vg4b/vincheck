@@ -170,9 +170,92 @@ function transformRegistryValue(column: string, raw: unknown): unknown {
 	return value
 }
 
+function nullIfEmpty(v: unknown): string | null {
+	if (v === null || v === undefined) return null
+	const s = String(v).trim()
+	return s === '' ? null : s
+}
+
+type StkResult = 'pass' | 'defects' | 'unfit' | 'unknown'
+
+// vehicle_inspections.stav: A = passed, B = defects, C = unfit, else unknown.
+function stavToResult(stav: unknown): StkResult {
+	switch (nullIfEmpty(stav)?.toUpperCase()) {
+		case 'A':
+			return 'pass'
+		case 'B':
+			return 'defects'
+		case 'C':
+			return 'unfit'
+		default:
+			return 'unknown'
+	}
+}
+
+type OwnerRelation = 'owner' | 'operator' | 'other'
+
+// vehicle_owners.vztah_k_vozidlu: 1 owner, 2 operator, 3 co-owner, 4 acquirer.
+function ownerRelation(vztah: unknown): OwnerRelation {
+	const v = nullIfEmpty(vztah)
+	if (v === '2') return 'operator'
+	if (v === '1' || v === '3' || v === '4') return 'owner'
+	return 'other'
+}
+
+/** Public-registry "history-lite" composed from the companion tables. Present
+ *  only on a cache hit (a live-API fallback can't produce it). See
+ *  docs/VEHICLE_HISTORY_PANEL.md. */
+export type VehicleHistory = {
+	owners: {
+		total: number
+		operators: number
+		companies: number
+		everCompanyOwned: boolean
+		currentlyCompany: boolean
+		companyOwners: Array<{
+			ico: string | null
+			nazev: string | null
+			from: string | null
+			to: string | null
+			current: boolean
+			relation: OwnerRelation
+		}>
+	}
+	inspections: {
+		total: number
+		failed: number
+		distinctStations: number
+		latest: {
+			result: StkResult
+			platnostDo: string | null
+			nazevStk: string | null
+		} | null
+		history: Array<{
+			date: string | null
+			result: StkResult
+			nazevStk: string | null
+			typ: string | null
+		}>
+	}
+	flags: {
+		stolen: boolean
+		exported: boolean
+		deregistered: boolean
+		insuranceLapsed: boolean
+		statusLabel: string | null
+	}
+	deregistrations: Array<{
+		from: string | null
+		to: string | null
+		reason: string | null
+	}>
+	snapshot: string | null
+}
+
 export type VehicleCacheResult = {
 	response: { Status: number; Data: Record<string, unknown> }
 	snapshot: string | null
+	history: VehicleHistory
 }
 
 type LookupParams = { vin?: string; tp?: string; orv?: string }
@@ -222,25 +305,55 @@ export async function lookupVehicleFromCache(
 	const row = registry.rows[0] as Record<string, unknown>
 	const pcv = row.pcv
 
-	const [inspections, owners, meta] = await Promise.all([
-		p.query(
-			`SELECT
-        max(platnost_do) FILTER (WHERE typ LIKE 'P%') AS pravidelna,
-        max(platnost_do) FILTER (WHERE typ LIKE 'E%') AS evidencni
-       FROM vehicle_inspections WHERE pcv = $1 AND aktualni = 'True'`,
-			[pcv]
-		),
-		p.query(
-			`SELECT
+	const [inspections, owners, meta, companyOwners, inspRecent, dereg] =
+		await Promise.all([
+			p.query(
+				`SELECT
+        max(platnost_do) FILTER (WHERE typ LIKE 'P%' AND aktualni = 'True') AS pravidelna,
+        max(platnost_do) FILTER (WHERE typ LIKE 'E%' AND aktualni = 'True') AS evidencni,
+        count(*) AS total,
+        count(*) FILTER (WHERE stav IN ('B','C')) AS failed,
+        count(DISTINCT kod_stk) AS stations
+       FROM vehicle_inspections WHERE pcv = $1`,
+				[pcv]
+			),
+			p.query(
+				`SELECT
         count(*) FILTER (WHERE vztah_k_vozidlu IN ('1','3','4')) AS vlastniku,
-        count(*) FILTER (WHERE vztah_k_vozidlu = '2') AS provozovatelu
+        count(*) FILTER (WHERE vztah_k_vozidlu = '2') AS provozovatelu,
+        count(DISTINCT nazev) FILTER (WHERE typ_subjektu = '2') AS companies,
+        bool_or(typ_subjektu = '2') AS ever_company,
+        bool_or(typ_subjektu = '2' AND aktualni = 'True') AS current_company
        FROM vehicle_owners WHERE pcv = $1`,
-			[pcv]
-		),
-		p.query(
-			`SELECT source_snapshot::text AS snapshot FROM cache_meta WHERE dataset = 'vypis_vozidel'`
-		)
-	])
+				[pcv]
+			),
+			p.query(
+				`SELECT source_snapshot::text AS snapshot FROM cache_meta WHERE dataset = 'vypis_vozidel'`
+			),
+			p.query(
+				`SELECT ico, nazev, datum_od, datum_do, aktualni, vztah_k_vozidlu
+       FROM vehicle_owners
+       WHERE pcv = $1 AND typ_subjektu = '2'
+       ORDER BY datum_od DESC NULLS LAST
+       LIMIT 10`,
+				[pcv]
+			),
+			p.query(
+				`SELECT platnost_od, platnost_do, stav, nazev_stk, typ
+       FROM vehicle_inspections
+       WHERE pcv = $1
+       ORDER BY platnost_od DESC NULLS LAST
+       LIMIT 8`,
+				[pcv]
+			),
+			p.query(
+				`SELECT datum_od, datum_do, duvod
+       FROM vehicle_deregistration
+       WHERE pcv = $1
+       ORDER BY datum_od DESC NULLS LAST`,
+				[pcv]
+			)
+		])
 
 	const data: Record<string, unknown> = {}
 	for (const [col, apiKey] of Object.entries(COLUMN_TO_API_KEY)) {
@@ -263,9 +376,72 @@ export async function lookupVehicleFromCache(
 
 	const snapshot = (meta.rows[0]?.snapshot as string | undefined) ?? null
 
+	// --- history-lite (see docs/VEHICLE_HISTORY_PANEL.md) ---
+	const status = nullIfEmpty(row.status)
+	const deregRows = dereg.rows as Array<Record<string, unknown>>
+	const deregReasons = deregRows.map((r) => nullIfEmpty(r.duvod))
+	const recentRows = inspRecent.rows as Array<Record<string, unknown>>
+	const latestRow = recentRows[0]
+	const distinctStations = Number(insp.stations ?? 0)
+
+	const history: VehicleHistory = {
+		owners: {
+			total: Number(own.vlastniku ?? 0),
+			operators: Number(own.provozovatelu ?? 0),
+			companies: Number(own.companies ?? 0),
+			everCompanyOwned: own.ever_company === true,
+			currentlyCompany: own.current_company === true,
+			companyOwners: (companyOwners.rows as Array<Record<string, unknown>>).map(
+				(r) => ({
+					ico: nullIfEmpty(r.ico),
+					nazev: nullIfEmpty(r.nazev),
+					from: nullIfEmpty(r.datum_od),
+					to: nullIfEmpty(r.datum_do),
+					current: nullIfEmpty(r.aktualni)?.toLowerCase() === 'true',
+					relation: ownerRelation(r.vztah_k_vozidlu)
+				})
+			)
+		},
+		inspections: {
+			total: Number(insp.total ?? 0),
+			failed: Number(insp.failed ?? 0),
+			distinctStations,
+			latest: latestRow
+				? {
+						result: stavToResult(latestRow.stav),
+						platnostDo: nullIfEmpty(latestRow.platnost_do),
+						nazevStk: nullIfEmpty(latestRow.nazev_stk)
+					}
+				: null,
+			history: recentRows.map((r) => ({
+				date: nullIfEmpty(r.platnost_od),
+				result: stavToResult(r.stav),
+				nazevStk: nullIfEmpty(r.nazev_stk),
+				typ: nullIfEmpty(r.typ)
+			}))
+		},
+		flags: {
+			stolen: deregReasons.includes('Odcizeno'),
+			exported: status === 'VÝVOZ',
+			deregistered:
+				status === 'ZÁNIK' ||
+				status === 'VYŘAZENO Z PROVOZU' ||
+				deregRows.length > 0,
+			insuranceLapsed: deregReasons.includes('Zánik pojištění'),
+			statusLabel: status
+		},
+		deregistrations: deregRows.map((r) => ({
+			from: nullIfEmpty(r.datum_od),
+			to: nullIfEmpty(r.datum_do),
+			reason: nullIfEmpty(r.duvod)
+		})),
+		snapshot
+	}
+
 	return {
 		response: { Status: 1, Data: data },
-		snapshot
+		snapshot,
+		history
 	}
 }
 

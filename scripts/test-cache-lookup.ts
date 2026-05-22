@@ -106,6 +106,32 @@ async function probe(
 	console.log(
 		`  PravidelnaTechnickaProhlidkaDo: ${d.PravidelnaTechnickaProhlidkaDo ?? '-'}`
 	)
+
+	const h = result.history
+	const flags = Object.entries(h.flags)
+		.filter(([, v]) => v === true)
+		.map(([k]) => k)
+	console.log('  --- history ---')
+	console.log(
+		`  owners: ${h.owners.total} | operators: ${h.owners.operators} | companies: ${h.owners.companies} (ever=${h.owners.everCompanyOwned}, current=${h.owners.currentlyCompany})`
+	)
+	const co = h.owners.companyOwners[0]
+	if (co) {
+		console.log(
+			`    ex-fleet e.g.: ${co.nazev ?? '?'} (ICO ${co.ico ?? '?'}) ${co.from ?? '?'}..${co.to ?? 'now'} [${co.relation}]`
+		)
+	}
+	console.log(
+		`  STK: total ${h.inspections.total} | failed ${h.inspections.failed} | stations ${h.inspections.distinctStations} | latest=${h.inspections.latest?.result ?? '-'}`
+	)
+	console.log(
+		`  flags: ${flags.length ? flags.join(', ') : '(none)'} | status=${h.flags.statusLabel ?? '-'}`
+	)
+	if (h.deregistrations.length) {
+		console.log(
+			`  dereg: ${h.deregistrations.map((x) => `${x.reason ?? '?'} (${x.from ?? '?'})`).join('; ')}`
+		)
+	}
 }
 
 async function main(): Promise<void> {

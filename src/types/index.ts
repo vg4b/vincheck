@@ -7,9 +7,62 @@ export interface VehicleDataItem {
 export interface VehicleData {
 	Status?: string
 	Data?: Record<string, string | number | boolean>
+	History?: VehicleHistory
 }
 
 export type VehicleDataArray = VehicleDataItem[]
+
+export type StkResult = 'pass' | 'defects' | 'unfit' | 'unknown'
+export type OwnerRelation = 'owner' | 'operator' | 'other'
+
+/** Public-registry "history-lite" composed server-side from the companion
+ *  tables; present only on a cache hit. See docs/VEHICLE_HISTORY_PANEL.md. */
+export interface VehicleHistory {
+	owners: {
+		total: number
+		operators: number
+		companies: number
+		everCompanyOwned: boolean
+		currentlyCompany: boolean
+		companyOwners: Array<{
+			ico: string | null
+			nazev: string | null
+			from: string | null
+			to: string | null
+			current: boolean
+			relation: OwnerRelation
+		}>
+	}
+	inspections: {
+		total: number
+		failed: number
+		distinctStations: number
+		latest: {
+			result: StkResult
+			platnostDo: string | null
+			nazevStk: string | null
+		} | null
+		history: Array<{
+			date: string | null
+			result: StkResult
+			nazevStk: string | null
+			typ: string | null
+		}>
+	}
+	flags: {
+		stolen: boolean
+		exported: boolean
+		deregistered: boolean
+		insuranceLapsed: boolean
+		statusLabel: string | null
+	}
+	deregistrations: Array<{
+		from: string | null
+		to: string | null
+		reason: string | null
+	}>
+	snapshot: string | null
+}
 
 export interface AuthUser {
 	id: string
