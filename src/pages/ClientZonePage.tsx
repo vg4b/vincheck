@@ -1,28 +1,43 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Footer from '../components/Footer'
+import Icon from '../components/Icon'
 import Navigation from '../components/Navigation'
-import { useAuth } from '../contexts/AuthContext'
-import { ClientVehicle, OdometerReading, Reminder, ReminderType, VehicleDataArray } from '../types'
+import { OdometerSection } from '../components/OdometerSection'
 import {
+	axaCestovniPojisteni,
+	cebia,
+	csob,
+	dealora
+} from '../config/affiliateCampaigns'
+import { useAuth } from '../contexts/AuthContext'
+import {
+	ClientVehicle,
+	OdometerReading,
+	Reminder,
+	ReminderType,
+	VehicleDataArray
+} from '../types'
+import { ApiError } from '../utils/apiClient'
+import {
+	addVehicle,
 	createReminder,
 	deleteReminder,
 	deleteVehicle,
+	fetchOdometerReadings,
+	fetchPreferences,
 	fetchReminders,
 	fetchVehicles,
-	fetchOdometerReadings,
-	updateReminder,
-	addVehicle,
-	updateVehicleTitle,
-	fetchPreferences,
+	UserPreferences,
 	updatePreferences,
-	UserPreferences
+	updateReminder,
+	updateVehicleTitle
 } from '../utils/clientZoneApi'
-import Icon from '../components/Icon'
-import { OdometerSection } from '../components/OdometerSection'
-import { ApiError } from '../utils/apiClient'
-import { fetchVehicleInfo, formatValue, getDataValue } from '../utils/vehicleApi'
-import { axaCestovniPojisteni, cebia, csob, dealora } from '../config/affiliateCampaigns'
+import {
+	fetchVehicleInfo,
+	formatValue,
+	getDataValue
+} from '../utils/vehicleApi'
 
 const reminderTypeLabels: Record<ReminderType, string> = {
 	stk: 'Termín STK',
@@ -33,6 +48,134 @@ const reminderTypeLabels: Record<ReminderType, string> = {
 	dalnicni_znamka: 'Dálniční známka',
 	jine: 'Jiné'
 }
+
+/** Per-type emoji shown next to the label in the reminder list. */
+const reminderTypeIcons: Record<ReminderType, string> = {
+	stk: '🔧',
+	povinne_ruceni: '🛡️',
+	havarijni_pojisteni: '🚗',
+	servis: '🔩',
+	prezuti_pneu: '🛞',
+	dalnicni_znamka: '🛣️',
+	jine: '📝'
+}
+
+// Default lead time (days between `email_send_at` and `due_date`) per reminder type.
+// KEEP IN SYNC with api/client/reminders.ts (reminderTypeEmailLeadDays).
+// See docs/REMINDER_DEFAULT_DATES.md.
+const reminderTypeEmailLeadDays: Record<ReminderType, number> = {
+	stk: 42,
+	povinne_ruceni: 56,
+	havarijni_pojisteni: 56,
+	servis: 14,
+	prezuti_pneu: 14,
+	dalnicni_znamka: 7,
+	jine: 1
+}
+
+/** Human-readable lead-time label per type (for the Add Reminder form hint). */
+const reminderTypeEmailLeadLabel: Record<ReminderType, string> = {
+	stk: '6 týdnů před termínem',
+	povinne_ruceni: '8 týdnů před termínem',
+	havarijni_pojisteni: '8 týdnů před termínem',
+	servis: '2 týdny před termínem',
+	prezuti_pneu: '2 týdny před termínem',
+	dalnicni_znamka: '1 týden před termínem',
+	jine: '1 den před termínem'
+}
+
+/**
+ * Compute the default email-send date from a due date and reminder type.
+ * Anchored at **local** midnight – `new Date('YYYY-MM-DD')` parses as UTC
+ * midnight, which in CET can make `setDate` + `toISOString` drop a day.
+ */
+function getDefaultEmailSendDate(
+	dueDateStr: string,
+	type: ReminderType
+): string {
+	if (!dueDateStr) return ''
+	const date = new Date(`${dueDateStr}T00:00:00`)
+	date.setDate(date.getDate() - reminderTypeEmailLeadDays[type])
+	return date.toISOString().split('T')[0]
+}
+
+/** Okno, ve kterém u vozidla zobrazujeme kontextovou nabídku pojištění. */
+const INSURANCE_DEADLINE_WINDOW_DAYS = 60
+
+interface InsuranceDeadline {
+	kind: 'povinne' | 'havarijni'
+	label: string
+	daysLeft: number
+}
+
+/**
+ * Nejbližší blížící se termín povinného ručení / havarijního pojištění
+ * (0-60 dní) napříč upozorněními vozidla. `null`, pokud žádný takový není.
+ */
+function getUpcomingInsuranceDeadline(
+	reminders: Reminder[]
+): InsuranceDeadline | null {
+	const today = new Date()
+	today.setHours(0, 0, 0, 0)
+	let best: InsuranceDeadline | null = null
+	for (const reminder of reminders) {
+		if (reminder.is_done) continue
+		if (
+			reminder.type !== 'povinne_ruceni' &&
+			reminder.type !== 'havarijni_pojisteni'
+		) {
+			continue
+		}
+		const due = new Date(reminder.due_date)
+		if (Number.isNaN(due.getTime())) continue
+		due.setHours(0, 0, 0, 0)
+		const daysLeft = Math.round((due.getTime() - today.getTime()) / 86_400_000)
+		if (daysLeft < 0 || daysLeft > INSURANCE_DEADLINE_WINDOW_DAYS) continue
+		if (!best || daysLeft < best.daysLeft) {
+			best = {
+				kind: reminder.type === 'havarijni_pojisteni' ? 'havarijni' : 'povinne',
+				label: reminderTypeLabels[reminder.type],
+				daysLeft
+			}
+		}
+	}
+	return best
+}
+
+/** Čeština: dnes / za 1 den / za 3 dny / za 12 dní. */
+function formatDaysLeft(days: number): string {
+	if (days === 0) return 'dnes'
+	if (days === 1) return 'za 1 den'
+	if (days >= 2 && days <= 4) return `za ${days} dny`
+	return `za ${days} dní`
+}
+
+/**
+ * Kontextová nabídka srovnání pojištění na kartě vozidla - zobrazí se,
+ * když se u vozidla blíží termín pojištění.
+ */
+const InsuranceDeadlineCallout: React.FC<{ deadline: InsuranceDeadline }> = ({
+	deadline
+}) => (
+	<div
+		className='d-flex flex-wrap align-items-center justify-content-between gap-2 rounded p-3 mb-3'
+		style={{
+			backgroundColor: 'var(--surface-soft)',
+			border: '1px solid color-mix(in srgb, var(--brand-600) 25%, transparent)'
+		}}
+	>
+		<span className='small'>
+			<strong>{deadline.label}</strong> končí{' '}
+			{formatDaysLeft(deadline.daysLeft)}. Porovnejte si nabídky a ušetřete.
+		</span>
+		<Link
+			to={`/sjednat-pojisteni?typ=${deadline.kind}&src=vehicle_card_due`}
+			className='btn btn-sm btn-primary text-nowrap'
+		>
+			Porovnat nabídky
+		</Link>
+	</div>
+)
 const NOTE_MAX_LENGTH = 200
 const TITLE_MAX_LENGTH = 60
 
@@ -84,10 +227,24 @@ const VehicleCardSkeleton: React.FC = () => (
 					</div>
 					<div className='btn-group'>
 						<div className='placeholder-glow'>
-							<span className='placeholder btn btn-sm' style={{ width: '115px', height: '31px', display: 'inline-block' }}></span>
+							<span
+								className='placeholder btn btn-sm'
+								style={{
+									width: '115px',
+									height: '31px',
+									display: 'inline-block'
+								}}
+							></span>
 						</div>
 						<div className='placeholder-glow'>
-							<span className='placeholder btn btn-sm' style={{ width: '70px', height: '31px', display: 'inline-block' }}></span>
+							<span
+								className='placeholder btn btn-sm'
+								style={{
+									width: '70px',
+									height: '31px',
+									display: 'inline-block'
+								}}
+							></span>
 						</div>
 					</div>
 				</div>
@@ -107,7 +264,13 @@ const VehicleCardSkeleton: React.FC = () => (
 const ClientZonePage: React.FC = () => {
 	const navigate = useNavigate()
 	const [searchParams] = useSearchParams()
-	const { user, loading: authLoading, logout, verifyEmail, resendVerification } = useAuth()
+	const {
+		user,
+		loading: authLoading,
+		logout,
+		verifyEmail,
+		resendVerification
+	} = useAuth()
 	const [vehicles, setVehicles] = useState<ClientVehicle[]>([])
 	const [reminders, setReminders] = useState<Reminder[]>([])
 	const [odometerReadingsByVehicle, setOdometerReadingsByVehicle] = useState<
@@ -116,14 +279,22 @@ const ClientZonePage: React.FC = () => {
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState('')
 	const tabFromUrl = searchParams.get('tab') as ZoneTab | null
-	const isValidTab = tabFromUrl && ['vehicles', 'alerts', 'benefits', 'settings'].includes(tabFromUrl)
-	const [activeTab, setActiveTab] = useState<ZoneTab>(isValidTab ? tabFromUrl : 'vehicles')
+	const isValidTab =
+		tabFromUrl &&
+		['vehicles', 'alerts', 'benefits', 'settings'].includes(tabFromUrl)
+	const [activeTab, setActiveTab] = useState<ZoneTab>(
+		isValidTab ? tabFromUrl : 'vehicles'
+	)
 	const [titleDrafts, setTitleDrafts] = useState<Record<string, string>>({})
 	const [titleSavingId, setTitleSavingId] = useState<string | null>(null)
 	const [titleError, setTitleError] = useState<Record<string, string>>({})
 	const [titleEditingId, setTitleEditingId] = useState<string | null>(null)
-	const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(null)
-	const [deleteConfirmVehicleId, setDeleteConfirmVehicleId] = useState<string | null>(null)
+	const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(
+		null
+	)
+	const [deleteConfirmVehicleId, setDeleteConfirmVehicleId] = useState<
+		string | null
+	>(null)
 	const [preferences, setPreferences] = useState<UserPreferences | null>(null)
 	const [preferencesLoading, setPreferencesLoading] = useState(false)
 	const [preferencesSaving, setPreferencesSaving] = useState(false)
@@ -150,9 +321,7 @@ const ClientZonePage: React.FC = () => {
 	}, [reminders])
 
 	const upcomingReminders = useMemo(() => {
-		return [...reminders].sort((a, b) =>
-			a.due_date.localeCompare(b.due_date)
-		)
+		return [...reminders].sort((a, b) => a.due_date.localeCompare(b.due_date))
 	}, [reminders])
 
 	const loadData = async () => {
@@ -194,7 +363,8 @@ const ClientZonePage: React.FC = () => {
 
 	useEffect(() => {
 		if (user) {
-			document.title = 'Moje VINInfo – stav tachometru, upozornění na STK | VIN Info.cz'
+			document.title =
+				'Moje VINInfo – stav tachometru, upozornění na STK | VIN Info.cz'
 			const meta = document.querySelector('meta[name="description"]')
 			if (meta) {
 				meta.setAttribute(
@@ -359,7 +529,9 @@ const ClientZonePage: React.FC = () => {
 		try {
 			await deleteVehicle(vehicleId)
 			setVehicles((prev) => prev.filter((item) => item.id !== vehicleId))
-			setReminders((prev) => prev.filter((item) => item.vehicle_id !== vehicleId))
+			setReminders((prev) =>
+				prev.filter((item) => item.vehicle_id !== vehicleId)
+			)
 			setOdometerReadingsByVehicle((prev) => {
 				const next = { ...prev }
 				delete next[vehicleId]
@@ -392,7 +564,8 @@ const ClientZonePage: React.FC = () => {
 	const handleSaveTitle = async (vehicle: ClientVehicle) => {
 		const draft = titleDrafts[vehicle.id] ?? vehicle.title ?? ''
 		const trimmed = draft.trim()
-		const nextTitle = trimmed.length > 0 ? trimmed.slice(0, TITLE_MAX_LENGTH) : null
+		const nextTitle =
+			trimmed.length > 0 ? trimmed.slice(0, TITLE_MAX_LENGTH) : null
 
 		setTitleSavingId(vehicle.id)
 		setTitleError((prev) => ({ ...prev, [vehicle.id]: '' }))
@@ -402,9 +575,7 @@ const ClientZonePage: React.FC = () => {
 				prev.map((item) => (item.id === updated.id ? updated : item))
 			)
 			setTitleDrafts((prev) => ({ ...prev, [vehicle.id]: updated.title ?? '' }))
-			setTitleEditingId((current) =>
-				current === vehicle.id ? null : current
-			)
+			setTitleEditingId((current) => (current === vehicle.id ? null : current))
 		} catch {
 			setTitleError((prev) => ({
 				...prev,
@@ -437,7 +608,9 @@ const ClientZonePage: React.FC = () => {
 			if (err instanceof ApiError) {
 				setVerificationError(err.message)
 			} else {
-				setVerificationError('Nepodařilo se ověřit email. Zkontrolujte kód a zkuste to znovu.')
+				setVerificationError(
+					'Nepodařilo se ověřit email. Zkontrolujte kód a zkuste to znovu.'
+				)
 			}
 		} finally {
 			setVerificationLoading(false)
@@ -478,7 +651,14 @@ const ClientZonePage: React.FC = () => {
 							</div>
 						</div>
 						<div className='placeholder-glow'>
-							<span className='placeholder' style={{ width: '110px', height: '38px', display: 'inline-block' }}></span>
+							<span
+								className='placeholder'
+								style={{
+									width: '110px',
+									height: '38px',
+									display: 'inline-block'
+								}}
+							></span>
 						</div>
 					</div>
 
@@ -486,22 +666,50 @@ const ClientZonePage: React.FC = () => {
 						<ul className='nav nav-tabs'>
 							<li className='nav-item'>
 								<div className='placeholder-glow'>
-									<span className='placeholder nav-link' style={{ width: '120px', height: '38px', display: 'inline-block' }}></span>
+									<span
+										className='placeholder nav-link'
+										style={{
+											width: '120px',
+											height: '38px',
+											display: 'inline-block'
+										}}
+									></span>
 								</div>
 							</li>
 							<li className='nav-item'>
 								<div className='placeholder-glow'>
-									<span className='placeholder nav-link' style={{ width: '140px', height: '38px', display: 'inline-block' }}></span>
+									<span
+										className='placeholder nav-link'
+										style={{
+											width: '140px',
+											height: '38px',
+											display: 'inline-block'
+										}}
+									></span>
 								</div>
 							</li>
 							<li className='nav-item'>
 								<div className='placeholder-glow'>
-									<span className='placeholder nav-link' style={{ width: '110px', height: '38px', display: 'inline-block' }}></span>
+									<span
+										className='placeholder nav-link'
+										style={{
+											width: '110px',
+											height: '38px',
+											display: 'inline-block'
+										}}
+									></span>
 								</div>
 							</li>
 							<li className='nav-item'>
 								<div className='placeholder-glow'>
-									<span className='placeholder nav-link' style={{ width: '100px', height: '38px', display: 'inline-block' }}></span>
+									<span
+										className='placeholder nav-link'
+										style={{
+											width: '100px',
+											height: '38px',
+											display: 'inline-block'
+										}}
+									></span>
 								</div>
 							</li>
 						</ul>
@@ -549,9 +757,16 @@ const ClientZonePage: React.FC = () => {
 				<div className='d-flex flex-wrap align-items-center justify-content-between'>
 					<div>
 						<h1>{zoneTitle}</h1>
-						<p className='text-muted mb-0'>Přihlášen: <span className='client-zone-email'>{user?.email}</span></p>
+						<p className='text-muted mb-0'>
+							Přihlášen:{' '}
+							<span className='client-zone-email'>{user?.email}</span>
+						</p>
 					</div>
-					<button type='button' className='btn btn-outline-secondary' onClick={handleLogout}>
+					<button
+						type='button'
+						className='btn btn-outline-secondary'
+						onClick={handleLogout}
+					>
 						Odhlásit se
 					</button>
 				</div>
@@ -567,18 +782,28 @@ const ClientZonePage: React.FC = () => {
 						<div className='card-body'>
 							<h5 className='card-title text-warning'>Ověřte svůj email</h5>
 							<p className='card-text'>
-								Pro příjem emailových upozornění musíte nejprve ověřit svou emailovou adresu.
-								Zadejte 6místný kód, který jsme vám poslali na <strong>{user.email}</strong>.
+								Pro příjem emailových upozornění musíte nejprve ověřit svou
+								emailovou adresu. Zadejte 6místný kód, který jsme vám poslali na{' '}
+								<strong>{user.email}</strong>.
 							</p>
-							<form onSubmit={handleVerifyEmail} className='d-flex gap-2 align-items-end flex-wrap'>
+							<form
+								onSubmit={handleVerifyEmail}
+								className='d-flex gap-2 align-items-end flex-wrap'
+							>
 								<div>
-									<label htmlFor='verificationCode' className='form-label'>Ověřovací kód</label>
+									<label htmlFor='verificationCode' className='form-label'>
+										Ověřovací kód
+									</label>
 									<input
 										id='verificationCode'
 										type='text'
 										className='form-control'
 										value={verificationCode}
-										onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+										onChange={(e) =>
+											setVerificationCode(
+												e.target.value.replace(/\D/g, '').slice(0, 6)
+											)
+										}
 										placeholder='000000'
 										maxLength={6}
 										style={{ width: '120px' }}
@@ -657,7 +882,9 @@ const ClientZonePage: React.FC = () => {
 
 				{activeTab === 'vehicles' && (
 					<section className='mt-4'>
-						<h2 className='h4'><span className='heading-accent'>Uložená vozidla</span></h2>
+						<h2 className='h4'>
+							<span className='heading-accent'>Uložená vozidla</span>
+						</h2>
 						<p className='text-muted'>
 							Vozidlo můžete přidat ručně nebo z výsledků vyhledávání.
 						</p>
@@ -669,50 +896,57 @@ const ClientZonePage: React.FC = () => {
 						)}
 
 						<div className='row g-4 mt-1'>
-						{vehicles.map((vehicle) => {
+							{vehicles.map((vehicle) => {
 								const vehicleReminders = remindersByVehicle[vehicle.id] ?? []
-							const snapshotData = parseSnapshot(vehicle.snapshot)
-							const techInspectionRaw = snapshotData
-								? getDataValue(
-										snapshotData,
-										'PravidelnaTechnickaProhlidkaDo',
-										'Neznámé datum'
-									)
-								: 'Neznámé datum'
-							const techInspection = formatValue(techInspectionRaw)
+								const insuranceDeadline =
+									getUpcomingInsuranceDeadline(vehicleReminders)
+								const snapshotData = parseSnapshot(vehicle.snapshot)
+								const techInspectionRaw = snapshotData
+									? getDataValue(
+											snapshotData,
+											'PravidelnaTechnickaProhlidkaDo',
+											'Neznámé datum'
+										)
+									: 'Neznámé datum'
+								const techInspection = formatValue(techInspectionRaw)
 
-							// Parse and check tech inspection date
-							const currentDate = new Date()
-							let techInspectionDate: Date | null = null
-							if (techInspectionRaw && techInspectionRaw !== 'Neznámé datum') {
-								// Try to parse ISO date format first
-								const isoDateRegex = /^(\d{4})-(\d{2})-(\d{2})(T.*)?$/
-								const isoMatch = techInspectionRaw.match(isoDateRegex)
-								if (isoMatch) {
-									const year = isoMatch[1]
-									const month = isoMatch[2]
-									const day = isoMatch[3]
-									techInspectionDate = new Date(`${year}-${month}-${day}`)
-								} else {
-									// Fall back to Czech format (d.m.yyyy)
-									const [day, month, year] = techInspectionRaw.split('.')
-									if (day && month && year) {
+								// Parse and check tech inspection date
+								const currentDate = new Date()
+								let techInspectionDate: Date | null = null
+								if (
+									techInspectionRaw &&
+									techInspectionRaw !== 'Neznámé datum'
+								) {
+									// Try to parse ISO date format first
+									const isoDateRegex = /^(\d{4})-(\d{2})-(\d{2})(T.*)?$/
+									const isoMatch = techInspectionRaw.match(isoDateRegex)
+									if (isoMatch) {
+										const year = isoMatch[1]
+										const month = isoMatch[2]
+										const day = isoMatch[3]
 										techInspectionDate = new Date(`${year}-${month}-${day}`)
+									} else {
+										// Fall back to Czech format (d.m.yyyy)
+										const [day, month, year] = techInspectionRaw.split('.')
+										if (day && month && year) {
+											techInspectionDate = new Date(`${year}-${month}-${day}`)
+										}
 									}
 								}
-							}
 
-							const isExpired = Boolean(
-								techInspectionDate && techInspectionDate.getTime() < currentDate.getTime()
-							)
-							const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000
-							const stkStatus: 'ok' | 'warn' | 'alert' = !techInspectionDate
-								? 'ok'
-								: isExpired
-									? 'alert'
-									: techInspectionDate.getTime() - currentDate.getTime() < SIXTY_DAYS_MS
-										? 'warn'
-										: 'ok'
+								const isExpired = Boolean(
+									techInspectionDate &&
+										techInspectionDate.getTime() < currentDate.getTime()
+								)
+								const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000
+								const stkStatus: 'ok' | 'warn' | 'alert' = !techInspectionDate
+									? 'ok'
+									: isExpired
+										? 'alert'
+										: techInspectionDate.getTime() - currentDate.getTime() <
+												SIXTY_DAYS_MS
+											? 'warn'
+											: 'ok'
 								return (
 									<div key={vehicle.id} className='col-12 col-lg-6'>
 										<div className='card h-100 shadow-sm'>
@@ -722,9 +956,14 @@ const ClientZonePage: React.FC = () => {
 														<input
 															type='text'
 															className='plate-title__input'
-															value={titleDrafts[vehicle.id] ?? vehicle.title ?? ''}
+															value={
+																titleDrafts[vehicle.id] ?? vehicle.title ?? ''
+															}
 															onChange={(event) =>
-																handleTitleChange(vehicle.id, event.target.value)
+																handleTitleChange(
+																	vehicle.id,
+																	event.target.value
+																)
 															}
 															placeholder='Např. Rodinný Golf'
 															maxLength={TITLE_MAX_LENGTH}
@@ -754,19 +993,27 @@ const ClientZonePage: React.FC = () => {
 																	? vehicle.title
 																	: `${vehicle.brand ?? 'Neznámá značka'} ${vehicle.model ?? ''}`.trim()}
 															</span>
-															<Icon name='pencil' size={14} className='plate-title__hint' />
+															<Icon
+																name='pencil'
+																size={14}
+																className='plate-title__hint'
+															/>
 														</button>
 														<button
 															type='button'
 															className='plate-title__delete'
 															onClick={() =>
 																setDeleteConfirmVehicleId(
-																	deleteConfirmVehicleId === vehicle.id ? null : vehicle.id
+																	deleteConfirmVehicleId === vehicle.id
+																		? null
+																		: vehicle.id
 																)
 															}
 															disabled={deletingVehicleId === vehicle.id}
 															aria-label='Odebrat vozidlo'
-															aria-expanded={deleteConfirmVehicleId === vehicle.id}
+															aria-expanded={
+																deleteConfirmVehicleId === vehicle.id
+															}
 															title='Odebrat vozidlo'
 														>
 															<Icon name='x' size={16} />
@@ -782,12 +1029,16 @@ const ClientZonePage: React.FC = () => {
 																onClick={() => handleSaveTitle(vehicle)}
 																disabled={titleSavingId === vehicle.id}
 															>
-																{titleSavingId === vehicle.id ? 'Ukládám...' : 'Uložit'}
+																{titleSavingId === vehicle.id
+																	? 'Ukládám...'
+																	: 'Uložit'}
 															</button>
 															<button
 																type='button'
 																className='btn btn-outline-secondary btn-sm'
-																onClick={() => handleCancelEditTitle(vehicle.id)}
+																onClick={() =>
+																	handleCancelEditTitle(vehicle.id)
+																}
 																disabled={titleSavingId === vehicle.id}
 															>
 																Zrušit
@@ -800,153 +1051,211 @@ const ClientZonePage: React.FC = () => {
 														)}
 													</>
 												)}
-												{deleteConfirmVehicleId === vehicle.id && titleEditingId !== vehicle.id && (
-													<div className='alert alert-danger d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mt-2 mb-0 py-2'>
-														<span className='small'>
-															Opravdu odebrat vozidlo? Smazána budou i všechna upozornění a záznamy tachometru.
-														</span>
-														<div className='d-flex gap-2 flex-shrink-0'>
-															<button
-																type='button'
-																className='btn btn-danger btn-sm'
-																onClick={async () => {
-																	await handleDeleteVehicle(vehicle.id)
-																	setDeleteConfirmVehicleId(null)
-																}}
-																disabled={deletingVehicleId === vehicle.id}
-															>
-																{deletingVehicleId === vehicle.id ? (
-																	<>
-																		<span
-																			className='spinner-border spinner-border-sm me-2'
-																			role='status'
-																			aria-hidden='true'
-																			style={{ width: 12, height: 12 }}
-																		/>
-																		Odebírám…
-																	</>
-																) : (
-																	'Ano, odebrat'
-																)}
-															</button>
-															<button
-																type='button'
-																className='btn btn-outline-secondary btn-sm'
-																onClick={() => setDeleteConfirmVehicleId(null)}
-																disabled={deletingVehicleId === vehicle.id}
-															>
-																Zrušit
-															</button>
-														</div>
-													</div>
-												)}
-												{techInspectionDate && (
-														<div className='stk-stat' data-status={stkStatus}>
-															<span className='stk-stat__label'>STK do</span>
-															<span className='stk-stat__value num'>{techInspection}</span>
+												{deleteConfirmVehicleId === vehicle.id &&
+													titleEditingId !== vehicle.id && (
+														<div className='alert alert-danger d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mt-2 mb-0 py-2'>
+															<span className='small'>
+																Opravdu odebrat vozidlo? Smazána budou i všechna
+																upozornění a záznamy tachometru.
+															</span>
+															<div className='d-flex gap-2 flex-shrink-0'>
+																<button
+																	type='button'
+																	className='btn btn-danger btn-sm'
+																	onClick={async () => {
+																		await handleDeleteVehicle(vehicle.id)
+																		setDeleteConfirmVehicleId(null)
+																	}}
+																	disabled={deletingVehicleId === vehicle.id}
+																>
+																	{deletingVehicleId === vehicle.id ? (
+																		<>
+																			<span
+																				className='spinner-border spinner-border-sm me-2'
+																				role='status'
+																				aria-hidden='true'
+																				style={{ width: 12, height: 12 }}
+																			/>
+																			Odebírám…
+																		</>
+																	) : (
+																		'Ano, odebrat'
+																	)}
+																</button>
+																<button
+																	type='button'
+																	className='btn btn-outline-secondary btn-sm'
+																	onClick={() =>
+																		setDeleteConfirmVehicleId(null)
+																	}
+																	disabled={deletingVehicleId === vehicle.id}
+																>
+																	Zrušit
+																</button>
+															</div>
 														</div>
 													)}
-													<dl className='dl-grid mt-3 mb-3'>
-														{vehicle.title && (vehicle.brand || vehicle.model) && (
+												{techInspectionDate && (
+													<div className='stk-stat' data-status={stkStatus}>
+														<span className='stk-stat__label'>STK do</span>
+														<span className='stk-stat__value num'>
+															{techInspection}
+														</span>
+													</div>
+												)}
+												<dl className='dl-grid mt-3 mb-3'>
+													{vehicle.title &&
+														(vehicle.brand || vehicle.model) && (
 															<>
 																<dt>Značka / Model</dt>
-																<dd>{`${vehicle.brand ?? ''} ${vehicle.model ?? ''}`.trim() || '—'}</dd>
+																<dd>
+																	{`${vehicle.brand ?? ''} ${vehicle.model ?? ''}`.trim() ||
+																		'—'}
+																</dd>
 															</>
 														)}
-														{vehicle.vin && (
-															<>
-																<dt>VIN</dt>
-																<dd className='num'>{vehicle.vin}</dd>
-															</>
-														)}
-														{vehicle.tp && (
-															<>
-																<dt>Číslo TP</dt>
-																<dd className='num'>{vehicle.tp}</dd>
-															</>
-														)}
-														{vehicle.orv && (
-															<>
-																<dt>Číslo ORV</dt>
-																<dd className='num'>{vehicle.orv}</dd>
-															</>
-														)}
-													</dl>
-													<ul className='vehicle-actions'>
-														{(vehicle.vin || vehicle.tp || vehicle.orv) && (
-															<li>
-																<Link
-																	to={
-																		vehicle.vin
-																			? `/vin/${encodeURIComponent(vehicle.vin)}`
-																			: vehicle.tp
-																				? `/tp/${encodeURIComponent(vehicle.tp)}`
-																				: `/orv/${encodeURIComponent(vehicle.orv!)}`
-																	}
-																>
-																	<Icon name='chevron-right' size={16} />
-																	Info z registru vozidel
-																</Link>
-															</li>
-														)}
+													{vehicle.vin && (
+														<>
+															<dt>VIN</dt>
+															<dd className='num'>{vehicle.vin}</dd>
+														</>
+													)}
+													{vehicle.tp && (
+														<>
+															<dt>Číslo TP</dt>
+															<dd className='num'>{vehicle.tp}</dd>
+														</>
+													)}
+													{vehicle.orv && (
+														<>
+															<dt>Číslo ORV</dt>
+															<dd className='num'>{vehicle.orv}</dd>
+														</>
+													)}
+												</dl>
+												{insuranceDeadline && (
+													<InsuranceDeadlineCallout
+														deadline={insuranceDeadline}
+													/>
+												)}
+												<ul className='vehicle-actions'>
+													{(vehicle.vin || vehicle.tp || vehicle.orv) && (
 														<li>
 															<Link
-																to={vehicle.vin ? `/sjednat-pojisteni?vin=${encodeURIComponent(vehicle.vin)}` : '/sjednat-pojisteni'}
+																to={
+																	vehicle.vin
+																		? `/vin/${encodeURIComponent(vehicle.vin)}`
+																		: vehicle.tp
+																			? `/tp/${encodeURIComponent(vehicle.tp)}`
+																			: `/orv/${encodeURIComponent(vehicle.orv!)}`
+																}
 															>
+																<Icon name='chevron-right' size={16} />
+																Info z registru vozidel
+															</Link>
+														</li>
+													)}
+													{!insuranceDeadline && (
+														<li>
+															<Link to='/sjednat-pojisteni?typ=povinne&src=vehicle_card'>
 																<Icon name='chevron-right' size={16} />
 																Sjednat pojištění
 															</Link>
 														</li>
-														{vehicle.vin && (
+													)}
+													{vehicle.vin && (
 														<li className='vehicle-actions__affiliate'>
 															<a
-																href={cebia.getDirectUrl(vehicle.vin, 'client_zone_vehicle')}
+																href={cebia.getDirectUrl(
+																	vehicle.vin,
+																	'client_zone_vehicle'
+																)}
 																target='_blank'
-								  								rel='noopener noreferrer'
+																rel='noopener noreferrer'
 																title='Partnerský odkaz'
 															>
 																<Icon name='external-link' size={14} />
 																Prověřit historii vozidla
 															</a>
 														</li>
-														)}
-													</ul>
+													)}
+												</ul>
 
-												<hr style={{ borderTop: '1px solid var(--ink-300)', margin: 'var(--space-5) 0 var(--space-4)' }} />
+												<hr
+													style={{
+														borderTop: '1px solid var(--ink-300)',
+														margin: 'var(--space-5) 0 var(--space-4)'
+													}}
+												/>
 												<div>
-													<h4 className='h6'><span className='heading-accent'>Upozornění</span></h4>
+													<h4 className='h6'>
+														<span className='heading-accent'>Upozornění</span>
+													</h4>
 													{vehicleReminders.length === 0 ? (
-														<p className='text-muted'>
-															Zatím nemáte žádná upozornění.
-														</p>
+														<div
+															className='rounded p-3 mb-3 small text-muted-ink'
+															style={{
+																backgroundColor: 'var(--surface-soft)'
+															}}
+														>
+															Zatím nemáte žádná upozornění – přidejte první
+															níže.
+														</div>
 													) : (
-														<ul className='list-group mb-3'>
+														<ul className='list-unstyled mb-3 d-flex flex-column gap-2'>
 															{vehicleReminders.map((reminder) => (
 																<li
 																	key={reminder.id}
-																	className='list-group-item d-flex align-items-center justify-content-between'
+																	className={`reminder-row reminder-${reminder.type} py-2 d-flex flex-wrap align-items-center justify-content-between gap-2${reminder.is_done ? ' opacity-50' : ''}`}
 																>
-																	<div>
-																		<div className='fw-semibold'>
-																			{reminderTypeLabels[reminder.type]}
+																	<div className='flex-grow-1'>
+																		<div className='fw-semibold d-flex align-items-center gap-2'>
+																			<span aria-hidden='true'>
+																				{reminderTypeIcons[reminder.type]}
+																			</span>
+																			<span
+																				style={
+																					reminder.is_done
+																						? {
+																								textDecoration: 'line-through'
+																							}
+																						: undefined
+																				}
+																			>
+																				{reminderTypeLabels[reminder.type]}
+																			</span>
 																		</div>
-																		<div className='text-muted'>
-																			{formatDate(reminder.due_date)}
-																			{reminder.note ? ` • ${reminder.note}` : ''}
+																		<div className='small text-muted-ink'>
+																			Termín: {formatDate(reminder.due_date)}
+																			{reminder.email_enabled &&
+																				reminder.email_send_at && (
+																					<>
+																						{' '}
+																						· Email:{' '}
+																						{formatDate(reminder.email_send_at)}
+																					</>
+																				)}
+																			{reminder.note
+																				? ` · ${reminder.note}`
+																				: ''}
 																		</div>
 																	</div>
-																	<div className='btn-group'>
+																	<div className='btn-group btn-group-sm'>
 																		<button
 																			type='button'
-																			className={`btn btn-sm ${reminder.is_done ? 'btn-success' : 'btn-outline-success'}`}
-																			onClick={() => handleToggleReminder(reminder)}
+																			className={`btn ${reminder.is_done ? 'btn-success' : 'btn-outline-success'}`}
+																			onClick={() =>
+																				handleToggleReminder(reminder)
+																			}
 																		>
-																			{reminder.is_done ? 'Splněno' : 'Označit splněno'}
+																			{reminder.is_done ? 'Splněno' : 'Splnit'}
 																		</button>
 																		<button
 																			type='button'
-																			className='btn btn-sm btn-outline-danger'
-																			onClick={() => handleDeleteReminder(reminder.id)}
+																			className='btn btn-outline-danger'
+																			onClick={() =>
+																				handleDeleteReminder(reminder.id)
+																			}
 																		>
 																			Smazat
 																		</button>
@@ -982,39 +1291,55 @@ const ClientZonePage: React.FC = () => {
 
 				{activeTab === 'alerts' && (
 					<section className='mt-4'>
-						<h2 className='h4'><span className='heading-accent'>Moje upozornění</span></h2>
+						<h2 className='h4'>
+							<span className='heading-accent'>Moje upozornění</span>
+						</h2>
 						{upcomingReminders.length === 0 ? (
-							<div className='alert alert-info'>
+							<div
+								className='rounded p-3 mt-3 small text-muted-ink'
+								style={{ backgroundColor: 'var(--surface-soft)' }}
+							>
 								Zatím nemáte žádná upozornění.
 							</div>
 						) : (
-							<ul className='list-group'>
+							<ul className='list-unstyled mt-3 d-flex flex-column gap-2'>
 								{upcomingReminders.map((reminder) => (
 									<li
 										key={reminder.id}
-										className='list-group-item'
+										className={`reminder-row reminder-${reminder.type} py-2${reminder.is_done ? ' opacity-50' : ''}`}
 									>
-										<div className='d-flex align-items-center justify-content-between'>
-											<div>
-												<div className='fw-semibold'>
-													{reminderTypeLabels[reminder.type]}
+										<div className='d-flex flex-wrap align-items-center justify-content-between gap-2'>
+											<div className='flex-grow-1'>
+												<div className='fw-semibold d-flex align-items-center gap-2'>
+													<span aria-hidden='true'>
+														{reminderTypeIcons[reminder.type]}
+													</span>
+													<span
+														style={
+															reminder.is_done
+																? { textDecoration: 'line-through' }
+																: undefined
+														}
+													>
+														{reminderTypeLabels[reminder.type]}
+													</span>
 												</div>
-												<div className='text-muted'>
-													{formatDate(reminder.due_date)}
-													{reminder.note ? ` • ${reminder.note}` : ''}
+												<div className='small text-muted-ink'>
+													Termín: {formatDate(reminder.due_date)}
+													{reminder.note ? ` · ${reminder.note}` : ''}
 												</div>
 											</div>
-											<div className='btn-group'>
+											<div className='btn-group btn-group-sm'>
 												<button
 													type='button'
-													className={`btn btn-sm ${reminder.is_done ? 'btn-success' : 'btn-outline-success'}`}
+													className={`btn ${reminder.is_done ? 'btn-success' : 'btn-outline-success'}`}
 													onClick={() => handleToggleReminder(reminder)}
 												>
-													{reminder.is_done ? 'Splněno' : 'Označit splněno'}
+													{reminder.is_done ? 'Splněno' : 'Splnit'}
 												</button>
 												<button
 													type='button'
-													className='btn btn-sm btn-outline-danger'
+													className='btn btn-outline-danger'
 													onClick={() => handleDeleteReminder(reminder.id)}
 												>
 													Smazat
@@ -1034,15 +1359,25 @@ const ClientZonePage: React.FC = () => {
 													className='form-check-label text-muted small'
 													htmlFor={`emailToggle-${reminder.id}`}
 												>
-													Emailové upozornění {reminder.email_enabled ? 'zapnuto' : 'vypnuto'}
+													Emailové upozornění{' '}
+													{reminder.email_enabled ? 'zapnuto' : 'vypnuto'}
 													{reminder.email_enabled && reminder.email_send_at && (
-														<> • odeslání: {formatDate(reminder.email_send_at)}</>
+														<>
+															{' '}
+															• odeslání: {formatDate(reminder.email_send_at)}
+														</>
 													)}
-													{reminder.email_enabled && preferences && !preferences.notifications_enabled && (
-														<span className='text-warning ms-2' title='Globální notifikace jsou vypnuté v Nastavení'><br/> 
-															⚠️ Notifikační emaily jsou vypnuté v Nastavení
-														</span>
-													)}
+													{reminder.email_enabled &&
+														preferences &&
+														!preferences.notifications_enabled && (
+															<span
+																className='text-warning ms-2'
+																title='Globální notifikace jsou vypnuté v Nastavení'
+															>
+																<br />
+																⚠️ Notifikační emaily jsou vypnuté v Nastavení
+															</span>
+														)}
 												</label>
 											</div>
 										</div>
@@ -1055,10 +1390,10 @@ const ClientZonePage: React.FC = () => {
 
 				{activeTab === 'benefits' && (
 					<section className='mt-4'>
-						<h2 className='h4'><span className='heading-accent'>Moje výhody</span></h2>
-						<p className='text-muted'>
-							Doporučené služby pro vaše vozidla.
-						</p>
+						<h2 className='h4'>
+							<span className='heading-accent'>Moje výhody</span>
+						</h2>
+						<p className='text-muted'>Doporučené služby pro vaše vozidla.</p>
 
 						<div className='row g-4'>
 							<div className='col-md-6'>
@@ -1066,8 +1401,8 @@ const ClientZonePage: React.FC = () => {
 									<div className='card-body'>
 										<h5 className='card-title'>Prověření historie vozidla</h5>
 										<p className='card-text text-muted'>
-											Zjistěte kompletní historii vozidla - havárie, servisní záznamy, 
-											stav tachometru a další důležité informace.
+											Zjistěte kompletní historii vozidla - havárie, servisní
+											záznamy, stav tachometru a další důležité informace.
 										</p>
 										<a
 											href={cebia.getTextLinkUrl('client_zone_benefits')}
@@ -1085,9 +1420,7 @@ const ClientZonePage: React.FC = () => {
 								<div className='card h-100'>
 									<div className='card-body'>
 										<h5 className='card-title'>{dealora.shortLabel}</h5>
-										<p className='card-text text-muted'>
-											{dealora.tagline}.
-										</p>
+										<p className='card-text text-muted'>{dealora.tagline}.</p>
 										<a
 											href={dealora.getUrl()}
 											target='_blank'
@@ -1105,16 +1438,14 @@ const ClientZonePage: React.FC = () => {
 									<div className='card-body'>
 										<h5 className='card-title'>Pojištění vozidla</h5>
 										<p className='card-text text-muted'>
-											{csob.vehicleKalkulackaTagline} Povinné ručení i havarijní v jedné kalkulačce.
+											Porovnejte si povinné ručení i havarijní pojištění online.
 										</p>
-										<a
-											href={csob.getVehicleKalkulackaUrl('komplexni', 'client_zone_benefits_vehicle')}
-											target='_blank'
-											rel='noopener noreferrer'
+										<Link
+											to='/sjednat-pojisteni?typ=povinne&src=client_zone_benefits'
 											className='btn btn-outline-primary'
 										>
-											Na kalkulačku vozidla
-										</a>
+											Porovnat pojištění
+										</Link>
 									</div>
 								</div>
 							</div>
@@ -1122,7 +1453,9 @@ const ClientZonePage: React.FC = () => {
 							<div className='col-md-6'>
 								<div className='card h-100'>
 									<div className='card-body'>
-										<h5 className='card-title'>{axaCestovniPojisteni.headline}</h5>
+										<h5 className='card-title'>
+											{axaCestovniPojisteni.headline}
+										</h5>
 										<p className='card-text text-muted small mb-2'>
 											{axaCestovniPojisteni.partnerInfo}
 										</p>
@@ -1142,7 +1475,9 @@ const ClientZonePage: React.FC = () => {
 								<div className='col-12'>
 									<div className='card'>
 										<div className='card-body'>
-											<h5 className='card-title'>CSOB Pojišťovna – akční nabídky</h5>
+											<h5 className='card-title'>
+												CSOB Pojišťovna – akční nabídky
+											</h5>
 											<p className='card-text text-muted'>
 												{csob.tagline}. Aktuální slevy a dárky:
 											</p>
@@ -1170,8 +1505,9 @@ const ClientZonePage: React.FC = () => {
 								<h5>Rychlé odkazy pro vaše vozidla</h5>
 								<div className='list-group'>
 									{vehicles.map((vehicle) => {
-										const vehicleName = vehicle.title?.trim()
-											|| `${vehicle.brand || 'Vozidlo'} ${vehicle.model || ''}`.trim()
+										const vehicleName =
+											vehicle.title?.trim() ||
+											`${vehicle.brand || 'Vozidlo'} ${vehicle.model || ''}`.trim()
 										return (
 											<div key={vehicle.id} className='list-group-item'>
 												<div className='d-flex justify-content-between align-items-center flex-wrap gap-2'>
@@ -1193,7 +1529,10 @@ const ClientZonePage: React.FC = () => {
 														)}
 														{vehicle.vin && (
 															<a
-																href={cebia.getDirectUrl(vehicle.vin, 'client_zone_vehicle_list')}
+																href={cebia.getDirectUrl(
+																	vehicle.vin,
+																	'client_zone_vehicle_list'
+																)}
 																target='_blank'
 																rel='noopener noreferrer'
 																className='btn btn-sm btn-outline-secondary'
@@ -1202,11 +1541,7 @@ const ClientZonePage: React.FC = () => {
 															</a>
 														)}
 														<Link
-															to={
-																vehicle.vin
-																	? `/sjednat-pojisteni?vin=${encodeURIComponent(vehicle.vin)}`
-																	: '/sjednat-pojisteni'
-															}
+															to='/sjednat-pojisteni?typ=povinne&src=vehicle_card'
 															className='btn btn-sm btn-outline-secondary'
 														>
 															Sjednat pojištění
@@ -1224,14 +1559,17 @@ const ClientZonePage: React.FC = () => {
 
 				{activeTab === 'settings' && (
 					<section className='mt-4'>
-						<h2 className='h4'><span className='heading-accent'>Nastavení</span></h2>
+						<h2 className='h4'>
+							<span className='heading-accent'>Nastavení</span>
+						</h2>
 						<p className='text-muted'>
 							Spravujte své preference pro emailová upozornění.
 						</p>
 
 						{!user?.email_verified_at && (
 							<div className='alert alert-warning'>
-								<strong>Email není ověřen.</strong> Pro příjem emailových upozornění musíte nejprve ověřit svůj email.
+								<strong>Email není ověřen.</strong> Pro příjem emailových
+								upozornění musíte nejprve ověřit svůj email.
 							</div>
 						)}
 
@@ -1256,15 +1594,21 @@ const ClientZonePage: React.FC = () => {
 											className='form-check-input'
 											id='notificationsEnabled'
 											checked={preferences.notifications_enabled}
-											onChange={(e) => setPreferences({
-												...preferences,
-												notifications_enabled: e.target.checked
-											})}
+											onChange={(e) =>
+												setPreferences({
+													...preferences,
+													notifications_enabled: e.target.checked
+												})
+											}
 										/>
-										<label className='form-check-label' htmlFor='notificationsEnabled'>
+										<label
+											className='form-check-label'
+											htmlFor='notificationsEnabled'
+										>
 											<strong>Notifikační emaily</strong>
 											<div className='text-muted small'>
-												Upozornění na blížící se termíny STK, pojištění, servisu a další.
+												Upozornění na blížící se termíny STK, pojištění, servisu
+												a další.
 											</div>
 										</label>
 									</div>
@@ -1274,12 +1618,17 @@ const ClientZonePage: React.FC = () => {
 											className='form-check-input'
 											id='marketingEnabled'
 											checked={preferences.marketing_enabled}
-											onChange={(e) => setPreferences({
-												...preferences,
-												marketing_enabled: e.target.checked
-											})}
+											onChange={(e) =>
+												setPreferences({
+													...preferences,
+													marketing_enabled: e.target.checked
+												})
+											}
 										/>
-										<label className='form-check-label' htmlFor='marketingEnabled'>
+										<label
+											className='form-check-label'
+											htmlFor='marketingEnabled'
+										>
 											<strong>Marketingové emaily</strong>
 											<div className='text-muted small'>
 												Informace o novinkách, akcích a partnerských nabídkách.
@@ -1348,20 +1697,21 @@ const ReminderForm: React.FC<{
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState('')
 
-	// Calculate default email send date (1 day before due date)
-	const getDefaultEmailSendDate = (dueDateStr: string): string => {
-		if (!dueDateStr) return ''
-		const date = new Date(dueDateStr)
-		date.setDate(date.getDate() - 1)
-		return date.toISOString().split('T')[0]
-	}
-
 	// Get today's date in YYYY-MM-DD format for validation
 	const today = new Date().toISOString().split('T')[0]
 	// Get tomorrow's date for min attribute (earliest allowed date)
 	const tomorrowDate = new Date()
 	tomorrowDate.setDate(tomorrowDate.getDate() + 1)
 	const tomorrow = tomorrowDate.toISOString().split('T')[0]
+
+	// Default email-send date derived from due date + reminder type. When the
+	// due date is sooner than the type's lead time, this lands in the past →
+	// backend sends the email immediately on create; we surface that to the user.
+	const computedEmailSendAt = dueDate
+		? getDefaultEmailSendDate(dueDate, type)
+		: ''
+	const computedDefaultIsPast =
+		computedEmailSendAt !== '' && computedEmailSendAt <= today
 
 	const handleSubmit = async (event: React.FormEvent) => {
 		event.preventDefault()
@@ -1379,18 +1729,32 @@ const ReminderForm: React.FC<{
 		}
 
 		// Validate custom email send date is tomorrow at earliest
-		if (emailEnabled && useCustomEmailDate && emailSendAt && emailSendAt <= today) {
+		if (
+			emailEnabled &&
+			useCustomEmailDate &&
+			emailSendAt &&
+			emailSendAt <= today
+		) {
 			setError('Datum odeslání emailu musí být nejdříve zítra.')
 			return
 		}
 
 		const finalEmailSendAt = emailEnabled
-			? (useCustomEmailDate ? emailSendAt : getDefaultEmailSendDate(dueDate))
+			? useCustomEmailDate
+				? emailSendAt
+				: getDefaultEmailSendDate(dueDate, type)
 			: null
 
 		setSubmitting(true)
 		try {
-			await onAdd(vehicleId, type, dueDate, note, emailEnabled, finalEmailSendAt)
+			await onAdd(
+				vehicleId,
+				type,
+				dueDate,
+				note,
+				emailEnabled,
+				finalEmailSendAt
+			)
 			setDueDate('')
 			setNote('')
 			setType('stk')
@@ -1405,105 +1769,135 @@ const ReminderForm: React.FC<{
 	}
 
 	return (
-		<form className='border rounded p-3' onSubmit={handleSubmit}>
-			<div className='row g-2 align-items-end'>
-				<div className='col-md-5'>
-					<label className='form-label'>Typ</label>
-					<select
-						className='form-select'
-						value={type}
-						onChange={(event) =>
-							setType(event.target.value as ReminderType)
-						}
-					>
-						{Object.entries(reminderTypeLabels).map(([value, label]) => (
-							<option key={value} value={value}>
-								{label}
-							</option>
-						))}
-					</select>
-				</div>
-				<div className='col-md-4'>
-					<label className='form-label'>Datum termínu</label>
-					<input
-						type='date'
-						className='form-control'
-						value={dueDate}
-						onChange={(event) => setDueDate(event.target.value)}
-						min={tomorrow}
-						required
-					/>
-				</div>
-				<div className='col-md-12'>
-					<label className='form-label'>Poznámka</label>
-					<input
-						type='text'
-						className='form-control'
-						value={note}
-						onChange={(event) => setNote(event.target.value)}
-						placeholder='Např. přezutí na zimní pneumatiky'
-						maxLength={NOTE_MAX_LENGTH}
-					/>
-					<div className='form-text text-muted'>
-						{note.length}/{NOTE_MAX_LENGTH}
+		<>
+			<h5 className='h6 mt-2 mb-2'>Přidat upozornění</h5>
+			<form
+				className='rounded p-3'
+				style={{ backgroundColor: 'var(--surface-soft)' }}
+				onSubmit={handleSubmit}
+			>
+				<div className='row g-2 align-items-end'>
+					<div className='col-md-5'>
+						<label className='form-label'>Typ</label>
+						<select
+							className='form-select'
+							value={type}
+							onChange={(event) => setType(event.target.value as ReminderType)}
+						>
+							{Object.entries(reminderTypeLabels).map(([value, label]) => (
+								<option key={value} value={value}>
+									{label}
+								</option>
+							))}
+						</select>
 					</div>
-				</div>
-				<div className='col-md-12'>
-					<div className='form-check'>
+					<div className='col-md-4'>
+						<label className='form-label'>Datum termínu</label>
 						<input
-							type='checkbox'
-							className='form-check-input'
-							id={`emailEnabled-${vehicleId}`}
-							checked={emailEnabled}
-							onChange={(event) => setEmailEnabled(event.target.checked)}
+							type='date'
+							className='form-control'
+							value={dueDate}
+							onChange={(event) => setDueDate(event.target.value)}
+							min={tomorrow}
+							required
 						/>
-						<label className='form-check-label' htmlFor={`emailEnabled-${vehicleId}`}>
-							Poslat emailové upozornění
-						</label>
 					</div>
-				</div>
-				{emailEnabled && (
 					<div className='col-md-12'>
-						<div className='form-check mb-2'>
+						<label className='form-label'>Poznámka</label>
+						<input
+							type='text'
+							className='form-control'
+							value={note}
+							onChange={(event) => setNote(event.target.value)}
+							placeholder='Např. přezutí na zimní pneumatiky'
+							maxLength={NOTE_MAX_LENGTH}
+						/>
+						<div className='form-text text-muted'>
+							{note.length}/{NOTE_MAX_LENGTH}
+						</div>
+					</div>
+					<div className='col-md-12'>
+						<div className='form-check'>
 							<input
 								type='checkbox'
 								className='form-check-input'
-								id={`customEmailDate-${vehicleId}`}
-								checked={useCustomEmailDate}
-								onChange={(event) => setUseCustomEmailDate(event.target.checked)}
+								id={`emailEnabled-${vehicleId}`}
+								checked={emailEnabled}
+								onChange={(event) => setEmailEnabled(event.target.checked)}
 							/>
-							<label className='form-check-label' htmlFor={`customEmailDate-${vehicleId}`}>
-								Vlastní datum odeslání (jinak 1 den před termínem)
+							<label
+								className='form-check-label'
+								htmlFor={`emailEnabled-${vehicleId}`}
+							>
+								Poslat emailové upozornění
 							</label>
 						</div>
-						{useCustomEmailDate && (
-							<div>
-								<label className='form-label'>Datum odeslání emailu</label>
+					</div>
+					{emailEnabled && (
+						<div className='col-md-12'>
+							{!useCustomEmailDate && (
+								<div className='form-text mb-2'>
+									Email se odešle{' '}
+									<strong>{reminderTypeEmailLeadLabel[type]}</strong>
+									{computedEmailSendAt && (
+										<> ({formatDate(computedEmailSendAt)})</>
+									)}
+									.
+									{computedDefaultIsPast && (
+										<div className='text-amber mt-1'>
+											Datum odeslání je v minulosti – email bude odeslán ihned
+											po uložení. Pro pozdější odeslání zaškrtněte „Zvolit
+											vlastní datum odeslání".
+										</div>
+									)}
+								</div>
+							)}
+							<div className='form-check mb-2'>
 								<input
-									type='date'
-									className='form-control'
-									value={emailSendAt}
-									onChange={(event) => setEmailSendAt(event.target.value)}
-									min={tomorrow}
+									type='checkbox'
+									className='form-check-input'
+									id={`customEmailDate-${vehicleId}`}
+									checked={useCustomEmailDate}
+									onChange={(event) =>
+										setUseCustomEmailDate(event.target.checked)
+									}
 								/>
+								<label
+									className='form-check-label'
+									htmlFor={`customEmailDate-${vehicleId}`}
+								>
+									Zvolit vlastní datum odeslání
+								</label>
 							</div>
-						)}
+							{useCustomEmailDate && (
+								<div>
+									<label className='form-label'>Datum odeslání emailu</label>
+									<input
+										type='date'
+										className='form-control'
+										value={emailSendAt}
+										onChange={(event) => setEmailSendAt(event.target.value)}
+										min={tomorrow}
+									/>
+								</div>
+							)}
+						</div>
+					)}
+				</div>
+				{error && (
+					<div className='alert alert-danger mt-3' role='alert'>
+						{error}
 					</div>
 				)}
-			</div>
-			{error && (
-				<div className='alert alert-danger mt-3' role='alert'>
-					{error}
-				</div>
-			)}
-			<button
-				type='submit'
-				className='btn btn-primary btn-sm mt-3'
-				disabled={submitting}
-			>
-				{submitting ? 'Ukládám...' : 'Přidat upozornění'}
-			</button>
-		</form>
+				<button
+					type='submit'
+					className='btn btn-primary mt-3'
+					disabled={submitting}
+				>
+					{submitting ? 'Ukládám...' : 'Přidat'}
+				</button>
+			</form>
+		</>
 	)
 }
 
@@ -1558,7 +1952,9 @@ const AddVehicleForm: React.FC<{
 					vin,
 					tp: tp || undefined,
 					orv: orv || undefined,
-					title: trimmedTitle ? trimmedTitle.slice(0, TITLE_MAX_LENGTH) : undefined,
+					title: trimmedTitle
+						? trimmedTitle.slice(0, TITLE_MAX_LENGTH)
+						: undefined,
 					brand,
 					model,
 					snapshot: data
@@ -1607,7 +2003,11 @@ const AddVehicleForm: React.FC<{
 		<form className='border rounded p-3 mb-4' onSubmit={handleSubmit}>
 			<h3 className='h6'>Přidat vozidlo ručně</h3>
 
-			<div className='btn-group w-100 mb-3' role='radiogroup' aria-label='Způsob přidání vozidla'>
+			<div
+				className='btn-group w-100 mb-3'
+				role='radiogroup'
+				aria-label='Způsob přidání vozidla'
+			>
 				<input
 					type='radio'
 					className='btn-check'
@@ -1637,7 +2037,10 @@ const AddVehicleForm: React.FC<{
 						setSuccess('')
 					}}
 				/>
-				<label className='btn btn-outline-primary' htmlFor='addVehicleMode-no-vin'>
+				<label
+					className='btn btn-outline-primary'
+					htmlFor='addVehicleMode-no-vin'
+				>
 					VIN nemám
 				</label>
 			</div>

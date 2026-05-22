@@ -13,6 +13,20 @@ const reminderTypes = new Set([
 	'dalnicni_znamka',
 	'jine'
 ])
+
+// Default lead time (days between `email_send_at` and `due_date`) per reminder type.
+// KEEP IN SYNC with src/pages/ClientZonePage.tsx (reminderTypeEmailLeadDays).
+// See docs/REMINDER_DEFAULT_DATES.md.
+const reminderTypeEmailLeadDays: Record<string, number> = {
+	stk: 42,
+	povinne_ruceni: 56,
+	havarijni_pojisteni: 56,
+	servis: 14,
+	prezuti_pneu: 14,
+	dalnicni_znamka: 7,
+	jine: 1
+}
+
 const NOTE_MAX_LENGTH = 200
 
 const getQueryString = (
@@ -54,7 +68,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	}
 
 	if (req.method === 'POST') {
-		const { vehicleId, type, dueDate, note, emailEnabled, emailSendAt } = req.body ?? {}
+		const { vehicleId, type, dueDate, note, emailEnabled, emailSendAt } =
+			req.body ?? {}
 		if (!vehicleId || !type || !dueDate) {
 			return res
 				.status(400)
@@ -76,12 +91,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 			return res.status(404).json({ error: 'Vehicle not found' })
 		}
 
-		// Calculate default email send date (1 day before due date)
+		// Default `email_send_at` – lead days per type (reminderTypeEmailLeadDays).
+		// Anchor at local midnight (`T00:00:00`) so setDate + toISOString don't
+		// shift the day due to UTC offset.
 		const emailEnabledValue = emailEnabled !== false // default true
 		let emailSendAtValue = emailSendAt
 		if (!emailSendAtValue && emailEnabledValue) {
-			const dueDateObj = new Date(dueDate)
-			dueDateObj.setDate(dueDateObj.getDate() - 1)
+			const leadDays = reminderTypeEmailLeadDays[type] ?? 1
+			const dueDateObj = new Date(`${dueDate}T00:00:00`)
+			dueDateObj.setDate(dueDateObj.getDate() - leadDays)
 			emailSendAtValue = dueDateObj.toISOString().split('T')[0]
 		}
 
@@ -146,7 +164,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	}
 
 	if (req.method === 'PATCH') {
-		const { id, dueDate, note, isDone, emailEnabled, emailSendAt } = req.body ?? {}
+		const { id, dueDate, note, isDone, emailEnabled, emailSendAt } =
+			req.body ?? {}
 		if (!id) {
 			return res.status(400).json({ error: 'Reminder id is required' })
 		}
