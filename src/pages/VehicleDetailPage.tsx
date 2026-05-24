@@ -40,6 +40,18 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 	const [vinPageCebiaRemindersModalOpen, setVinPageCebiaRemindersModalOpen] =
 		useState(false)
 
+	// Vehicle detail shows registry + owner data — keep it out of the search
+	// index (homepage, info and brand pages stay indexable).
+	useEffect(() => {
+		const meta = document.createElement('meta')
+		meta.name = 'robots'
+		meta.content = 'noindex'
+		document.head.appendChild(meta)
+		return () => {
+			meta.remove()
+		}
+	}, [])
+
 	useEffect(() => {
 		const controller = new AbortController()
 		const { signal } = controller

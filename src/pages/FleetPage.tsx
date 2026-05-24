@@ -66,6 +66,24 @@ const FleetPage: FC = () => {
 		return () => controller.abort()
 	}, [ico])
 
+	// Full-page loader, matching the vehicle detail page.
+	if (loading) {
+		return (
+			<>
+				<Navigation />
+				<div className='container mt-5'>
+					<div className='text-center'>
+						<div className='spinner-border' role='status'>
+							<span className='visually-hidden'>Načítání...</span>
+						</div>
+						<p className='mt-3'>Načítání vozidel firmy...</p>
+					</div>
+				</div>
+				<Footer />
+			</>
+		)
+	}
+
 	return (
 		<>
 			<Navigation />
@@ -73,15 +91,7 @@ const FleetPage: FC = () => {
 				<h1 className='h4 mb-1'>Vozidla podle IČO</h1>
 				<p className='text-muted-ink num mb-3'>{ico}</p>
 
-				{loading && (
-					<div className='text-center my-5'>
-						<div className='spinner-border' role='status'>
-							<span className='visually-hidden'>Načítání…</span>
-						</div>
-					</div>
-				)}
-
-				{!loading && error && (
+				{error && (
 					<div className='alert alert-warning' role='alert'>
 						{error}
 					</div>
