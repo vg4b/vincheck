@@ -361,7 +361,9 @@ img {
 }
 
 .brand-logo {
-	max-width: 200px !important;
+	/* Cap at 200px but never exceed the column, so the logo can't overflow into
+	   the info text at the md breakpoint (768–991px). */
+	max-width: min(200px, 100%) !important;
 	width: auto;
 	height: auto;
 	padding-right: var(--space-5);

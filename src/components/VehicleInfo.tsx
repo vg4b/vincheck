@@ -250,7 +250,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 						loading='lazy'
 						decoding='async'
 						className='img-fluid logo-img brand-logo'
-						style={{ maxWidth: '200px', height: 'auto' }}
+						style={{ height: 'auto' }}
 						onError={(e) => {
 							// Fallback if logo not found
 							e.currentTarget.style.display = 'none'
