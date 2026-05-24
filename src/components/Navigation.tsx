@@ -90,6 +90,16 @@ const Navigation: React.FC = () => {
 							</Link>
 						</li>
 
+						<li className='nav-item'>
+							<Link
+								className={navLinkClass('/firma')}
+								to='/firma'
+								onClick={closeMenu}
+							>
+								Vozidla firmy
+							</Link>
+						</li>
+
 						<li className='nav-item dropdown'>
 							{/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
 							<a
@@ -149,16 +159,6 @@ const Navigation: React.FC = () => {
 								onClick={closeMenu}
 							>
 								Historie vozu
-							</Link>
-						</li>
-
-						<li className='nav-item'>
-							<Link
-								className={navLinkClass('/firma')}
-								to='/firma'
-								onClick={closeMenu}
-							>
-								Vozidla firmy
 							</Link>
 						</li>
 

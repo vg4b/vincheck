@@ -29,6 +29,18 @@ const FleetPage: FC = () => {
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState('')
 
+	// Results expose owner/registry data — keep this page out of the search index
+	// (the /firma search form stays indexable).
+	useEffect(() => {
+		const meta = document.createElement('meta')
+		meta.name = 'robots'
+		meta.content = 'noindex'
+		document.head.appendChild(meta)
+		return () => {
+			meta.remove()
+		}
+	}, [])
+
 	useEffect(() => {
 		const controller = new AbortController()
 		const run = async () => {
