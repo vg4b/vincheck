@@ -34,7 +34,9 @@ CREATE INDEX IF NOT EXISTS vehicle_owners_pcv_idx
 -- "fleet by IČO" endpoint. Composite (ico, pcv) so DISTINCT pcv streams from the
 -- ordered index and the LIMIT short-circuits; a plain (ico) index forces a
 -- hash-distinct over the whole fleet (~1M rows for big leasers => seconds).
-CREATE INDEX IF NOT EXISTS vehicle_owners_ico_idx
+-- NOTE: superseded the earlier plain `vehicle_owners_ico_idx (ico)` — the ingest
+-- drops both names, so the redundant (ico) index disappears on the next refresh.
+CREATE INDEX IF NOT EXISTS vehicle_owners_ico_pcv_idx
   ON vehicle_owners (ico, pcv) WHERE ico IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS vehicle_deregistration_pcv_idx
