@@ -126,6 +126,32 @@ hidden). `api/vehicle.ts` returns it as a top-level `History` key:
 - Stolen/export/dereg flags can lag the real event — always show with the registry date,
   worded "evidováno v registru".
 
+## Extension — company-owner timeline + lookup by IČO
+
+- **Timeline:** the panel renders `owners.companyOwners` (legal entities only —
+  private owners are excluded server-side) as a dated from–to list, owner vs
+  operator distinguished; each company name links to its fleet page.
+- **Lookup by IČO** (`/api/fleet?ico=…` → `/firma/:ico` page): reverse lookup of
+  vehicles registered to a legal entity. Cache-only (the live API has no
+  reverse-by-IČO). Backed by `vehicle_owners_ico_idx` (in `002` + the ingest
+  drop/rebuild cycle). **The index is required** — without it the query
+  seq-scans 91M rows and the connection times out (confirmed). Build it once on
+  the live DB as admin:
+
+  ```
+  psql '<ADMIN_URL>' -c "CREATE INDEX IF NOT EXISTS vehicle_owners_ico_idx ON vehicle_owners (ico) WHERE ico IS NOT NULL;"
+  ```
+
+  Big fleets reach 100k–800k vehicles (ŠkoFIN ≈ 775k), so the endpoint returns a
+  bounded **sample of 60** + a **count capped at 1000** (`countCapped` → "1000+");
+  no exact totals or full enumeration for giant fleets.
+
+Follow-ups: per-IP rate limiting on `/api/fleet`; OSVČ (sole traders) are legal
+entities with a public IČO but their name is personal — decide whether to surface
+them like companies; true pagination/sorting (v1 returns an unordered sample).
+
 ## Status
-🚧 In progress (2026-05-22). Backend + panel build on `feat/vehicle-history-panel`.
-Held from deploy until reviewed. Email/SEO plays (2, 3) are separate initiatives.
+🚧 Built on `feat/vehicle-history-panel` (history panel + company-owner timeline +
+IČO lookup), **held from deploy**. tsc/biome/build clean; history composition
+validated against real data. The IČO endpoint is pending the live index build
+(above) before it can be exercised. Email/SEO plays (2, 3) are separate.

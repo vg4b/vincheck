@@ -461,3 +461,99 @@ export function isCacheFresh(
 	const ageDays = (Date.now() - snap) / 86_400_000
 	return ageDays <= maxAgeDays
 }
+
+export type FleetVehicle = {
+	vin: string | null
+	znacka: string | null
+	model: string | null
+	oznaceni: string | null
+	rok: string | null
+	prvniRegistrace: string | null
+	status: string | null
+	current: boolean
+}
+
+export type FleetResult = {
+	ico: string
+	nazev: string | null
+	count: number // capped at FLEET_COUNT_CAP
+	countCapped: boolean // true => real total exceeds `count` (show "count+")
+	vehicles: FleetVehicle[]
+	snapshot: string | null
+}
+
+// Big leasing fleets reach hundreds of thousands of vehicles, so never scan the
+// whole set: return a bounded sample and a capped count. Needs vehicle_owners_ico_idx.
+const FLEET_PAGE_SIZE = 60
+const FLEET_COUNT_CAP = 1000
+
+/**
+ * Reverse lookup: vehicles where a legal entity (IČO) is/was owner or operator.
+ * Returns null if the cache isn't configured or the IČO has no vehicles.
+ * Cache-only — the live API has no reverse-by-IČO capability.
+ */
+export async function lookupVehiclesByIco(
+	ico: string
+): Promise<FleetResult | null> {
+	const p = getPool()
+	if (!p) {
+		return null
+	}
+
+	const [meta, info, ids] = await Promise.all([
+		p.query(
+			`SELECT source_snapshot::text AS snapshot FROM cache_meta WHERE dataset = 'vlastnik_provozovatel'`
+		),
+		p.query(
+			`SELECT
+        (SELECT nazev FROM vehicle_owners WHERE ico = $1 AND nazev IS NOT NULL LIMIT 1) AS nazev,
+        (SELECT count(*) FROM (
+           SELECT DISTINCT pcv FROM vehicle_owners WHERE ico = $1 LIMIT ${FLEET_COUNT_CAP + 1}
+         ) s) AS cnt`,
+			[ico]
+		),
+		p.query(
+			`SELECT DISTINCT pcv FROM vehicle_owners WHERE ico = $1 LIMIT ${FLEET_PAGE_SIZE}`,
+			[ico]
+		)
+	])
+
+	const cnt = Number(info.rows[0]?.cnt ?? 0)
+	if (cnt === 0) {
+		return null
+	}
+
+	const pcvs = (ids.rows as Array<{ pcv: unknown }>).map((r) => r.pcv)
+	const vehiclesRes = pcvs.length
+		? await p.query(
+				`SELECT r.vin, r.tovarni_znacka, r.typ, r.obchodni_oznaceni,
+                r.rok_vyroby, r.datum_prvni_registrace, r.status,
+                (SELECT bool_or(o.aktualni = 'True') FROM vehicle_owners o
+                  WHERE o.pcv = r.pcv AND o.ico = $2) AS current
+         FROM vehicle_registry r WHERE r.pcv = ANY($1::bigint[])`,
+				[pcvs, ico]
+			)
+		: { rows: [] as Array<Record<string, unknown>> }
+
+	const vehicles: FleetVehicle[] = (
+		vehiclesRes.rows as Array<Record<string, unknown>>
+	).map((r) => ({
+		vin: nullIfEmpty(r.vin),
+		znacka: nullIfEmpty(r.tovarni_znacka),
+		model: nullIfEmpty(r.typ),
+		oznaceni: nullIfEmpty(r.obchodni_oznaceni),
+		rok: nullIfEmpty(r.rok_vyroby),
+		prvniRegistrace: nullIfEmpty(r.datum_prvni_registrace),
+		status: nullIfEmpty(r.status),
+		current: r.current === true
+	}))
+
+	return {
+		ico,
+		nazev: nullIfEmpty(info.rows[0]?.nazev),
+		count: Math.min(cnt, FLEET_COUNT_CAP),
+		countCapped: cnt > FLEET_COUNT_CAP,
+		vehicles,
+		snapshot: (meta.rows[0]?.snapshot as string | undefined) ?? null
+	}
+}

@@ -1,4 +1,5 @@
 import type { FC } from 'react'
+import { Link } from 'react-router-dom'
 import type { StkResult, VehicleHistory } from '../types'
 import Icon from './Icon'
 
@@ -53,13 +54,11 @@ function buildFlags(h: VehicleHistory): Flag[] {
 const VehicleHistoryPanel: FC<{ history: VehicleHistory }> = ({ history }) => {
 	const { owners, inspections, deregistrations } = history
 	const flags = buildFlags(history)
-	const companies = Array.from(
-		new Set(
-			owners.companyOwners
-				.map((c) => c.nazev)
-				.filter((n): n is string => Boolean(n))
-		)
-	).slice(0, 3)
+	// Company owners as a chronological timeline (oldest first). Private owners
+	// are already excluded server-side (companyOwners = legal entities only).
+	const companyTimeline = [...owners.companyOwners].sort((a, b) =>
+		(a.from ?? '').localeCompare(b.from ?? '')
+	)
 
 	return (
 		<div className='card border-0 shadow-sm mt-4'>
@@ -99,14 +98,44 @@ const VehicleHistoryPanel: FC<{ history: VehicleHistory }> = ({ history }) => {
 								'provozovatelů'
 							)}
 						</div>
-						{owners.everCompanyOwned && (
-							<div className='small mt-1'>
-								<span className='badge text-bg-light border me-1'>
-									Firemní/podnikatelský subjekt v historii
-								</span>
-								{companies.length > 0 && (
-									<span className='text-muted-ink'>{companies.join(', ')}</span>
-								)}
+						{companyTimeline.length > 0 && (
+							<div className='small mt-2'>
+								<div className='fw-semibold mb-1'>
+									Firemní / podnikatelské subjekty v historii
+								</div>
+								<ul className='list-unstyled mb-0'>
+									{companyTimeline.map((c, i) => (
+										<li
+											key={`${c.ico ?? c.nazev ?? 'x'}-${c.from ?? i}`}
+											className='d-flex gap-2 mb-1'
+										>
+											<span
+												className='text-muted-ink text-nowrap'
+												style={{ minWidth: '9rem' }}
+											>
+												{fmtDate(c.from)} –{' '}
+												{c.current ? 'dosud' : fmtDate(c.to)}
+											</span>
+											<span>
+												{c.ico ? (
+													<Link to={`/firma/${c.ico}`}>
+														{c.nazev ?? `IČO ${c.ico}`}
+													</Link>
+												) : (
+													(c.nazev ?? 'Neuvedeno')
+												)}
+												{c.ico && (
+													<span className='text-muted-ink'> · IČO {c.ico}</span>
+												)}
+												{c.relation === 'operator' && (
+													<span className='badge text-bg-light border ms-1'>
+														provozovatel
+													</span>
+												)}
+											</span>
+										</li>
+									))}
+								</ul>
 							</div>
 						)}
 					</div>

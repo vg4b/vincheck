@@ -64,6 +64,27 @@ export interface VehicleHistory {
 	snapshot: string | null
 }
 
+export interface FleetVehicle {
+	vin: string | null
+	znacka: string | null
+	model: string | null
+	oznaceni: string | null
+	rok: string | null
+	prvniRegistrace: string | null
+	status: string | null
+	current: boolean
+}
+
+/** Result of the reverse "vehicles by IČO" lookup (/api/fleet). */
+export interface FleetResult {
+	ico: string
+	nazev: string | null
+	count: number
+	countCapped: boolean
+	vehicles: FleetVehicle[]
+	snapshot: string | null
+}
+
 export interface AuthUser {
 	id: string
 	email: string

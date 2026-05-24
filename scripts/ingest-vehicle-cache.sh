@@ -97,6 +97,7 @@ DROP INDEX IF EXISTS vehicle_registry_brand_idx;
 DROP INDEX IF EXISTS vehicle_registry_status_idx;
 DROP INDEX IF EXISTS vehicle_inspections_pcv_idx;
 DROP INDEX IF EXISTS vehicle_owners_pcv_idx;
+DROP INDEX IF EXISTS vehicle_owners_ico_idx;
 DROP INDEX IF EXISTS vehicle_deregistration_pcv_idx;
 SQL
 fi

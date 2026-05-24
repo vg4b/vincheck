@@ -1,4 +1,5 @@
 import type {
+	FleetResult,
 	VehicleData,
 	VehicleDataArray,
 	VehicleDataItem,
@@ -404,4 +405,46 @@ export async function fetchVehicleInfo(
 ): Promise<VehicleDataArray> {
 	const { fields } = await fetchVehicleInfoWithHistory(vin, tp, orv, options)
 	return fields
+}
+
+// Reverse lookup: vehicles for a legal-entity IČO (/api/fleet). Cache-only;
+// returns null on 404 (no vehicles found for that IČO).
+export async function fetchFleetByIco(
+	ico: string,
+	options?: FetchVehicleInfoOptions
+): Promise<FleetResult | null> {
+	const base =
+		typeof window !== 'undefined'
+			? '/api/fleet'
+			: 'https://vincheck-six.vercel.app/api/fleet'
+
+	let response: Response
+	try {
+		response = await fetch(`${base}?ico=${encodeURIComponent(ico)}`, {
+			mode: 'cors',
+			credentials: 'omit',
+			signal: options?.signal,
+			headers: { 'Content-Type': 'application/json' }
+		})
+	} catch (err) {
+		if (err instanceof DOMException && err.name === 'AbortError') {
+			throw err
+		}
+		throw new VehicleLookupError('unknown')
+	}
+
+	if (response.status === 404) {
+		return null
+	}
+	if (!response.ok) {
+		throw new VehicleLookupError(
+			response.status >= 500 ? 'server_error' : 'unknown'
+		)
+	}
+
+	try {
+		return (await response.json()) as FleetResult
+	} catch {
+		throw new VehicleLookupError('unknown')
+	}
 }
