@@ -31,9 +31,11 @@ CREATE INDEX IF NOT EXISTS vehicle_owners_pcv_idx
   ON vehicle_owners (pcv, datum_od DESC);
 
 -- Reverse lookup: vehicles owned/operated by a legal entity (IČO). Powers the
--- "fleet by IČO" endpoint. Only legal entities carry an IČO.
+-- "fleet by IČO" endpoint. Composite (ico, pcv) so DISTINCT pcv streams from the
+-- ordered index and the LIMIT short-circuits; a plain (ico) index forces a
+-- hash-distinct over the whole fleet (~1M rows for big leasers => seconds).
 CREATE INDEX IF NOT EXISTS vehicle_owners_ico_idx
-  ON vehicle_owners (ico) WHERE ico IS NOT NULL;
+  ON vehicle_owners (ico, pcv) WHERE ico IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS vehicle_deregistration_pcv_idx
   ON vehicle_deregistration (pcv);

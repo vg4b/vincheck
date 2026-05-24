@@ -12,6 +12,7 @@
  * VIN are served from Vercel's CDN — caps DB/upstream load and cost under bursts.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { rateLimit } from './_rateLimit'
 import {
 	isCacheConfigured,
 	isCacheFresh,
@@ -73,6 +74,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	}
 	if (req.method !== 'GET') {
 		return res.status(405).json({ error: 'Method not allowed' })
+	}
+	if (!rateLimit(req, res, { limit: 60, windowMs: 60_000 })) {
+		return
 	}
 
 	const vin = first(req.query.vin)

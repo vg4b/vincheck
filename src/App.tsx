@@ -6,6 +6,7 @@ import SklikAd from './components/SklikAd'
 import SklikScript from './components/SklikScript'
 import ClientZonePage from './pages/ClientZonePage'
 import FleetPage from './pages/FleetPage'
+import FleetSearchPage from './pages/FleetSearchPage'
 import HavarijniPojisteniPage from './pages/HavarijniPojisteniPage'
 import HomePage from './pages/HomePage'
 import KompletniHistorieVozuPage from './pages/KompletniHistorieVozuPage'
@@ -52,6 +53,7 @@ function App() {
 				<Route path='/vin/:code' element={<VehicleDetailPage type='vin' />} />
 				<Route path='/tp/:code' element={<VehicleDetailPage type='tp' />} />
 				<Route path='/orv/:code' element={<VehicleDetailPage type='orv' />} />
+				<Route path='/firma' element={<FleetSearchPage />} />
 				<Route path='/firma/:ico' element={<FleetPage />} />
 				{/* Legacy route for direct access (auto-detects VIN/TP/ORV from code length) */}
 				<Route path='/:code' element={<VehicleDetailPage />} />

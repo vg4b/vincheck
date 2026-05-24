@@ -10,6 +10,7 @@
  * See docs/VEHICLE_HISTORY_PANEL.md.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { rateLimit } from './_rateLimit'
 import { isCacheConfigured, lookupVehiclesByIco } from './_vehicleCache'
 
 const first = (value: string | string[] | undefined): string | undefined =>
@@ -50,6 +51,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	}
 	if (req.method !== 'GET') {
 		return res.status(405).json({ error: 'Method not allowed' })
+	}
+	// Heavier endpoint (fleet scans) — keep the per-IP allowance tight.
+	if (!rateLimit(req, res, { limit: 20, windowMs: 60_000 })) {
+		return
 	}
 
 	// Czech IČO is 8 digits; accept 5–9 to be lenient on leading zeros / edge cases.
