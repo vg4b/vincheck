@@ -119,9 +119,37 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	)
 
 	const detailSectionBlocks = useMemo(() => {
+		let dataRowsShown = 0
+		let promoInserted = false
+
+		const buildPromoRow = () => (
+			<tr
+				key='cebia-inline-promo'
+				style={{ backgroundColor: 'var(--brand-50)' }}
+			>
+				<th className='align-middle' style={{ color: 'var(--brand-700)' }}>
+					Historie a původ vozidla
+				</th>
+				<td className='text-end'>
+					<a
+						href={cebia.getDirectUrl(vinCode, 'vehicle_info_table')}
+						target='_blank'
+						rel='noopener noreferrer'
+						onClick={() => {
+							if (!onCebiaExternalNavigate) return
+							window.setTimeout(onCebiaExternalNavigate, 0)
+						}}
+					>
+						Prověřit historii na Cebia.cz ➜
+					</a>
+				</td>
+			</tr>
+		)
+
 		const sections = groupedData.map((group) => {
 			const bodyRows: React.ReactNode[] = []
 			for (const item of group.items) {
+				dataRowsShown += 1
 				bodyRows.push(
 					<tr key={item.name}>
 						<th scope='row' className='w-50'>
@@ -134,6 +162,10 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 						/>
 					</tr>
 				)
+				if (dataRowsShown === 10 && !promoInserted) {
+					bodyRows.push(buildPromoRow())
+					promoInserted = true
+				}
 			}
 
 			const headingId = `vehicle-info-group-${group.categoryId}`
@@ -170,8 +202,36 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 			)
 		})
 
-		return sections
-	}, [groupedData])
+		const trailingPromo =
+			!promoInserted && filteredData.length > 0 ? (
+				<div
+					className='brand-callout mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3'
+					key='cebia-promo-trailing'
+				>
+					<span>
+						<strong>Historie a původ vozidla</strong>
+					</span>
+					<a
+						href={cebia.getDirectUrl(vinCode, 'vehicle_info_table')}
+						target='_blank'
+						rel='noopener noreferrer'
+						onClick={() => {
+							if (!onCebiaExternalNavigate) return
+							window.setTimeout(onCebiaExternalNavigate, 0)
+						}}
+					>
+						Prověřit historii na Cebia.cz ➜
+					</a>
+				</div>
+			) : null
+
+		return (
+			<>
+				{sections}
+				{trailingPromo}
+			</>
+		)
+	}, [groupedData, filteredData.length, vinCode, onCebiaExternalNavigate])
 
 	const cleanVin = vinCode.replace(/[^a-zA-Z0-9]/g, '')
 	const historyUrl =
