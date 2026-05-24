@@ -154,6 +154,16 @@ const Navigation: React.FC = () => {
 
 						<li className='nav-item'>
 							<Link
+								className={navLinkClass('/firma')}
+								to='/firma'
+								onClick={closeMenu}
+							>
+								Vozidla firmy
+							</Link>
+						</li>
+
+						<li className='nav-item'>
+							<Link
 								className={navLinkClass('/upozorneni-na-terminy')}
 								to='/upozorneni-na-terminy'
 								onClick={closeMenu}
