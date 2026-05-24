@@ -261,7 +261,20 @@ export function getDataValue(
 
 // Optimized logo source getter
 export function getLogoSrc(brand: string): string {
-	return brandLogos[brand] || '/logos/default_logo.svg'
+	if (!brand) {
+		return '/logos/default_logo.svg'
+	}
+	const upper = brand.trim().toUpperCase()
+	// Registry brand strings vary in separators ("LAND ROVER" vs "LAND-ROVER"),
+	// so try the raw key, a hyphenated form, then a separator-insensitive match.
+	const hyphenated = upper.replace(/[\s_]+/g, '-')
+	if (brandLogos[upper]) return brandLogos[upper]
+	if (brandLogos[hyphenated]) return brandLogos[hyphenated]
+	const stripped = upper.replace(/[\s_-]+/g, '')
+	for (const [key, src] of Object.entries(brandLogos)) {
+		if (key.replace(/[\s_-]+/g, '') === stripped) return src
+	}
+	return '/logos/default_logo.svg'
 }
 
 // Helper function to format ISO date string to Czech format (d.m.yyyy)
