@@ -445,11 +445,14 @@ export async function lookupVehicleFromCache(
 	}
 }
 
-/** Cache is "fresh" if the registry snapshot is within `maxAgeDays` (the source
- *  publishes monthly, so ~35 days covers a normal cycle). */
+/** Cache is "fresh" if the registry snapshot is within `maxAgeDays`. The source
+ *  publishes monthly on the 12th of the following month, so a snapshot dated
+ *  early in a month is ~40 days old just before the next one lands — 45 covers
+ *  the whole cycle plus a few days to run the ingest, so the composed History
+ *  keeps showing instead of falling back to the live API (which has none). */
 export function isCacheFresh(
 	snapshot: string | null,
-	maxAgeDays = 35
+	maxAgeDays = 45
 ): boolean {
 	if (!snapshot) {
 		return false
