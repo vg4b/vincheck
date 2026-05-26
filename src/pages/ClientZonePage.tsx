@@ -1704,14 +1704,24 @@ const ReminderForm: React.FC<{
 	tomorrowDate.setDate(tomorrowDate.getDate() + 1)
 	const tomorrow = tomorrowDate.toISOString().split('T')[0]
 
-	// Default email-send date derived from due date + reminder type. When the
-	// due date is sooner than the type's lead time, this lands in the past →
-	// backend sends the email immediately on create; we surface that to the user.
+	// Default email-send date derived from due date + reminder type. When the due
+	// date is sooner than the type's lead time, this lands in the past.
 	const computedEmailSendAt = dueDate
 		? getDefaultEmailSendDate(dueDate, type)
 		: ''
 	const computedDefaultIsPast =
 		computedEmailSendAt !== '' && computedEmailSendAt <= today
+
+	// Rather than silently firing the email immediately on save (a surprise),
+	// force a custom future date when the default would be in the past — pre-fill
+	// it to tomorrow so it's a nudge, not friction.
+	const forceCustomEmailDate = emailEnabled && computedDefaultIsPast
+	useEffect(() => {
+		if (forceCustomEmailDate) {
+			setUseCustomEmailDate(true)
+			setEmailSendAt((prev) => prev || tomorrow)
+		}
+	}, [forceCustomEmailDate, tomorrow])
 
 	const handleSubmit = async (event: React.FormEvent) => {
 		event.preventDefault()
@@ -1728,15 +1738,17 @@ const ReminderForm: React.FC<{
 			return
 		}
 
-		// Validate custom email send date is tomorrow at earliest
-		if (
-			emailEnabled &&
-			useCustomEmailDate &&
-			emailSendAt &&
-			emailSendAt <= today
-		) {
-			setError('Datum odeslání emailu musí být nejdříve zítra.')
-			return
+		// A custom send date must be a real future date — no silent fallback to an
+		// immediate send via an empty or past value.
+		if (emailEnabled && useCustomEmailDate) {
+			if (!emailSendAt) {
+				setError('Zvolte datum odeslání emailu.')
+				return
+			}
+			if (emailSendAt <= today) {
+				setError('Datum odeslání emailu musí být nejdříve zítra.')
+				return
+			}
 		}
 
 		const finalEmailSendAt = emailEnabled
@@ -1843,13 +1855,13 @@ const ReminderForm: React.FC<{
 										<> ({formatDate(computedEmailSendAt)})</>
 									)}
 									.
-									{computedDefaultIsPast && (
-										<div className='text-amber mt-1'>
-											Datum odeslání je v minulosti – email bude odeslán ihned
-											po uložení. Pro pozdější odeslání zaškrtněte „Zvolit
-											vlastní datum odeslání".
-										</div>
-									)}
+								</div>
+							)}
+							{forceCustomEmailDate && (
+								<div className='form-text text-amber mb-2'>
+									Výchozí datum odeslání ({reminderTypeEmailLeadLabel[type]}) by
+									bylo v minulosti. Zvolte prosím datum odeslání emailu
+									(nejdříve zítra).
 								</div>
 							)}
 							<div className='form-check mb-2'>
@@ -1858,6 +1870,7 @@ const ReminderForm: React.FC<{
 									className='form-check-input'
 									id={`customEmailDate-${vehicleId}`}
 									checked={useCustomEmailDate}
+									disabled={forceCustomEmailDate}
 									onChange={(event) =>
 										setUseCustomEmailDate(event.target.checked)
 									}
