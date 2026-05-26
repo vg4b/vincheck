@@ -64,7 +64,7 @@ const reminderTypeIcons: Record<ReminderType, string> = {
 // KEEP IN SYNC with api/client/reminders.ts (reminderTypeEmailLeadDays).
 // See docs/REMINDER_DEFAULT_DATES.md.
 const reminderTypeEmailLeadDays: Record<ReminderType, number> = {
-	stk: 42,
+	stk: 14,
 	povinne_ruceni: 56,
 	havarijni_pojisteni: 56,
 	servis: 14,
@@ -75,7 +75,7 @@ const reminderTypeEmailLeadDays: Record<ReminderType, number> = {
 
 /** Human-readable lead-time label per type (for the Add Reminder form hint). */
 const reminderTypeEmailLeadLabel: Record<ReminderType, string> = {
-	stk: '6 týdnů před termínem',
+	stk: '2 týdny před termínem',
 	povinne_ruceni: '8 týdnů před termínem',
 	havarijni_pojisteni: '8 týdnů před termínem',
 	servis: '2 týdny před termínem',

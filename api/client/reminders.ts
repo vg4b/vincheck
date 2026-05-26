@@ -18,7 +18,7 @@ const reminderTypes = new Set([
 // KEEP IN SYNC with src/pages/ClientZonePage.tsx (reminderTypeEmailLeadDays).
 // See docs/REMINDER_DEFAULT_DATES.md.
 const reminderTypeEmailLeadDays: Record<string, number> = {
-	stk: 42,
+	stk: 14,
 	povinne_ruceni: 56,
 	havarijni_pojisteni: 56,
 	servis: 14,
