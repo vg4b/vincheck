@@ -71,9 +71,9 @@ const BENEFITS = [
 		desc: 'Srovnáte ceny pojišťoven na jednom místě'
 	},
 	{
-		icon: '📋',
-		title: 'Online bez volání',
-		desc: 'Sjednání i správa pojištění zdarma, bez telefonátů'
+		icon: '🔄',
+		title: 'Vyplatí se každý rok',
+		desc: 'Bonus se při prodloužení smlouvy nepřepočítá – srovnáním ušetříte'
 	},
 	{
 		icon: '💰',
@@ -112,8 +112,10 @@ const SjednatPojisteniPage: React.FC = () => {
 			<div className='container mt-5 mb-5'>
 				<h1 className='mb-3'>Sjednat pojištění vozidla</h1>
 				<p className='text-muted mb-4'>
-					Vyberte typ pojištění a porovnejte si nabídky pojišťoven přímo zde –
-					online, bez telefonátů.
+					Vyberte typ pojištění a porovnejte si nabídky pojišťoven přímo zde
+					online a zdarma. Vyplatí se to každý rok – při prodloužení smlouvy se
+					automaticky nepřepočítává bonus za bezeškodní průběh, takže novým
+					srovnáním často ušetříte.
 				</p>
 
 				{/* Přepínač typu pojištění */}
