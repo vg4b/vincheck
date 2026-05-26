@@ -109,6 +109,36 @@ const PrivacyPolicyPage: React.FC = () => {
 							nám pomáhají provozovat web a poskytovat služby:
 						</p>
 
+						<h3 className='h5 mt-3'>Hosting a technická infrastruktura</h3>
+						<ul>
+							<li>
+								<strong>Vercel Inc.</strong> (USA)
+								<br />
+								<em>Služby:</em> hosting webové aplikace, CDN a serverless
+								funkce.
+								<br />
+								<em>Účel:</em> provoz webu a zpracování technických údajů (vč.
+								IP adresy) v rámci požadavků. Přenos do USA na základě
+								standardních smluvních doložek (SCC).
+							</li>
+							<li>
+								<strong>Neon</strong> (managed PostgreSQL)
+								<br />
+								<em>Služby:</em> databáze registrovaných uživatelů.
+								<br />
+								<em>Účel:</em> uložení uživatelských účtů, uložených vozidel a
+								termínů upozornění (e-mail, VIN, data).
+							</li>
+							<li>
+								<strong>Scaleway SAS</strong> (Francie, EU)
+								<br />
+								<em>Služby:</em> managed PostgreSQL v EU.
+								<br />
+								<em>Účel:</em> mezipaměť dat z veřejného registru silničních
+								vozidel pro rychlejší vyhledávání.
+							</li>
+						</ul>
+
 						<h3 className='h5 mt-3'>Analytika a Reklama</h3>
 						<ul>
 							<li>
@@ -145,7 +175,9 @@ const PrivacyPolicyPage: React.FC = () => {
 								vozidel)
 							</li>
 							<li>
-								<strong>eSpolupráce</strong> (affiliate program ePojištění.cz)
+								<strong>Elephant Orchestra, s.r.o.</strong> (provozovatel
+								affiliate sítě eSpolupráce.cz; Rohanské nábřeží 678/29, Praha 8
+								– Karlín, IČO: 03272974)
 								<br />
 								<em>Partner:</em> ePojištění.cz – srovnání a sjednání pojištění
 								(povinné ručení, havarijní pojištění). Srovnávač je na stránce
