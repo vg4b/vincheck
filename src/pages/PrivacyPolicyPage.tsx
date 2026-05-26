@@ -100,6 +100,34 @@ const PrivacyPolicyPage: React.FC = () => {
 								lišty).
 							</li>
 						</ul>
+
+						<h3 className='h5 mt-4'>
+							D. Údaje z veřejného registru silničních vozidel
+						</h3>
+						<p>
+							Pro zobrazení technických údajů, historie technických prohlídek
+							(STK), počtu vlastníků a provozovatelů a dalších informací o
+							vozidle pracujeme s daty z veřejného registru silničních vozidel
+							(otevřená data Ministerstva dopravy ČR). Tato data udržujeme ve
+							vlastní mezipaměti (viz zpracovatel Scaleway níže) pro rychlejší a
+							spolehlivější vyhledávání. U právnických osob a podnikatelů mohou
+							tato data zahrnovat název, IČO a adresu vlastníka či
+							provozovatele; údaje o fyzických osobách jsou ve zdroji
+							anonymizovány.
+						</p>
+						<ul>
+							<li>
+								<strong>Zdroj:</strong> veřejně dostupná otevřená data dle
+								zákona č. 106/1999 Sb. (svobodný přístup k informacím);
+								redistribuce povolena.
+							</li>
+							<li>
+								<strong>Právní důvod:</strong> Oprávněný zájem správce
+								(poskytnutí užitečné a transparentní informace o vozidle z
+								veřejných zdrojů). Proti tomuto zpracování můžete kdykoli
+								uplatnit námitku (viz část „Vaše práva“).
+							</li>
+						</ul>
 					</section>
 
 					<section className='mb-5'>
@@ -112,27 +140,31 @@ const PrivacyPolicyPage: React.FC = () => {
 						<h3 className='h5 mt-3'>Hosting a technická infrastruktura</h3>
 						<ul>
 							<li>
-								<strong>Vercel Inc.</strong> (USA)
+								<strong>Vercel Inc.</strong> (USA) – hosting v regionu EU
+								(Frankfurt, fra1)
 								<br />
 								<em>Služby:</em> hosting webové aplikace, CDN a serverless
 								funkce.
 								<br />
 								<em>Účel:</em> provoz webu a zpracování technických údajů (vč.
-								IP adresy) v rámci požadavků. Přenos do USA na základě
-								standardních smluvních doložek (SCC).
+								IP adresy) v rámci požadavků. Data jsou hostována v EU; případný
+								přístup ze strany mateřské společnosti v USA je ošetřen
+								standardními smluvními doložkami (SCC).
 							</li>
 							<li>
-								<strong>Neon</strong> (managed PostgreSQL)
+								<strong>Databricks, Inc.</strong> (služba Neon – managed
+								PostgreSQL), region EU (Frankfurt, AWS eu-central-1)
 								<br />
 								<em>Služby:</em> databáze registrovaných uživatelů.
 								<br />
 								<em>Účel:</em> uložení uživatelských účtů, uložených vozidel a
-								termínů upozornění (e-mail, VIN, data).
+								termínů upozornění (e-mail, VIN, data). Data jsou hostována v
+								EU; případný přístup z USA je ošetřen SCC.
 							</li>
 							<li>
-								<strong>Scaleway SAS</strong> (Francie, EU)
+								<strong>Scaleway, S.A.S.</strong> (Francie, EU)
 								<br />
-								<em>Služby:</em> managed PostgreSQL v EU.
+								<em>Služby:</em> managed PostgreSQL v regionu EU.
 								<br />
 								<em>Účel:</em> mezipaměť dat z veřejného registru silničních
 								vozidel pro rychlejší vyhledávání.
