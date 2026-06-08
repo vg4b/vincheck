@@ -248,7 +248,7 @@ code {
    !important is needed to beat Bootstrap's .dropdown-menu chrome
    (background, border, shadow) which is applied via class selectors of
    equal specificity AND inline utility classes (shadow-sm, border-0). */
-@media (max-width: 1199.98px) {
+@media (max-width: 1399.98px) {
 	/* Force ul to full width so dropdown opening can't reflow the parent
 	   and shift the nav left (ms-auto would otherwise re-park it). */
 	.navbar .navbar-collapse .navbar-nav {
@@ -267,9 +267,17 @@ code {
 		text-align: center !important;
 	}
 
+	/* The logout control is a <button class="nav-link btn btn-link">; .btn
+	   makes it inline-block so it shrinks to its text and parks left. Force
+	   block + full width so its centered text lines up with the anchors. */
+	.navbar .navbar-nav .nav-link.btn {
+		display: block !important;
+		width: 100% !important;
+	}
+
 	/* Dropdown menu — strip the floating-card chrome so it reads as an
 	   inline continuation of the nav. */
-	.navbar-expand-xl .navbar-nav .dropdown-menu,
+	.navbar-expand-xxl .navbar-nav .dropdown-menu,
 	.navbar .dropdown-menu {
 		position: static !important;
 		float: none !important;

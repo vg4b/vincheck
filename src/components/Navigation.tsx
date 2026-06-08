@@ -48,11 +48,11 @@ const Navigation: React.FC = () => {
 	}, [location.pathname])
 
 	const navLinkClass = (path: string) =>
-		`nav-link px-3 rounded text-nowrap ${isActive(path) ? 'active' : ''}`
+		`nav-link px-2 rounded text-nowrap ${isActive(path) ? 'active' : ''}`
 
 	return (
 		<nav
-			className='navbar navbar-expand-xl navbar-light fixed-top px-0'
+			className='navbar navbar-expand-xxl navbar-light fixed-top px-0'
 			ref={navRef}
 		>
 			<div className='container-fluid px-0 px-lg-4'>
@@ -62,7 +62,7 @@ const Navigation: React.FC = () => {
 					<span className='d-sm-none'>VINInfo</span>
 				</Link>
 
-				<div className='d-flex d-xl-none align-items-center ms-auto'>
+				<div className='d-flex d-xxl-none align-items-center ms-auto'>
 					<Link to='/klientska-zona' className='btn-brand btn-sm me-2'>
 						Můj účet
 					</Link>
@@ -100,13 +100,42 @@ const Navigation: React.FC = () => {
 							</Link>
 						</li>
 
+						<li className='nav-item'>
+							<Link
+								className={navLinkClass('/sjednat-pojisteni')}
+								to='/sjednat-pojisteni?src=nav'
+								onClick={closeMenu}
+							>
+								Sjednat pojištění
+							</Link>
+						</li>
+
+						<li className='nav-item'>
+							<Link
+								className={navLinkClass('/kompletni-historie-vozu')}
+								to='/kompletni-historie-vozu'
+								onClick={closeMenu}
+							>
+								Historie vozu
+							</Link>
+						</li>
+
+						<li className='nav-item'>
+							<Link
+								className={navLinkClass('/upozorneni-na-terminy')}
+								to='/upozorneni-na-terminy'
+								onClick={closeMenu}
+							>
+								Termíny
+							</Link>
+						</li>
+
 						<li className='nav-item dropdown'>
 							{/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
 							<a
-								className={`nav-link px-3 rounded dropdown-toggle text-nowrap ${
+								className={`nav-link px-2 rounded dropdown-toggle text-nowrap ${
 									isActive('/povinne-ruceni') ||
-									isActive('/havarijni-pojisteni') ||
-									isActive('/sjednat-pojisteni')
+									isActive('/havarijni-pojisteni')
 										? 'active'
 										: ''
 								}`}
@@ -116,21 +145,9 @@ const Navigation: React.FC = () => {
 								aria-expanded='false'
 								onClick={(e) => e.preventDefault()}
 							>
-								Pojištění
+								Rádce
 							</a>
 							<ul className='dropdown-menu dropdown-menu-end shadow-sm border-0'>
-								<li>
-									<Link
-										className={`dropdown-item fw-semibold ${isActive('/sjednat-pojisteni') ? 'active' : ''}`}
-										to='/sjednat-pojisteni?src=nav'
-										onClick={closeMenu}
-									>
-										Sjednat pojištění
-									</Link>
-								</li>
-								<li>
-									<hr className='dropdown-divider' />
-								</li>
 								<li>
 									<Link
 										className={`dropdown-item ${isActive('/povinne-ruceni') ? 'active' : ''}`}
@@ -152,44 +169,14 @@ const Navigation: React.FC = () => {
 							</ul>
 						</li>
 
-						<li className='nav-item'>
-							<Link
-								className={navLinkClass('/kompletni-historie-vozu')}
-								to='/kompletni-historie-vozu'
-								onClick={closeMenu}
-							>
-								Historie vozu
-							</Link>
-						</li>
-
-						<li className='nav-item'>
-							<Link
-								className={navLinkClass('/upozorneni-na-terminy')}
-								to='/upozorneni-na-terminy'
-								onClick={closeMenu}
-							>
-								Upozornění
-							</Link>
-						</li>
-
-						<li className='nav-item d-none d-xl-block'>
+						<li className='nav-item d-none d-xxl-block'>
 							<span className='nav-link px-2 text-muted-ink'>|</span>
 						</li>
 
-						<li className='nav-item d-none d-xl-block'>
+						<li className='nav-item d-none d-xxl-block'>
 							<Link
 								to='/klientska-zona'
 								className='btn-brand text-nowrap'
-								onClick={closeMenu}
-							>
-								Moje VINInfo
-							</Link>
-						</li>
-
-						<li className='nav-item d-xl-none'>
-							<Link
-								className={navLinkClass('/klientska-zona')}
-								to='/klientska-zona'
 								onClick={closeMenu}
 							>
 								Moje VINInfo
@@ -200,7 +187,7 @@ const Navigation: React.FC = () => {
 							{user ? (
 								<button
 									type='button'
-									className='nav-link px-3 btn btn-link text-decoration-none text-nowrap text-muted-ink'
+									className='nav-link px-2 btn btn-link text-decoration-none text-nowrap text-muted-ink'
 									onClick={handleLogout}
 								>
 									Odhlásit
