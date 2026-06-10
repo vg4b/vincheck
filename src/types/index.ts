@@ -14,6 +14,7 @@ export type VehicleDataArray = VehicleDataItem[]
 
 export type StkResult = 'pass' | 'defects' | 'unfit' | 'unknown'
 export type OwnerRelation = 'owner' | 'operator' | 'other'
+export type SubjectType = 'company' | 'private' | 'unknown'
 
 /** Public-registry "history-lite" composed server-side from the companion
  *  tables; present only on a cache hit. See docs/VEHICLE_HISTORY_PANEL.md. */
@@ -25,6 +26,17 @@ export interface VehicleHistory {
 		everCompanyOwned: boolean
 		currentlyCompany: boolean
 		companyOwners: Array<{
+			ico: string | null
+			nazev: string | null
+			from: string | null
+			to: string | null
+			current: boolean
+			relation: OwnerRelation
+		}>
+		/** Full owner/operator timeline (oldest first). Individuals are
+		 *  anonymised — ico/nazev stay null, only dates + relation are shown. */
+		timeline: Array<{
+			subjectType: SubjectType
 			ico: string | null
 			nazev: string | null
 			from: string | null
@@ -47,6 +59,9 @@ export interface VehicleHistory {
 			result: StkResult
 			nazevStk: string | null
 			typ: string | null
+			/** Synthetic administrative record (e.g. new-vehicle initial validity),
+			 *  not a real inspection — shown but not marked as a pravidelná STK. */
+			administrative: boolean
 		}>
 	}
 	flags: {
@@ -60,6 +75,12 @@ export interface VehicleHistory {
 		from: string | null
 		to: string | null
 		reason: string | null
+	}>
+	/** Import records. Non-empty = imported; the CZ registry has no foreign
+	 *  history for it (where a Cebia report adds the most value). */
+	imports: Array<{
+		country: string | null
+		date: string | null
 	}>
 	snapshot: string | null
 }

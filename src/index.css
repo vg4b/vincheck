@@ -903,6 +903,170 @@ img {
 }
 
 /* =========================================================
+   Vehicle detail page — hero, stat tiles, collapsible specs
+   ========================================================= */
+
+/* Hero header: logo + title + VIN, with an action rail on desktop. */
+.vehicle-hero {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--space-5);
+}
+@media (min-width: 768px) {
+	.vehicle-hero {
+		grid-template-columns: auto 1fr auto;
+		align-items: center;
+	}
+	/* No brand logo → drop the logo column so the title starts at the edge. */
+	.vehicle-hero--no-logo {
+		grid-template-columns: 1fr auto;
+	}
+}
+
+.vehicle-hero-logo {
+	max-height: 72px;
+	width: auto;
+	object-fit: contain;
+}
+
+.vehicle-hero-title {
+	font-size: clamp(1.5rem, 2vw + 1rem, 2rem);
+	line-height: 1.15;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+	color: var(--ink-900);
+	margin: 0;
+}
+
+.vehicle-hero-subtitle {
+	color: var(--ink-500);
+	font-size: 0.95rem;
+}
+
+/* Monospace VIN pill with a copy affordance. */
+.vin-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	background-color: var(--surface-soft);
+	border: 1px solid var(--ink-300);
+	border-radius: var(--radius-sm);
+	padding: 2px var(--space-2);
+	font-variant-numeric: tabular-nums;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: 0.9rem;
+	letter-spacing: 0.02em;
+}
+.vin-copy-btn {
+	border: 0;
+	background: transparent;
+	color: var(--ink-500);
+	padding: 0;
+	display: inline-flex;
+	align-items: center;
+	cursor: pointer;
+	line-height: 1;
+}
+.vin-copy-btn:hover {
+	color: var(--brand-600);
+}
+
+/* At-a-glance stat tiles. */
+.vehicle-stats {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--space-3);
+}
+@media (min-width: 768px) {
+	.vehicle-stats {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+}
+.stat-tile {
+	background-color: var(--surface);
+	border: 1px solid var(--ink-300);
+	border-radius: var(--radius-md);
+	padding: var(--space-3) var(--space-4);
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+.stat-tile-label {
+	font-size: 0.72rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--ink-500);
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+.stat-tile-value {
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: var(--ink-900);
+	line-height: 1.2;
+}
+.stat-tile-value a {
+	color: inherit;
+	text-decoration: none;
+}
+.stat-tile-value a:hover {
+	text-decoration: underline;
+}
+
+/* Collapsible spec group built on native <details>. */
+.spec-group {
+	background-color: var(--surface);
+	border: 1px solid var(--ink-300);
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-sm);
+	overflow: hidden;
+}
+.spec-group + .spec-group {
+	margin-top: var(--space-4);
+}
+.spec-summary {
+	list-style: none;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-4);
+	background-color: var(--surface-soft);
+	font-weight: 600;
+	color: var(--ink-900);
+}
+.spec-summary::-webkit-details-marker {
+	display: none;
+}
+.spec-summary:hover {
+	background-color: color-mix(
+		in srgb,
+		var(--brand-50) 60%,
+		var(--surface-soft)
+	);
+}
+.spec-summary .spec-chevron {
+	margin-left: auto;
+	color: var(--ink-500);
+	transition: transform 0.15s ease;
+}
+details[open] > .spec-summary .spec-chevron {
+	transform: rotate(90deg);
+}
+.spec-summary .spec-count {
+	font-weight: 400;
+	color: var(--ink-500);
+	font-size: 0.85rem;
+}
+
+/* Padded body for spec-groups whose content is prose/lists (not a flush table). */
+.spec-body {
+	padding: var(--space-4) var(--space-5) var(--space-5);
+}
+
+/* =========================================================
    Reminder row left-accent stripes (ClientZonePage)
    ========================================================= */
 .reminder-row {

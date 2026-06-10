@@ -22,6 +22,7 @@ export type IconName =
 	| 'external-link'
 	| 'plus'
 	| 'pencil'
+	| 'copy'
 
 interface IconProps {
 	name: IconName
@@ -159,6 +160,12 @@ const PATHS: Record<IconName, React.ReactNode> = {
 			<path d='m15 5 4 4' />
 		</>
 	),
+	copy: (
+		<>
+			<rect width='14' height='14' x='8' y='8' rx='2' ry='2' />
+			<path d='M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2' />
+		</>
+	)
 }
 
 const Icon: React.FC<IconProps> = ({
@@ -167,7 +174,7 @@ const Icon: React.FC<IconProps> = ({
 	className,
 	style,
 	strokeWidth = 2,
-	'aria-label': ariaLabel,
+	'aria-label': ariaLabel
 }) => {
 	return (
 		<svg

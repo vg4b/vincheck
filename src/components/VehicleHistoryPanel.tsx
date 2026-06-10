@@ -1,6 +1,6 @@
 import type { FC } from 'react'
 import { Link } from 'react-router-dom'
-import type { StkResult, VehicleHistory } from '../types'
+import type { OwnerRelation, StkResult, VehicleHistory } from '../types'
 import Icon from './Icon'
 
 // Czech plural picker: 1 / 2–4 / 5+
@@ -16,6 +16,18 @@ function fmtDate(s: string | null): string {
 	return m ? `${Number(m[3])}. ${Number(m[2])}. ${m[1]}` : s
 }
 
+// vehicle_inspections.typ: "P - Pravidelná", "E - Evidenční", … Label by the
+// leading code so the evidence inspections read distinctly from regular STK.
+function inspTypeLabel(typ: string | null): string | null {
+	if (!typ) return null
+	const code = typ.trim().charAt(0).toUpperCase()
+	if (code === 'P') return 'pravidelná'
+	if (code === 'E') return 'evidenční'
+	const dash = typ.indexOf('-')
+	const rest = dash >= 0 ? typ.slice(dash + 1).trim() : typ.trim()
+	return rest ? rest.toLowerCase() : null
+}
+
 const STK_LABEL: Record<StkResult, string> = {
 	pass: 'Způsobilé',
 	defects: 'Způsobilé s vadami',
@@ -28,6 +40,18 @@ const STK_COLOR: Record<StkResult, string> = {
 	defects: '#b8860b',
 	unfit: 'var(--accent-red)',
 	unknown: '#6c757d'
+}
+
+const RELATION_LABEL: Record<OwnerRelation, string> = {
+	owner: 'vlastník',
+	operator: 'provozovatel',
+	other: 'jiný vztah'
+}
+
+const RELATION_BADGE: Record<OwnerRelation, string> = {
+	owner: 'text-bg-light',
+	operator: 'text-bg-light',
+	other: 'text-bg-light'
 }
 
 type Flag = { label: string; severe: boolean }
@@ -51,24 +75,24 @@ function buildFlags(h: VehicleHistory): Flag[] {
  * (the `history` prop is otherwise absent). See docs/VEHICLE_HISTORY_PANEL.md.
  */
 const VehicleHistoryPanel: FC<{ history: VehicleHistory }> = ({ history }) => {
-	const { owners, inspections, deregistrations } = history
+	const { owners, inspections, deregistrations, imports } = history
 	const flags = buildFlags(history)
-	// Company owners as a chronological timeline (oldest first). Private owners
-	// are already excluded server-side (companyOwners = legal entities only).
-	const companyTimeline = [...owners.companyOwners].sort((a, b) =>
+	// Full owner/operator timeline (oldest first). Individuals are anonymised at
+	// the source — shown as "Soukromá osoba" with dates only, no personal info.
+	const timeline = [...owners.timeline].sort((a, b) =>
 		(a.from ?? '').localeCompare(b.from ?? '')
 	)
 
 	return (
 		<>
 			{/* Registry: owners, flags, deregistration */}
-			<section className='card border-0 shadow-sm mt-4'>
-				<div className='card-body'>
-					<div className='d-flex align-items-center gap-2 mb-3'>
-						<Icon name='file-text' size={18} className='text-muted-ink' />
-						<h3 className='h6 mb-0'>Historie z registru</h3>
-					</div>
-
+			<details className='spec-group mt-4' open>
+				<summary className='spec-summary'>
+					<Icon name='file-text' size={18} className='text-brand' />
+					<span>Historie z registru</span>
+					<Icon name='chevron-right' size={18} className='spec-chevron' />
+				</summary>
+				<div className='spec-body'>
 					{flags.length > 0 && (
 						<div className='d-flex flex-wrap gap-2 mb-3'>
 							{flags.map((f) => (
@@ -98,15 +122,15 @@ const VehicleHistoryPanel: FC<{ history: VehicleHistory }> = ({ history }) => {
 						)}
 					</div>
 
-					{companyTimeline.length > 0 && (
+					{timeline.length > 0 && (
 						<div className='small mt-2'>
 							<div className='fw-semibold mb-1'>
-								Firemní / podnikatelské subjekty v historii
+								Časová osa vlastníků a provozovatelů
 							</div>
 							<ul className='list-unstyled mb-0'>
-								{companyTimeline.map((c, i) => (
+								{timeline.map((c, i) => (
 									<li
-										key={`${c.ico ?? c.nazev ?? 'x'}-${c.from ?? i}`}
+										key={`${c.subjectType}-${c.ico ?? 'x'}-${c.relation}-${c.from ?? i}`}
 										className='d-flex gap-2 mb-1'
 									>
 										<span
@@ -116,25 +140,45 @@ const VehicleHistoryPanel: FC<{ history: VehicleHistory }> = ({ history }) => {
 											{fmtDate(c.from)} – {c.current ? 'dosud' : fmtDate(c.to)}
 										</span>
 										<span>
-											{c.ico ? (
-												<Link to={`/firma/${c.ico}`}>
-													{c.nazev ?? `IČO ${c.ico}`}
-												</Link>
+											{c.subjectType === 'company' && c.ico ? (
+												<>
+													<Link to={`/firma/${c.ico}`}>
+														{c.nazev ?? `IČO ${c.ico}`}
+													</Link>
+													<span className='text-muted-ink'> · IČO {c.ico}</span>
+												</>
+											) : c.subjectType === 'company' ? (
+												(c.nazev ?? 'Firma')
+											) : c.subjectType === 'private' ? (
+												<span className='text-muted-ink'>Soukromá osoba</span>
 											) : (
-												(c.nazev ?? 'Neuvedeno')
+												<span className='text-muted-ink'>Neuvedeno</span>
 											)}
-											{c.ico && (
-												<span className='text-muted-ink'> · IČO {c.ico}</span>
-											)}
-											{c.relation === 'operator' && (
-												<span className='badge text-bg-light border ms-1'>
-													provozovatel
-												</span>
-											)}
+											<span
+												className={`badge border ms-1 ${RELATION_BADGE[c.relation]}`}
+											>
+												{RELATION_LABEL[c.relation]}
+											</span>
 										</span>
 									</li>
 								))}
 							</ul>
+						</div>
+					)}
+
+					{imports.length > 0 && (
+						<div className='small mt-3'>
+							<Icon name='external-link' size={14} className='text-muted-ink' />{' '}
+							<strong>Dovezené vozidlo:</strong>{' '}
+							{imports
+								.map(
+									(im) =>
+										`${im.country ?? 'zahraničí'}${im.date ? ` (${fmtDate(im.date)})` : ''}`
+								)
+								.join('; ')}
+							<div className='text-muted-ink'>
+								Český registr neobsahuje historii ze země původu.
+							</div>
 						</div>
 					)}
 
@@ -153,16 +197,16 @@ const VehicleHistoryPanel: FC<{ history: VehicleHistory }> = ({ history }) => {
 						Neobsahuje stav tachometru.
 					</div>
 				</div>
-			</section>
+			</details>
 
 			{/* STK inspection history — its own card */}
-			<section className='card border-0 shadow-sm mt-3'>
-				<div className='card-body'>
-					<div className='d-flex align-items-center gap-2 mb-3'>
-						<Icon name='shield-check' size={18} className='text-muted-ink' />
-						<h3 className='h6 mb-0'>Historie STK</h3>
-					</div>
-
+			<details id='stk-historie' className='spec-group mt-3' open>
+				<summary className='spec-summary'>
+					<Icon name='shield-check' size={18} className='text-brand' />
+					<span>Historie STK</span>
+					<Icon name='chevron-right' size={18} className='spec-chevron' />
+				</summary>
+				<div className='spec-body'>
 					{inspections.total > 0 ? (
 						<>
 							<div className='small mb-2'>
@@ -202,15 +246,28 @@ const VehicleHistoryPanel: FC<{ history: VehicleHistory }> = ({ history }) => {
 										>
 											{fmtDate(h.date)}
 										</span>
-										<span
-											className='badge rounded-pill'
-											style={{
-												backgroundColor: STK_COLOR[h.result],
-												color: '#fff'
-											}}
-										>
-											{STK_LABEL[h.result]}
-										</span>
+										{h.administrative ? (
+											<span className='badge text-bg-light border text-nowrap'>
+												nové vozidlo
+											</span>
+										) : (
+											<>
+												<span
+													className='badge rounded-pill'
+													style={{
+														backgroundColor: STK_COLOR[h.result],
+														color: '#fff'
+													}}
+												>
+													{STK_LABEL[h.result]}
+												</span>
+												{inspTypeLabel(h.typ) && (
+													<span className='badge text-bg-light border'>
+														{inspTypeLabel(h.typ)}
+													</span>
+												)}
+											</>
+										)}
 										{h.nazevStk && (
 											<span className='text-muted-ink text-truncate'>
 												{h.nazevStk}
@@ -226,7 +283,7 @@ const VehicleHistoryPanel: FC<{ history: VehicleHistory }> = ({ history }) => {
 						</div>
 					)}
 				</div>
-			</section>
+			</details>
 		</>
 	)
 }

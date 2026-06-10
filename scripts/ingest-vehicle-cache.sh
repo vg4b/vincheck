@@ -21,6 +21,8 @@
 #   SNAPSHOT=2026-05-02   override the snapshot date (else parsed from filename / today)
 #   SAMPLE_LINES=100000   load only the first N lines of each CSV (dev/testing)
 #   KEEP_INDEXES=1        don't drop+rebuild indexes around the load (skip the optimisation)
+#   ONLY=vozidla_dovoz    load only one dataset (key from DATASETS below) without
+#                         touching the big tables or rebuilding their indexes
 #
 # See docs/VEHICLE_DATA_CACHE.md.
 
@@ -38,7 +40,27 @@ DATASETS=(
   "technicke_prohlidky|technickeprohlidky|RSV_technicke_prohlidky_*.csv|vehicle_inspections"
   "vlastnik_provozovatel|vlastnikprovozovatelvozidla|RSV_vlastnik_provozovatel_vozidla_*.csv|vehicle_owners"
   "vozidla_vyrazena|vozidlavyrazenazprovozu|RSV_vozidla_vyrazena_z_provozu_*.csv|vehicle_deregistration"
+  "vozidla_dovoz|vozidladovoz|RSV_vozidla_dovoz_*.csv|vehicle_imports"
 )
+
+# --- Optional: restrict to a single dataset (ONLY=<dataset key>) ---
+# Refresh just one table (e.g. ONLY=vozidla_dovoz) without touching the big
+# tables or rebuilding their indexes. Only that CSV is loaded; the startup
+# migration (002) creates its index if missing, and the global index drop is
+# skipped (see DROP_INDEXES below).
+if [ -n "${ONLY:-}" ]; then
+  filtered=()
+  for spec in "${DATASETS[@]}"; do
+    [ "${spec%%|*}" = "$ONLY" ] && filtered+=("$spec")
+  done
+  if [ "${#filtered[@]}" -eq 0 ]; then
+    echo "ERROR: ONLY='$ONLY' matched no dataset. Valid keys:" >&2
+    for spec in "${DATASETS[@]}"; do echo "  - ${spec%%|*}" >&2; done
+    exit 1
+  fi
+  DATASETS=("${filtered[@]}")
+  echo "→ ONLY mode: loading just '$ONLY'"
+fi
 
 # --- psql wrapper (DATABASE_URL takes precedence over libpq env) ---
 if [ -n "${DATABASE_URL:-}" ]; then
@@ -83,7 +105,7 @@ echo "→ applying schema migrations"
 
 # --- 2. Optionally drop indexes for a faster bulk load (full loads only) ---
 DROP_INDEXES=0
-if [ -z "${SAMPLE_LINES:-}" ] && [ "${KEEP_INDEXES:-0}" != "1" ]; then
+if [ -z "${SAMPLE_LINES:-}" ] && [ "${KEEP_INDEXES:-0}" != "1" ] && [ -z "${ONLY:-}" ]; then
   DROP_INDEXES=1
 fi
 if [ "$DROP_INDEXES" = "1" ]; then
@@ -100,6 +122,7 @@ DROP INDEX IF EXISTS vehicle_owners_pcv_idx;
 DROP INDEX IF EXISTS vehicle_owners_ico_idx;
 DROP INDEX IF EXISTS vehicle_owners_ico_pcv_idx;
 DROP INDEX IF EXISTS vehicle_deregistration_pcv_idx;
+DROP INDEX IF EXISTS vehicle_imports_pcv_idx;
 SQL
 fi
 

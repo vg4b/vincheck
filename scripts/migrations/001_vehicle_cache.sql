@@ -155,6 +155,14 @@ CREATE TABLE IF NOT EXISTS vehicle_deregistration (
   rm_nazev  TEXT
 );
 
+-- vozidla_dovoz.csv: 3 cols. Import country + date per PČV. Column order
+-- matches the CSV header (PČV, Stát, Datum dovozu) so COPY needs no column list.
+CREATE TABLE IF NOT EXISTS vehicle_imports (
+  pcv           BIGINT,
+  stat          TEXT,
+  datum_dovozu  TEXT
+);
+
 -- One row per ingested dataset. Drives staleness checks in the lookup layer.
 CREATE TABLE IF NOT EXISTS cache_meta (
   dataset          TEXT PRIMARY KEY,

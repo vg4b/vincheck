@@ -1,8 +1,14 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { cebia } from '../config/affiliateCampaigns'
 import type { VehicleDataArray, VehicleHistory } from '../types'
-import { getDataValue, getLogoSrc } from '../utils/vehicleApi'
+import { formatFuel, fuelBaseLabel } from '../utils/fuelLabels'
+import {
+	cleanModelName,
+	getDataValue,
+	getLogoSrc,
+	hasBrandLogo
+} from '../utils/vehicleApi'
 import {
 	groupVehicleFieldsByCategory,
 	type VehicleFieldCategoryId
@@ -22,6 +28,13 @@ const CATEGORY_ICONS: Record<VehicleFieldCategoryId, IconName> = {
 	hluk_rychlost: 'bell',
 	ostatni: 'info'
 }
+
+// Categories most readers care about stay open; the long tail collapses.
+const DEFAULT_OPEN_CATEGORIES = new Set<VehicleFieldCategoryId>([
+	'doklady_evidence',
+	'motor_palivo_spotreba',
+	'karoserie'
+])
 
 interface VehicleInfoProps {
 	data: VehicleDataArray
@@ -50,6 +63,36 @@ const VEHICLE_INFO_SUMMARY_FIELDS = new Set<string>([
 	'PravidelnaTechnickaProhlidkaDo'
 ])
 
+/** Copy-to-clipboard VIN pill. */
+const VinPill: React.FC<{ vin: string }> = ({ vin }) => {
+	const [copied, setCopied] = useState(false)
+
+	const handleCopy = async () => {
+		try {
+			await navigator.clipboard.writeText(vin)
+			setCopied(true)
+			window.setTimeout(() => setCopied(false), 1500)
+		} catch {
+			// Clipboard unavailable (insecure context) — leave the VIN visible to copy by hand.
+		}
+	}
+
+	return (
+		<span className='vin-pill'>
+			<span className='num'>{vin}</span>
+			<button
+				type='button'
+				className='vin-copy-btn'
+				onClick={handleCopy}
+				aria-label={copied ? 'Zkopírováno' : 'Kopírovat VIN'}
+				title={copied ? 'Zkopírováno' : 'Kopírovat VIN'}
+			>
+				<Icon name={copied ? 'check' : 'copy'} size={15} />
+			</button>
+		</span>
+	)
+}
+
 const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	data,
 	vinCode,
@@ -60,9 +103,22 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	onCebiaExternalNavigate
 }) => {
 	const brand = getDataValue(data, 'TovarniZnacka', 'Neznámá značka')
+	const showLogo = hasBrandLogo(brand)
 	const brandLogoSrc = getLogoSrc(brand)
-	const model = getDataValue(data, 'Typ', 'Neznámý model')
-	const obchodniOznaceni = getDataValue(data, 'ObchodniOznaceni', '')
+	// Both ObchodniOznaceni and Typ can repeat the brand ("POLESTAR 2") and use an
+	// "A / B" slash form, so clean both. Title prefers the human model name
+	// (GOLF, 207, "2"); the type code (1K, 207 W, V) is the fallback / secondary.
+	const humanModel = cleanModelName(
+		brand,
+		getDataValue(data, 'ObchodniOznaceni', '')
+	)
+	const typCode = cleanModelName(brand, getDataValue(data, 'Typ', ''))
+	const model = humanModel || typCode || 'Neznámý model'
+	const rokVyroby = getDataValue(data, 'RokVyroby', '')
+	const palivo = getDataValue(data, 'Palivo', '')
+	const statusLabel =
+		getDataValue(data, 'StatusNazev', '') || getDataValue(data, 'Status', '')
+
 	const firstRegistrationRaw = getDataValue(
 		data,
 		'DatumPrvniRegistrace',
@@ -102,6 +158,26 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 		techInspectionDate && techInspectionDate.getTime() < currentDate.getTime()
 	const stkColor = isExpired ? 'var(--accent-red)' : 'var(--brand-600)'
 
+	// Owner / operator counts prefer the richer history-lite, fall back to the
+	// derived registry fields when there's no cache hit.
+	const ownersTotal =
+		history?.owners.total ??
+		toNullableNumber(getDataValue(data, 'PocetVlastniku', ''))
+	const operatorsTotal =
+		history?.owners.operators ??
+		toNullableNumber(getDataValue(data, 'PocetProvozovatelu', ''))
+
+	// Severe / notable registry flags surfaced as a top banner (was buried mid-page).
+	const heroFlags = useMemo(() => buildHeroFlags(history), [history])
+	const fuelLabel = fuelBaseLabel(palivo)
+	// Labelled subtitle bits so cryptic codes are legible ("Typ V" not bare "V").
+	// The type code is shown only when it isn't already the title.
+	const subtitleParts = [
+		model === typCode || !typCode ? '' : `Typ: ${typCode}`,
+		rokVyroby ? `Rok: ${rokVyroby}` : '',
+		fuelLabel ? `Palivo: ${fuelLabel}` : ''
+	].filter(Boolean)
+
 	const filteredData = useMemo(
 		() =>
 			data.filter(
@@ -118,120 +194,30 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 		[filteredData]
 	)
 
-	const detailSectionBlocks = useMemo(() => {
-		let dataRowsShown = 0
-		let promoInserted = false
+	// Which spec groups are expanded. Seeded from the default-open set; each
+	// <details> is controlled so a single button can expand/collapse them all.
+	const [openGroups, setOpenGroups] = useState<Set<VehicleFieldCategoryId>>(
+		() => new Set(DEFAULT_OPEN_CATEGORIES)
+	)
+	const allExpanded =
+		groupedData.length > 0 &&
+		groupedData.every((g) => openGroups.has(g.categoryId))
 
-		const buildPromoRow = () => (
-			<tr
-				key='cebia-inline-promo'
-				style={{ backgroundColor: 'var(--brand-50)' }}
-			>
-				<th className='align-middle' style={{ color: 'var(--brand-700)' }}>
-					Historie a původ vozidla
-				</th>
-				<td className='text-end'>
-					<a
-						href={cebia.getDirectUrl(vinCode, 'vehicle_info_table')}
-						target='_blank'
-						rel='noopener noreferrer'
-						onClick={() => {
-							if (!onCebiaExternalNavigate) return
-							window.setTimeout(onCebiaExternalNavigate, 0)
-						}}
-					>
-						Prověřit historii na Cebia.cz ➜
-					</a>
-				</td>
-			</tr>
+	const toggleAllGroups = () => {
+		setOpenGroups(
+			allExpanded ? new Set() : new Set(groupedData.map((g) => g.categoryId))
 		)
+	}
 
-		const sections = groupedData.map((group) => {
-			const bodyRows: React.ReactNode[] = []
-			for (const item of group.items) {
-				dataRowsShown += 1
-				bodyRows.push(
-					<tr key={item.name}>
-						<th scope='row' className='w-50'>
-							{item.label}
-						</th>
-						<td
-							dangerouslySetInnerHTML={{
-								__html: formatValueHtml(String(item.value))
-							}}
-						/>
-					</tr>
-				)
-				if (dataRowsShown === 10 && !promoInserted) {
-					bodyRows.push(buildPromoRow())
-					promoInserted = true
-				}
-			}
-
-			const headingId = `vehicle-info-group-${group.categoryId}`
-
-			return (
-				<section
-					key={group.categoryId}
-					className='vehicle-info-detail-group mb-4'
-					aria-labelledby={headingId}
-				>
-					<div className='card-soft overflow-hidden p-0'>
-						<h3
-							id={headingId}
-							className='h6 mb-0 fw-semibold px-3 py-2 border-bottom d-flex align-items-center gap-2'
-							style={{
-								backgroundColor: 'var(--surface-soft)',
-								color: 'var(--ink-900)'
-							}}
-						>
-							<Icon
-								name={CATEGORY_ICONS[group.categoryId] ?? 'info'}
-								size={18}
-								className='text-brand'
-							/>
-							{group.label}
-						</h3>
-						<div className='table-responsive'>
-							<table className='table table-striped table-hover table-sm mb-0 align-middle'>
-								<tbody>{bodyRows}</tbody>
-							</table>
-						</div>
-					</div>
-				</section>
-			)
+	const setGroupOpen = (id: VehicleFieldCategoryId, open: boolean) => {
+		setOpenGroups((prev) => {
+			if (prev.has(id) === open) return prev
+			const next = new Set(prev)
+			if (open) next.add(id)
+			else next.delete(id)
+			return next
 		})
-
-		const trailingPromo =
-			!promoInserted && filteredData.length > 0 ? (
-				<div
-					className='brand-callout mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3'
-					key='cebia-promo-trailing'
-				>
-					<span>
-						<strong>Historie a původ vozidla</strong>
-					</span>
-					<a
-						href={cebia.getDirectUrl(vinCode, 'vehicle_info_table')}
-						target='_blank'
-						rel='noopener noreferrer'
-						onClick={() => {
-							if (!onCebiaExternalNavigate) return
-							window.setTimeout(onCebiaExternalNavigate, 0)
-						}}
-					>
-						Prověřit historii na Cebia.cz ➜
-					</a>
-				</div>
-			) : null
-
-		return (
-			<>
-				{sections}
-				{trailingPromo}
-			</>
-		)
-	}, [groupedData, filteredData.length, vinCode, onCebiaExternalNavigate])
+	}
 
 	const cleanVin = vinCode.replace(/[^a-zA-Z0-9]/g, '')
 	const historyUrl =
@@ -239,79 +225,77 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 			? cebia.getTextLinkUrlWithVin(cleanVin, 'vehicle_info_history')
 			: cebia.getTextLinkUrl('vehicle_info_history')
 
+	const handleCebiaClick = () => {
+		if (!onCebiaExternalNavigate) return
+		window.setTimeout(onCebiaExternalNavigate, 0)
+	}
+
+	// Imported vehicle: the CZ registry holds no foreign history, so the paid
+	// Cebia report is worth most here — target the upsell accordingly. Distinct
+	// `data1` per placement so the callout banner and the in-table row track
+	// separately (the table row keeps the historical `vehicle_info_table`).
+	const importInfo = history?.imports?.[0] ?? null
+	const isImported = Boolean(importInfo)
+	const cebiaSource = isImported ? 'vehicle_info_import' : 'vehicle_info_cta'
+
 	return (
 		<div className='mt-4 mb-5'>
-			<div className='card-soft row mt-5 mb-5 align-items-center mx-0'>
-				{/* Brand logo column */}
-				<div className='col-md-3 text-center'>
-					<img
-						src={brandLogoSrc}
-						alt={`${brand} Logo`}
-						loading='lazy'
-						decoding='async'
-						className='img-fluid logo-img brand-logo'
-						style={{ height: 'auto' }}
-						onError={(e) => {
-							// Fallback if logo not found
-							e.currentTarget.style.display = 'none'
-						}}
-					/>
+			{/* Notable registry flags — promoted above the fold. */}
+			{heroFlags.length > 0 && (
+				<div className='d-flex flex-column gap-2 mb-4'>
+					{heroFlags.map((f) => (
+						<div
+							key={f.label}
+							className={`alert ${f.severe ? 'alert-danger' : 'alert-warning'} d-flex align-items-center gap-2 mb-0`}
+							role='alert'
+						>
+							<Icon name='alert-triangle' size={18} />
+							<span>{f.label}</span>
+						</div>
+					))}
 				</div>
+			)}
 
-				{/* Vehicle info column */}
-				<div className='col-md-4'>
-					<div className='vehicle-info d-flex flex-column gap-2'>
-						<div className='d-flex align-items-center gap-2'>
-							<Icon name='car' size={16} className='text-muted-ink' />
-							<span>
-								<strong>Značka:</strong> {brand}
-							</span>
+			{/* Hero header */}
+			<div className='card-soft mb-4'>
+				<div
+					className={`vehicle-hero${showLogo ? '' : ' vehicle-hero--no-logo'}`}
+				>
+					{showLogo && (
+						<div className='text-center text-md-start'>
+							<img
+								src={brandLogoSrc}
+								alt={`${brand} logo`}
+								loading='lazy'
+								decoding='async'
+								className='vehicle-hero-logo'
+								onError={(e) => {
+									e.currentTarget.style.display = 'none'
+								}}
+							/>
 						</div>
-						<div className='d-flex align-items-center gap-2'>
-							<Icon name='info' size={16} className='text-muted-ink' />
-							<span>
-								<strong>Model:</strong> {model}
-							</span>
+					)}
+
+					<div>
+						<h1 className='vehicle-hero-title'>
+							{brand} {model}
+						</h1>
+						{subtitleParts.length > 0 && (
+							<div className='vehicle-hero-subtitle mt-1'>
+								{subtitleParts.join(' · ')}
+							</div>
+						)}
+						<div className='d-flex flex-wrap align-items-center gap-2 mt-2'>
+							<span className='text-muted-ink small'>VIN</span>
+							<VinPill vin={vinCode} />
 						</div>
-						<div className='d-flex align-items-center gap-2'>
-							<Icon name='info' size={16} className='text-muted-ink' />
-							<span>
-								<strong>Obchodní označení:</strong> {obchodniOznaceni}
-							</span>
-						</div>
-						<div className='d-flex align-items-center gap-2'>
-							<Icon name='calendar' size={16} className='text-muted-ink' />
-							<span>
-								<strong>Datum první registrace:</strong> {firstRegistration}
-							</span>
-						</div>
-						<div className='d-flex align-items-center gap-2'>
-							<Icon name='file-text' size={16} className='text-muted-ink' />
-							<span>
-								<strong>VIN:</strong> <span className='num'>{vinCode}</span>
-							</span>
-						</div>
-						<div className='d-flex align-items-center gap-2'>
-							<Icon name='shield-check' size={16} style={{ color: stkColor }} />
-							<span>
-								<strong>STK do:</strong>{' '}
-								<span style={{ color: stkColor, fontWeight: 600 }}>
-									{techInspection}
-								</span>
-							</span>
+						<div className='text-muted-ink small mt-2 d-flex align-items-center gap-2'>
+							<Icon name='calendar' size={14} />
+							První registrace: {firstRegistration}
 						</div>
 					</div>
-				</div>
 
-				{/* Technical inspection column */}
-				<div className='col-md-4'>
-					{/* <div>
-						<strong>Pravidelná technická prohlídka do:</strong>{' '}
-						<span style={{ color: stkColor, fontWeight: 600 }}>{techInspection}</span>
-					</div> */}
-
-					{/* Insurance buttons */}
-					<div className='mt-3 d-flex flex-column gap-2'>
+					<div className='d-flex flex-column gap-2 vehicle-hero-actions'>
 						{saveAction && (
 							<button
 								type='button'
@@ -321,11 +305,6 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 							>
 								{saveAction.label}
 							</button>
-						)}
-						{saveMessage && (
-							<div className='alert alert-info mb-0' role='alert'>
-								{saveMessage}
-							</div>
 						)}
 						<Link
 							to='/sjednat-pojisteni?typ=povinne&src=vehicle_info'
@@ -343,27 +322,192 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 						</a>
 					</div>
 				</div>
+
+				{saveMessage && (
+					<div className='alert alert-info mb-0 mt-3' role='alert'>
+						{saveMessage}
+					</div>
+				)}
+
+				{/* At-a-glance stat tiles */}
+				<div className='vehicle-stats mt-4'>
+					<div className='stat-tile'>
+						<span className='stat-tile-label'>
+							<Icon name='shield-check' size={13} />
+							Platnost STK
+						</span>
+						<span className='stat-tile-value' style={{ color: stkColor }}>
+							{history && history.inspections.total > 0 ? (
+								<a href='#stk-historie'>{techInspection}</a>
+							) : (
+								techInspection
+							)}
+						</span>
+					</div>
+					<div className='stat-tile'>
+						<span className='stat-tile-label'>
+							<Icon name='car' size={13} />
+							Majitelé
+						</span>
+						<span className='stat-tile-value'>{ownersTotal ?? '—'}</span>
+					</div>
+					<div className='stat-tile'>
+						<span className='stat-tile-label'>
+							<Icon name='file-text' size={13} />
+							Provozovatelé
+						</span>
+						<span className='stat-tile-value'>{operatorsTotal ?? '—'}</span>
+					</div>
+					<div className='stat-tile'>
+						<span className='stat-tile-label'>
+							<Icon name='info' size={13} />
+							Stav vozidla
+						</span>
+						<span className='stat-tile-value' style={{ fontSize: '1rem' }}>
+							{statusLabel || '—'}
+						</span>
+					</div>
+				</div>
 			</div>
 
 			{history && <VehicleHistoryPanel history={history} />}
 
+			{/* Single, well-placed Cebia CTA — where history intent peaks. Targeted
+			    copy for imported vehicles, where the CZ registry can't help. */}
+			<div className='brand-callout my-4 d-flex flex-wrap align-items-center justify-content-between gap-3'>
+				<span>
+					{isImported ? (
+						<>
+							<strong>
+								Dovezené vozidlo
+								{importInfo?.country ? ` z ${importInfo.country}` : ''} —
+								prověřte zahraniční historii
+							</strong>
+							<span className='d-block small'>
+								Český registr nezná historii ze země původu. Stav tachometru,
+								záznamy o nehodách a původ z ciziny prověříte v externí zprávě.
+							</span>
+						</>
+					) : (
+						<>
+							<strong>Historie a původ vozidla</strong>
+							<span className='d-block small'>
+								Stav tachometru, záznamy o nehodách, zástavy a další prověříte v
+								externí zprávě.
+							</span>
+						</>
+					)}
+				</span>
+				<a
+					href={cebia.getDirectUrl(vinCode, cebiaSource)}
+					target='_blank'
+					rel='noopener noreferrer'
+					className='btn btn-primary text-nowrap'
+					onClick={handleCebiaClick}
+				>
+					Prověřit historii ➜
+				</a>
+			</div>
+
 			{/* Promo section (if provided) */}
 			{promoSection}
 
-			{/* Detailní údaje po sekcích (karta + vlastní pruhovaná tabulka) */}
+			{/* Technical specs — grouped, with the long tail collapsed by default. */}
 			{filteredData.length > 0 && (
 				<div className='mt-4'>
-					{detailSectionBlocks}
+					<div className='d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3'>
+						<h2 className='h5 mb-0'>Technické údaje</h2>
+						<button
+							type='button'
+							className='btn btn-sm btn-outline-primary'
+							onClick={toggleAllGroups}
+							aria-expanded={allExpanded}
+						>
+							{allExpanded ? 'Sbalit vše' : 'Rozbalit vše'}
+						</button>
+					</div>
+					{groupedData.map((group) => {
+						const headingId = `vehicle-info-group-${group.categoryId}`
+						return (
+							<details
+								key={group.categoryId}
+								className='spec-group'
+								open={openGroups.has(group.categoryId)}
+								onToggle={(e) =>
+									setGroupOpen(group.categoryId, e.currentTarget.open)
+								}
+							>
+								<summary className='spec-summary' aria-labelledby={headingId}>
+									<Icon
+										name={CATEGORY_ICONS[group.categoryId] ?? 'info'}
+										size={18}
+										className='text-brand'
+									/>
+									<span id={headingId}>{group.label}</span>
+									<span className='spec-count'>{group.items.length}</span>
+									<Icon
+										name='chevron-right'
+										size={18}
+										className='spec-chevron'
+									/>
+								</summary>
+								<div className='table-responsive'>
+									<table className='table table-striped table-hover table-sm mb-0 align-middle'>
+										<tbody>
+											{group.items.map((item) => (
+												<tr key={item.name}>
+													<th scope='row' className='w-50'>
+														{item.label}
+													</th>
+													{item.name === 'Palivo' ? (
+														<td>{formatFuel(String(item.value))}</td>
+													) : (
+														<td
+															dangerouslySetInnerHTML={{
+																__html: formatValueHtml(String(item.value))
+															}}
+														/>
+													)}
+												</tr>
+											))}
+											{/* Affiliate row anchored to the engine/fuel table. */}
+											{group.categoryId === 'motor_palivo_spotreba' && (
+												<tr style={{ backgroundColor: 'var(--brand-50)' }}>
+													<th
+														className='align-middle'
+														style={{ color: 'var(--brand-700)' }}
+													>
+														Historie a původ vozidla
+													</th>
+													<td className='text-end'>
+														<a
+															href={cebia.getDirectUrl(
+																vinCode,
+																'vehicle_info_table'
+															)}
+															target='_blank'
+															rel='noopener noreferrer'
+															onClick={handleCebiaClick}
+														>
+															Prověřit historii na Cebia.cz ➜
+														</a>
+													</td>
+												</tr>
+											)}
+										</tbody>
+									</table>
+								</div>
+							</details>
+						)
+					})}
+
 					<div className='text-center mt-4'>
 						<a
 							href={historyUrl}
 							target='_blank'
 							rel='noopener noreferrer'
 							className='btn btn-outline-primary'
-							onClick={() => {
-								if (!onCebiaExternalNavigate) return
-								window.setTimeout(onCebiaExternalNavigate, 0)
-							}}
+							onClick={handleCebiaClick}
 						>
 							Načíst historii vozidla (nová stránka)
 						</a>
@@ -404,6 +548,29 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 			</div>
 		</div>
 	)
+}
+
+type HeroFlag = { label: string; severe: boolean }
+
+function buildHeroFlags(history?: VehicleHistory | null): HeroFlag[] {
+	if (!history) return []
+	const flags: HeroFlag[] = []
+	if (history.flags.stolen)
+		flags.push({ label: 'Vozidlo je evidováno jako odcizené', severe: true })
+	if (history.flags.exported)
+		flags.push({ label: 'Vozidlo bylo vyvezeno do zahraničí', severe: false })
+	if (history.flags.deregistered && !history.flags.exported)
+		flags.push({
+			label: 'Vozidlo je vyřazeno z provozu / zánik',
+			severe: false
+		})
+	return flags
+}
+
+function toNullableNumber(value: string): number | null {
+	if (!value) return null
+	const n = Number(value)
+	return Number.isFinite(n) ? n : null
 }
 
 function formatValue(value: string): string {

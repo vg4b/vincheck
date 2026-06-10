@@ -10,6 +10,7 @@ import { VehicleDataArray, VehicleHistory } from '../types'
 import { ApiError } from '../utils/apiClient'
 import { addVehicle, fetchVehicles } from '../utils/clientZoneApi'
 import {
+	cleanModelName,
 	fetchVehicleInfoWithHistory,
 	getDataValue,
 	VehicleLookupError
@@ -138,7 +139,9 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 				// Update page title
 				const vinCode = getDataValue(data, 'VIN', cleanCode)
 				const brand = getDataValue(data, 'TovarniZnacka', '')
-				const model = getDataValue(data, 'Typ', '')
+				const model =
+					cleanModelName(brand, getDataValue(data, 'ObchodniOznaceni', '')) ||
+					cleanModelName(brand, getDataValue(data, 'Typ', ''))
 				document.title = `${brand} ${model} - ${vinCode} | VIN Info.cz`
 
 				// Update meta description
@@ -290,7 +293,9 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 	const code = params.code || ''
 	const vinCode = getDataValue(vehicleData, 'VIN', code)
 	const brand = getDataValue(vehicleData, 'TovarniZnacka', '')
-	const model = getDataValue(vehicleData, 'Typ', '')
+	const model =
+		cleanModelName(brand, getDataValue(vehicleData, 'ObchodniOznaceni', '')) ||
+		cleanModelName(brand, getDataValue(vehicleData, 'Typ', ''))
 
 	const cleanVinForCebia = vinCode.replace(/[^a-zA-Z0-9]/g, '')
 	const cebiaVehicleDetailModalRetryUrl =

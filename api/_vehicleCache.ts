@@ -176,6 +176,14 @@ function nullIfEmpty(v: unknown): string | null {
 	return s === '' ? null : s
 }
 
+// Some date columns carry sentinel placeholders (1900-01-01 / 1901-01-01) for
+// "unknown". Treat anything before 1950 as not a real date.
+function plausibleDate(s: string | null): string | null {
+	if (!s) return null
+	const m = s.match(/^(\d{4})-/)
+	return m && Number(m[1]) >= 1950 ? s : null
+}
+
 type StkResult = 'pass' | 'defects' | 'unfit' | 'unknown'
 
 // vehicle_inspections.stav: A = passed, B = defects, C = unfit, else unknown.
@@ -202,6 +210,16 @@ function ownerRelation(vztah: unknown): OwnerRelation {
 	return 'other'
 }
 
+type SubjectType = 'company' | 'private' | 'unknown'
+
+// vehicle_owners.typ_subjektu: 1 individual (ROB), 2 legal entity (ROS), 3 unidentified.
+function subjectType(typ: unknown): SubjectType {
+	const v = nullIfEmpty(typ)
+	if (v === '2') return 'company'
+	if (v === '1') return 'private'
+	return 'unknown'
+}
+
 /** Public-registry "history-lite" composed from the companion tables. Present
  *  only on a cache hit (a live-API fallback can't produce it). See
  *  docs/VEHICLE_HISTORY_PANEL.md. */
@@ -213,6 +231,18 @@ export type VehicleHistory = {
 		everCompanyOwned: boolean
 		currentlyCompany: boolean
 		companyOwners: Array<{
+			ico: string | null
+			nazev: string | null
+			from: string | null
+			to: string | null
+			current: boolean
+			relation: OwnerRelation
+		}>
+		/** Full owner/operator timeline (oldest first). Individuals are
+		 *  anonymised — only dates, relation and the `private` subject type;
+		 *  ico/nazev stay null. Legal entities expose ico/nazev. */
+		timeline: Array<{
+			subjectType: SubjectType
 			ico: string | null
 			nazev: string | null
 			from: string | null
@@ -235,6 +265,9 @@ export type VehicleHistory = {
 			result: StkResult
 			nazevStk: string | null
 			typ: string | null
+			/** Synthetic administrative record (kod_stk '9999', e.g. a new
+			 *  vehicle's initial validity) — not a real inspection. */
+			administrative: boolean
 		}>
 	}
 	flags: {
@@ -248,6 +281,12 @@ export type VehicleHistory = {
 		from: string | null
 		to: string | null
 		reason: string | null
+	}>
+	/** Import records (from vehicle_imports). Non-empty = vehicle was imported;
+	 *  the CZ registry holds no foreign history for it. */
+	imports: Array<{
+		country: string | null
+		date: string | null
 	}>
 	snapshot: string | null
 }
@@ -305,15 +344,21 @@ export async function lookupVehicleFromCache(
 	const row = registry.rows[0] as Record<string, unknown>
 	const pcv = row.pcv
 
-	const [inspections, owners, meta, companyOwners, inspRecent, dereg] =
+	const [inspections, owners, meta, ownerRows, inspRecent, dereg, imports] =
 		await Promise.all([
 			p.query(
+				// kod_stk '9999' is the registry sentinel for synthetic administrative
+				// records ("Administrativní omezení - nové vozidlo": a new vehicle's
+				// initial STK validity, not a real inspection). Keep it in the due-date
+				// max() filters (it's the valid STK source for a brand-new car) but
+				// exclude it from the inspection counts/stations so we don't present it
+				// as a real pravidelná kontrola.
 				`SELECT
         max(platnost_do) FILTER (WHERE typ LIKE 'P%' AND aktualni = 'True') AS pravidelna,
         max(platnost_do) FILTER (WHERE typ LIKE 'E%' AND aktualni = 'True') AS evidencni,
-        count(*) AS total,
-        count(*) FILTER (WHERE stav IN ('B','C')) AS failed,
-        count(DISTINCT kod_stk) AS stations
+        count(*) FILTER (WHERE coalesce(kod_stk,'') <> '9999') AS total,
+        count(*) FILTER (WHERE stav IN ('B','C') AND coalesce(kod_stk,'') <> '9999') AS failed,
+        count(DISTINCT kod_stk) FILTER (WHERE coalesce(kod_stk,'') <> '9999') AS stations
        FROM vehicle_inspections WHERE pcv = $1`,
 				[pcv]
 			),
@@ -331,19 +376,27 @@ export async function lookupVehicleFromCache(
 				`SELECT source_snapshot::text AS snapshot FROM cache_meta WHERE dataset = 'vypis_vozidel'`
 			),
 			p.query(
-				`SELECT ico, nazev, datum_od, datum_do, aktualni, vztah_k_vozidlu
+				// Full owner/operator timeline (all subject types), oldest first.
+				// Individuals are anonymised at the source (ico/nazev null); we map
+				// the subject type so the UI can label them without exposing PII.
+				`SELECT ico, nazev, datum_od, datum_do, aktualni, vztah_k_vozidlu, typ_subjektu
        FROM vehicle_owners
-       WHERE pcv = $1 AND typ_subjektu = '2'
-       ORDER BY datum_od DESC NULLS LAST
-       LIMIT 10`,
+       WHERE pcv = $1
+       ORDER BY datum_od ASC NULLS FIRST, datum_do ASC NULLS LAST
+       LIMIT 100`,
 				[pcv]
 			),
 			p.query(
-				`SELECT platnost_od, platnost_do, stav, nazev_stk, typ
+				// Full STK inspection history (newest first). Includes the synthetic
+				// administrative records (kod_stk '9999' = "nové vozidlo") — useful
+				// context, flagged via kod_stk so the UI marks them as administrative
+				// rather than a real pravidelná inspection. Capped high enough to cover
+				// any real vehicle.
+				`SELECT platnost_od, platnost_do, stav, nazev_stk, typ, kod_stk
        FROM vehicle_inspections
        WHERE pcv = $1
        ORDER BY platnost_od DESC NULLS LAST
-       LIMIT 8`,
+       LIMIT 100`,
 				[pcv]
 			),
 			p.query(
@@ -352,7 +405,30 @@ export async function lookupVehicleFromCache(
        WHERE pcv = $1
        ORDER BY datum_od DESC NULLS LAST`,
 				[pcv]
-			)
+			),
+			p
+				.query(
+					`SELECT stat, datum_dovozu
+       FROM vehicle_imports
+       WHERE pcv = $1
+       ORDER BY datum_dovozu DESC NULLS LAST`,
+					[pcv]
+				)
+				// Imports are an optional enrichment — never let them break the core
+				// lookup. Tolerate a not-yet-migrated table (42P01 = undefined_table,
+				// safe to deploy before the table exists) and a missing grant (42501),
+				// degrading to "no imports".
+				.catch((e: { code?: string }) => {
+					if (e?.code === '42P01' || e?.code === '42501') {
+						if (e.code === '42501') {
+							console.warn(
+								'vehicle_imports: permission denied for vincheck_api'
+							)
+						}
+						return { rows: [] as Array<Record<string, unknown>> }
+					}
+					throw e
+				})
 		])
 
 	const data: Record<string, unknown> = {}
@@ -384,6 +460,41 @@ export async function lookupVehicleFromCache(
 	const latestRow = recentRows[0]
 	const distinctStations = Number(insp.stations ?? 0)
 
+	// Full owner/operator timeline. Individuals (subjectType 'private') and
+	// unidentified rows carry no ico/nazev — null them defensively so no PII can
+	// leak even if the source ever populated them.
+	const timeline = (ownerRows.rows as Array<Record<string, unknown>>).map(
+		(r) => {
+			const subject = subjectType(r.typ_subjektu)
+			const isCompany = subject === 'company'
+			return {
+				subjectType: subject,
+				ico: isCompany ? nullIfEmpty(r.ico) : null,
+				nazev: isCompany ? nullIfEmpty(r.nazev) : null,
+				from: nullIfEmpty(r.datum_od),
+				to: nullIfEmpty(r.datum_do),
+				current: nullIfEmpty(r.aktualni)?.toLowerCase() === 'true',
+				relation: ownerRelation(r.vztah_k_vozidlu)
+			}
+		}
+	)
+
+	// Dedupe import records by country — duplicates exist in the source. Query is
+	// ordered datum_dovozu DESC NULLS LAST, so the first row per country carries
+	// the most recent (real) date.
+	const importsList: Array<{ country: string | null; date: string | null }> = []
+	const seenCountries = new Set<string>()
+	for (const r of imports.rows as Array<Record<string, unknown>>) {
+		const country = nullIfEmpty(r.stat)
+		const key = country ?? '∅'
+		if (seenCountries.has(key)) continue
+		seenCountries.add(key)
+		importsList.push({
+			country,
+			date: plausibleDate(nullIfEmpty(r.datum_dovozu))
+		})
+	}
+
 	const history: VehicleHistory = {
 		owners: {
 			total: Number(own.vlastniku ?? 0),
@@ -391,16 +502,8 @@ export async function lookupVehicleFromCache(
 			companies: Number(own.companies ?? 0),
 			everCompanyOwned: own.ever_company === true,
 			currentlyCompany: own.current_company === true,
-			companyOwners: (companyOwners.rows as Array<Record<string, unknown>>).map(
-				(r) => ({
-					ico: nullIfEmpty(r.ico),
-					nazev: nullIfEmpty(r.nazev),
-					from: nullIfEmpty(r.datum_od),
-					to: nullIfEmpty(r.datum_do),
-					current: nullIfEmpty(r.aktualni)?.toLowerCase() === 'true',
-					relation: ownerRelation(r.vztah_k_vozidlu)
-				})
-			)
+			companyOwners: timeline.filter((t) => t.subjectType === 'company'),
+			timeline
 		},
 		inspections: {
 			total: Number(insp.total ?? 0),
@@ -417,7 +520,8 @@ export async function lookupVehicleFromCache(
 				date: nullIfEmpty(r.platnost_od),
 				result: stavToResult(r.stav),
 				nazevStk: nullIfEmpty(r.nazev_stk),
-				typ: nullIfEmpty(r.typ)
+				typ: nullIfEmpty(r.typ),
+				administrative: nullIfEmpty(r.kod_stk) === '9999'
 			}))
 		},
 		flags: {
@@ -435,6 +539,7 @@ export async function lookupVehicleFromCache(
 			to: nullIfEmpty(r.datum_do),
 			reason: nullIfEmpty(r.duvod)
 		})),
+		imports: importsList,
 		snapshot
 	}
 

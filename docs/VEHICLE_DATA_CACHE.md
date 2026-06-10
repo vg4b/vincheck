@@ -35,8 +35,10 @@ The bulk source is **not** one CSV — it's **seven companion datasets**, all jo
 | 3 | `vlastnikprovozovatelvozidla` — Vlastník/provozovatel | Owner & operator intervals. Legal entities expose IČO + Název + Adresa; individuals are anonymised (only dates + flags). | **P0** | "5 majitelů za 8 let" + ex-fleet detection (IČO match). Used-car valuation signal. |
 | 4 | `vozidlavyrazenazprovozu` — Vyřazená z provozu | Deregistration events (sold abroad / scrapped / totaled). | **P1** | Buyer-safety warning. Small volume, high signal. |
 | 5 | `zpravyvyrobcezastupce` — Zprávy výrobce/zástupce | Open recalls, manufacturer notices. | **P1** | Safety value-add. |
-| 6 | `vozidladovoz` — Dovezená vozidla | Import flag + date. | **P2** | Hidden foreign-history hint. |
+| 6 | `vozidladovoz` — Dovezená vozidla | Import country + date (`PČV, Stát, Datum dovozu`). | **P1 — ✅ ingested** | Imported = the CZ registry holds no foreign history, so the paid Cebia report is worth most there. Powers the "Dovezené vozidlo z {země}" badge + an import-targeted Cebia upsell. |
 | 7 | `vozidladoplnkovevybaveni` — Doplňkové vybavení | Accessory list. | **Skip** | Low product value vs. ingest cost. |
+
+> **Note on date-mismatch heuristics:** the naive "imported = `datum_prvni_registrace_v_cr` > `datum_prvni_registrace`" trick was rejected — it fires on ~40% of the parc and is polluted by sentinel dates (`1900-01-01`, bulk `1981-xx`). The authoritative source is the `vozidladovoz` dataset above, which also gives the country of origin.
 
 ### The competitive wedge
 
@@ -118,9 +120,13 @@ Owner count = distinct non-overlapping `(Vztah k vozidlu = 1)` intervals per PČ
 | `Důvod` | string | reason text |
 | `RM kód`, `RM Název` | int / string | registry office |
 
-### `vozidladovoz` — Imports (P2, 3 cols)
+### `vozidladovoz` — Imports (✅ ingested → `vehicle_imports`, 3 cols)
 
-`PČV` (int), `Stát` (string, povinná), `Datum dovozu` (date).
+`PČV` (int), `Stát` (string, povinná — full Czech country name, e.g. `Spolková
+republika Německo`), `Datum dovozu` (date, often empty). Header confirmed against
+the live file (`RSV_vozidla_dovoz_YYYYMMDD.csv`, UTF-8 BOM). Many vehicles have a
+row; non-empty = imported. Column order in `vehicle_imports` matches the header so
+`COPY` needs no column list.
 
 ### `zpravyvyrobcezastupce` — Manufacturer notices (P1, 2 cols)
 
@@ -139,6 +145,11 @@ P0 ingest creates **three tables**; full column lists come from the CSV samples 
 - `vehicle_registry` (from `vypisvozidel`) — one row per vehicle, technical data. Replaces the live API for the hot path.
 - `vehicle_inspections` (from `technickeprohlidky`) — one row per STK event, many per `pcv`. Primary signal: mileage at each inspection.
 - `vehicle_owners` (from `vlastnikprovozovatelvozidla`) — one row per ownership/operator interval, many per `pcv`. Primary signal: owner count + transition dates.
+
+Since extended: `vehicle_deregistration` (from `vozidlavyrazenazprovozu`) and
+`vehicle_imports` (from `vozidladovoz`) — both many-per-`pcv`, joined the same way.
+`vehicle_imports (pcv, stat, datum_dovozu)` drives the import badge + import-targeted
+Cebia upsell.
 
 All three carry `pcv TEXT NOT NULL`, `source_snapshot DATE NOT NULL`, `imported_at TIMESTAMPTZ DEFAULT now()`, plus dataset-specific columns. Sketch for the foundation table:
 
@@ -324,11 +335,11 @@ Keep ≥2 snapshots, diff per-vehicle to detect changes ("Your STK validity was 
 
 | File | Status | Purpose |
 |---|---|---|
-| `scripts/migrations/001_vehicle_cache.sql` | ✅ done | 4 tables (CSV-column-aligned, all TEXT except `pcv BIGINT`) + `cache_meta`. |
-| `scripts/migrations/002_vehicle_cache_indexes.sql` | ✅ done | Indexes (idempotent); dropped/rebuilt around bulk load. |
-| `scripts/migrations/003_readonly_user.sql` | ✅ done | Creates the read-only `vincheck_api` role + table SELECT grants. Its `GRANT CONNECT` / `GRANT USAGE` are **no-ops on Scaleway** (admin owns neither the DB nor `public`) — grant DB access via `scw rdb privilege set … permission=readonly` (see Runbook). |
-| `scripts/ingest-vehicle-cache.sh` | ✅ done | Bash + psql `\copy` ingest. Host-agnostic (libpq env / `DATABASE_URL`), optional `DOWNLOAD=1`, `SAMPLE_LINES` for dev. Replaces the planned `.ts` script (Vercel can't run a 40 GB ingest; bash+psql is the right ops tool). |
-| `api/_vehicleCache.ts` | ✅ done | `pg`-pool lookup. Maps registry columns → live-API PascalCase keys, composes derived fields, reads snapshot from `cache_meta`. |
+| `scripts/migrations/001_vehicle_cache.sql` | ✅ done | 5 tables (CSV-column-aligned, all TEXT except `pcv BIGINT`) + `cache_meta`. Tables: `vehicle_registry`, `vehicle_inspections`, `vehicle_owners`, `vehicle_deregistration`, `vehicle_imports`. |
+| `scripts/migrations/002_vehicle_cache_indexes.sql` | ✅ done | Indexes (idempotent); dropped/rebuilt around bulk load. Includes `vehicle_imports_pcv_idx`. |
+| `scripts/migrations/003_readonly_user.sql` | ✅ done | Creates the read-only `vincheck_api` role + table SELECT grants. `ALTER DEFAULT PRIVILEGES` auto-grants SELECT on tables the admin creates later (e.g. `vehicle_imports`), so a new table is readable without re-running 003. Its `GRANT CONNECT` / `GRANT USAGE` are **no-ops on Scaleway** (admin owns neither the DB nor `public`) — grant DB access via `scw rdb privilege set … permission=readonly` (see Runbook). |
+| `scripts/ingest-vehicle-cache.sh` | ✅ done | Bash + psql `\copy` ingest. Host-agnostic (libpq env / `DATABASE_URL`), optional `DOWNLOAD=1`, `SAMPLE_LINES` for dev, and `ONLY=<dataset key>` to load a single table without touching the others or rebuilding their indexes (used to bootstrap `vehicle_imports`). Replaces the planned `.ts` script (Vercel can't run a 40 GB ingest; bash+psql is the right ops tool). |
+| `api/_vehicleCache.ts` | ✅ done | `pg`-pool lookup. Maps registry columns → live-API PascalCase keys, composes derived fields (incl. `history.imports`), reads snapshot from `cache_meta`. The imports query tolerates a not-yet-migrated table (42P01) / missing grant (42501) so it's safe to deploy before the table exists. |
 | `api/vehicle.ts` | ✅ done | Was `vehicle.js`. Cache-first → live-API fallback → stale-serve on upstream failure. Adds edge-cache headers. |
 | `scripts/local-vehicle-cache/` | ✅ done | Local measurement harness (used for the sizing numbers). |
 | `scripts/test-cache-lookup.ts` | ✅ done | Local smoke test: connects as `vincheck_api` over SSL, runs `lookupVehicleFromCache`, prints the mapped `{ Status, Data }`. Run before deploy and after each ingest. |
@@ -442,6 +453,28 @@ DATABASE_URL='<ADMIN_URL>' \
 DATABASE_URL='<ADMIN_URL>' SAMPLE_LINES=100000 bash scripts/ingest-vehicle-cache.sh
 ```
 
+#### One-time: bootstrap a single dataset (e.g. `vehicle_imports`)
+
+`ONLY=<key>` loads just one table without touching the big tables or rebuilding
+their indexes — no node scale-up needed. The startup migration creates the table
++ its index; `ALTER DEFAULT PRIVILEGES` (from `003`) makes it readable by
+`vincheck_api` automatically.
+
+```bash
+DATABASE_URL='<ADMIN_URL>' CSV_DIR="$HOME/Desktop/datova kostka" \
+  DOWNLOAD=1 ONLY=vozidla_dovoz bash scripts/ingest-vehicle-cache.sh
+```
+
+If the read-only user can't see the new table (no `ALTER DEFAULT PRIVILEGES`
+in your setup), grant it explicitly as admin:
+
+```bash
+psql '<ADMIN_URL>' -c "GRANT SELECT ON vehicle_imports TO vincheck_api;"
+```
+
+After this the monthly full `DOWNLOAD=1` run keeps `vehicle_imports` current
+automatically (it's one of the five datasets).
+
 ### Local smoke test (before deploy, after each ingest)
 
 ```bash
@@ -480,3 +513,19 @@ Remaining before it's live:
 4. ⬜ **Confirm** the verification checks on `WVWZZZ1KZDP015799` (PČV 12365572) — should be a cache HIT after the full ingest.
 
 Follow-ups (not blocking): per-IP rate limiting on `/api/vehicle`; harden cache SSL to verify Scaleway's CA (currently `rejectUnauthorized: false`); monthly ingest cron (`.github/workflows/ingest-vehicles.yml`).
+
+### Update (2026-06-10) — imports dataset (`vehicle_imports`)
+
+Added the `vozidladovoz` dataset end-to-end: migration table + index, an `ONLY=`
+single-dataset ingest path, `history.imports` in `_vehicleCache.ts`, an import
+badge in the history panel, and an **import-targeted Cebia upsell** (distinct
+tracking source `vehicle_info_import`) — imported cars are exactly where the CZ
+registry is blind and the paid foreign-history report adds most value. `tsc` +
+Biome clean.
+
+Deploy-order safe: the imports query tolerates `42P01`/`42501`, so the code can
+ship before the table exists. To activate (data not yet in Scaleway):
+
+1. ⬜ Bootstrap the table: `DOWNLOAD=1 ONLY=vozidla_dovoz` ingest (see Runbook).
+2. ⬜ Deploy.
+3. ⬜ Smoke-test a known imported VIN → expect the "Dovezené vozidlo z {země}" badge.

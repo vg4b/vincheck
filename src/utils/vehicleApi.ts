@@ -267,14 +267,32 @@ export function getDataValue(
 	return item?.value?.toString() || defaultValue
 }
 
-// Optimized logo source getter
-export function getLogoSrc(brand: string): string {
-	if (!brand) {
-		return '/logos/default_logo.svg'
+/**
+ * Clean the registry `Typ` value for display as a model name. The column is
+ * messy: manufacturers often repeat the brand in it ("PEUGEOT 207 W / W") and
+ * use an "A / B" type-variant slash form (" / 1K"). Drop a leading brand prefix
+ * and take the first non-empty slash segment so the hero title reads
+ * "VOLKSWAGEN 1K" / "PEUGEOT 207 W" instead of "PEUGEOT PEUGEOT 207 W / W".
+ */
+export function cleanModelName(brand: string, typ: string): string {
+	let m = (typ ?? '').trim()
+	const b = (brand ?? '').trim()
+	if (b && m.toUpperCase().startsWith(b.toUpperCase())) {
+		m = m.slice(b.length).trim()
 	}
+	const segments = m
+		.split('/')
+		.map((s) => s.trim())
+		.filter(Boolean)
+	return segments[0] ?? m
+}
+
+// Resolve a brand-specific logo, or null if we don't ship one for this brand.
+// Registry brand strings vary in separators ("LAND ROVER" vs "LAND-ROVER"), so
+// try the raw key, a hyphenated form, then a separator-insensitive match.
+function lookupBrandLogo(brand: string): string | null {
+	if (!brand) return null
 	const upper = brand.trim().toUpperCase()
-	// Registry brand strings vary in separators ("LAND ROVER" vs "LAND-ROVER"),
-	// so try the raw key, a hyphenated form, then a separator-insensitive match.
 	const hyphenated = upper.replace(/[\s_]+/g, '-')
 	if (brandLogos[upper]) return brandLogos[upper]
 	if (brandLogos[hyphenated]) return brandLogos[hyphenated]
@@ -282,7 +300,17 @@ export function getLogoSrc(brand: string): string {
 	for (const [key, src] of Object.entries(brandLogos)) {
 		if (key.replace(/[\s_-]+/g, '') === stripped) return src
 	}
-	return '/logos/default_logo.svg'
+	return null
+}
+
+// Logo source getter — falls back to the generic logo for unknown brands.
+export function getLogoSrc(brand: string): string {
+	return lookupBrandLogo(brand) ?? '/logos/default_logo.svg'
+}
+
+// True only when we actually ship a logo for this brand (no generic fallback).
+export function hasBrandLogo(brand: string): boolean {
+	return lookupBrandLogo(brand) !== null
 }
 
 // Helper function to format ISO date string to Czech format (d.m.yyyy)

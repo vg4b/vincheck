@@ -132,6 +132,11 @@ async function probe(
 			`  dereg: ${h.deregistrations.map((x) => `${x.reason ?? '?'} (${x.from ?? '?'})`).join('; ')}`
 		)
 	}
+	if (h.imports.length) {
+		console.log(
+			`  import: ${h.imports.map((x) => `${x.country ?? '?'}${x.date ? ` (${x.date})` : ''}`).join('; ')}`
+		)
+	}
 }
 
 async function main(): Promise<void> {
