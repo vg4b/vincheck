@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import type { OwnerRelation, StkResult, VehicleHistory } from '../types'
 import Icon from './Icon'
 
+// Temporary kill switch for the Cebia CheckLease link — set to true to restore.
+const SHOW_CHECKLEASE_LINK = false
+
 // Czech plural picker: 1 / 2–4 / 5+
 function czPlural(n: number, one: string, few: string, many: string): string {
 	if (n === 1) return one
@@ -186,8 +189,8 @@ const VehicleHistoryPanel: FC<{ history: VehicleHistory; vinCode: string }> = ({
 						</div>
 					)}
 
-					{/* External legal/financing check. */}
-					{cleanVin.length === 17 && (
+					{/* External legal/financing check. Temporarily hidden — flip to re-enable. */}
+					{SHOW_CHECKLEASE_LINK && cleanVin.length === 17 && (
 						<div className='small mt-3'>
 							<a
 								href={`https://cebia.com/CheckLease/frmHledej.aspx?vin=${cleanVin}`}
