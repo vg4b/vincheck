@@ -74,9 +74,13 @@ function buildFlags(h: VehicleHistory): Flag[] {
  * separate card for the STK inspection history. Rendered only on a cache hit
  * (the `history` prop is otherwise absent). See docs/VEHICLE_HISTORY_PANEL.md.
  */
-const VehicleHistoryPanel: FC<{ history: VehicleHistory }> = ({ history }) => {
+const VehicleHistoryPanel: FC<{ history: VehicleHistory; vinCode: string }> = ({
+	history,
+	vinCode
+}) => {
 	const { owners, inspections, deregistrations, imports } = history
 	const flags = buildFlags(history)
+	const cleanVin = vinCode.replace(/[^a-zA-Z0-9]/g, '')
 	// Full owner/operator timeline (oldest first). Individuals are anonymised at
 	// the source — shown as "Soukromá osoba" with dates only, no personal info.
 	const timeline = [...owners.timeline].sort((a, b) =>
@@ -168,7 +172,7 @@ const VehicleHistoryPanel: FC<{ history: VehicleHistory }> = ({ history }) => {
 
 					{imports.length > 0 && (
 						<div className='small mt-3'>
-							<Icon name='external-link' size={14} className='text-muted-ink' />{' '}
+							<Icon name='globe' size={14} className='text-muted-ink' />{' '}
 							<strong>Dovezené vozidlo:</strong>{' '}
 							{imports
 								.map(
@@ -179,6 +183,19 @@ const VehicleHistoryPanel: FC<{ history: VehicleHistory }> = ({ history }) => {
 							<div className='text-muted-ink'>
 								Český registr neobsahuje historii ze země původu.
 							</div>
+						</div>
+					)}
+
+					{/* External legal/financing check. */}
+					{cleanVin.length === 17 && (
+						<div className='small mt-3'>
+							<a
+								href={`https://cebia.com/CheckLease/frmHledej.aspx?vin=${cleanVin}`}
+								target='_blank'
+								rel='noopener noreferrer'
+							>
+								Financování, zápůjčky a právní vady vozidla ➜
+							</a>
 						</div>
 					)}
 

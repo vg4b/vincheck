@@ -183,8 +183,8 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 			data.filter(
 				(item) =>
 					!VEHICLE_INFO_SUMMARY_FIELDS.has(item.name) &&
-					item.value !== '' &&
-					item.value != null
+					item.value != null &&
+					!isBlankValue(item.value)
 			),
 		[data]
 	)
@@ -370,7 +370,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 				</div>
 			</div>
 
-			{history && <VehicleHistoryPanel history={history} />}
+			{history && <VehicleHistoryPanel history={history} vinCode={vinCode} />}
 
 			{/* Single, well-placed Cebia CTA — where history intent peaks. Targeted
 			    copy for imported vehicles, where the CZ registry can't help. */}
@@ -571,6 +571,15 @@ function toNullableNumber(value: string): number | null {
 	if (!value) return null
 	const n = Number(value)
 	return Number.isFinite(n) ? n : null
+}
+
+/**
+ * True when a value carries no real data — empty, or only the slash separators
+ * (and whitespace) of an unfilled combined field, e.g. "Spotřeba … / /". A row
+ * with at least one slash-free character (e.g. "5.2 / /") is kept.
+ */
+function isBlankValue(value: unknown): boolean {
+	return String(value).replace(/[/\s]/g, '') === ''
 }
 
 function formatValue(value: string): string {
