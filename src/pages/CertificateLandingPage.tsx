@@ -1,16 +1,83 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navigation from '../components/Navigation'
 import Footer from '../components/Footer'
 import ProductComparison from '../components/ProductComparison'
 import { cebia } from '../config/affiliateCampaigns'
 
-// Keep in sync with CERTIFICATE_PRICE_CZK (VehicleInfo.tsx / backend / Creem).
+// Keep in sync with CERTIFICATE_PRICE_CZK (VehicleInfo.tsx / backend / Lemon Squeezy).
 const PRICE_CZK = 99
+
+const PAGE_TITLE = `Certifikát historie vozidla z registru ČR za ${PRICE_CZK} Kč | VIN Info.cz`
+const PAGE_DESCRIPTION = `Přehledný certifikát historie vozidla zpracovaný z dat registru silničních vozidel ČR — vlastníci, STK, dovoz a stav vozidla. Ihned, v ověřitelném PDF, za ${PRICE_CZK} Kč.`
+const CANONICAL_URL = 'https://vininfo.cz/overeny-vypis-vozidla'
 
 const CertificateLandingPage: React.FC = () => {
 	const navigate = useNavigate()
 	const [vin, setVin] = useState('')
+
+	useEffect(() => {
+		const prevTitle = document.title
+		document.title = PAGE_TITLE
+
+		const setMeta = (selector: string, attr: string, value: string) => {
+			let el = document.head.querySelector<HTMLMetaElement>(selector)
+			if (!el) {
+				el = document.createElement('meta')
+				const [, name] = attr.split('=')
+				el.setAttribute(attr.startsWith('property') ? 'property' : 'name', name)
+				document.head.appendChild(el)
+			}
+			el.setAttribute('content', value)
+		}
+		setMeta('meta[name="description"]', 'name=description', PAGE_DESCRIPTION)
+		setMeta('meta[property="og:title"]', 'property=og:title', PAGE_TITLE)
+		setMeta(
+			'meta[property="og:description"]',
+			'property=og:description',
+			PAGE_DESCRIPTION
+		)
+
+		let canonical = document.head.querySelector<HTMLLinkElement>(
+			'link[rel="canonical"]'
+		)
+		const hadCanonical = Boolean(canonical)
+		if (!canonical) {
+			canonical = document.createElement('link')
+			canonical.setAttribute('rel', 'canonical')
+			document.head.appendChild(canonical)
+		}
+		const prevCanonical = canonical.getAttribute('href')
+		canonical.setAttribute('href', CANONICAL_URL)
+
+		// JSON-LD structured data for rich results (priced product page).
+		const ld = document.createElement('script')
+		ld.type = 'application/ld+json'
+		ld.dataset.certificateLd = 'true'
+		ld.textContent = JSON.stringify({
+			'@context': 'https://schema.org',
+			'@type': 'Product',
+			name: 'Certifikát historie vozidla',
+			description: PAGE_DESCRIPTION,
+			brand: { '@type': 'Brand', name: 'VIN Info.cz' },
+			offers: {
+				'@type': 'Offer',
+				price: String(PRICE_CZK),
+				priceCurrency: 'CZK',
+				availability: 'https://schema.org/InStock',
+				url: CANONICAL_URL
+			}
+		})
+		document.head.appendChild(ld)
+
+		return () => {
+			document.title = prevTitle
+			if (hadCanonical && prevCanonical) {
+				canonical?.setAttribute('href', prevCanonical)
+			}
+			ld.remove()
+		}
+	}, [])
 
 	const cleanVin = vin.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
 	const canSubmit = cleanVin.length === 17
