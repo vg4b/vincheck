@@ -100,8 +100,8 @@ const CertificateLandingPage: React.FC = () => {
 						<p className='lead mb-4'>
 							Data z registru silničních vozidel ČR jsou špatně čitelná — my je
 							za vás zpracujeme do srozumitelného přehledu: vlastníci, STK, dovoz
-							a stav vozidla. Ihned, v ověřitelném PDF, které dáte kupujícímu
-							jako podklad.
+							a stav vozidla. Ihned, v ověřitelném PDF — podklad pro koupi i
+							prodej vozidla.
 						</p>
 						<form onSubmit={handleSubmit}>
 							<label htmlFor='landing-vin' className='form-label fw-semibold'>
