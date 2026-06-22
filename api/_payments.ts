@@ -80,6 +80,9 @@ export async function createCheckout(
 			attributes: {
 				checkout_data: {
 					email: params.email,
+					// Default the checkout to Czechia (our audience) so VAT/locale resolve
+					// correctly; the buyer can still change it.
+					billing_address: { country: 'CZ' },
 					// Round-trips to the webhook (meta.custom_data) to match our row.
 					custom: { certificate_code: params.certificateCode, vin: params.vin }
 				},

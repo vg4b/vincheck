@@ -11,9 +11,11 @@
  * GDPR: individuals in the timeline are already anonymised upstream (ico/nazev
  * null). Only company owners are named. Never add buyer PII to the document.
  */
+import path from 'node:path'
 import { createElement as e, type ReactNode } from 'react'
 import QRCode from 'qrcode'
 import type { VehicleCacheResult } from './_vehicleCache'
+import { buildTechnicalFields } from './_vehicleFieldLabels'
 
 /** Everything the PDF needs that isn't derivable from the snapshot itself. */
 export interface CertificateMeta {
@@ -27,6 +29,11 @@ const INK = '#1a1a2e'
 const MUTED = '#6b7280'
 const BORDER = '#d1d5db'
 
+// Built-in Helvetica has no Czech glyphs ("Počet" → "Poet"), so embed a TTF that
+// covers Latin-Extended. Bundled under api/_fonts (see vercel.json includeFiles).
+const FONT_FAMILY = 'DejaVuSans'
+let fontsRegistered = false
+
 // Plain style objects — @react-pdf accepts them directly, so we avoid calling
 // StyleSheet.create at module scope (the package is ESM-only, imported lazily).
 const styles = {
@@ -36,7 +43,7 @@ const styles = {
 		paddingHorizontal: 44,
 		fontSize: 10,
 		color: INK,
-		fontFamily: 'Helvetica'
+		fontFamily: FONT_FAMILY
 	},
 	header: {
 		flexDirection: 'row',
@@ -47,16 +54,17 @@ const styles = {
 		paddingBottom: 10,
 		marginBottom: 16
 	},
-	brand: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: BRAND },
-	docTitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginTop: 2 },
+	logo: { width: 43, height: 26, marginBottom: 4 },
+	brand: { fontSize: 16, fontWeight: 700, color: BRAND },
+	docTitle: { fontSize: 13, fontWeight: 700, marginTop: 2 },
 	docSubtitle: { fontSize: 9, color: MUTED, marginTop: 1 },
 	metaRight: { alignItems: 'flex-end' },
 	metaLabel: { fontSize: 8, color: MUTED },
-	metaValue: { fontSize: 10, fontFamily: 'Helvetica-Bold' },
+	metaValue: { fontSize: 10, fontWeight: 700 },
 	qr: { width: 84, height: 84, marginTop: 6 },
 	sectionTitle: {
 		fontSize: 11,
-		fontFamily: 'Helvetica-Bold',
+		fontWeight: 700,
 		color: BRAND,
 		marginTop: 14,
 		marginBottom: 6
@@ -68,7 +76,7 @@ const styles = {
 		paddingVertical: 3
 	},
 	cellLabel: { width: '40%', color: MUTED },
-	cellValue: { width: '60%', fontFamily: 'Helvetica-Bold' },
+	cellValue: { width: '60%', fontWeight: 700 },
 	tlRow: {
 		flexDirection: 'row',
 		paddingVertical: 3,
@@ -84,7 +92,7 @@ const styles = {
 		borderRadius: 3,
 		backgroundColor: '#fef2f2',
 		color: '#b91c1c',
-		fontFamily: 'Helvetica-Bold'
+		fontWeight: 700
 	},
 	muted: { color: MUTED },
 	footer: {
@@ -106,10 +114,11 @@ const RELATION_LABEL: Record<string, string> = {
 	other: 'Jiný vztah'
 }
 
+// Matches StkResult in src/types: pass | defects | unfit | unknown.
 const STK_LABEL: Record<string, string> = {
-	fit: 'Způsobilé',
+	pass: 'Způsobilé',
+	defects: 'Způsobilé s vadami',
 	unfit: 'Nezpůsobilé',
-	conditional: 'Částečně způsobilé',
 	unknown: 'Neuvedeno'
 }
 
@@ -135,9 +144,22 @@ export async function renderCertificatePdf(
 	meta: CertificateMeta
 ): Promise<Buffer> {
 	// ESM-only package — dynamic import keeps this CommonJS module compiling.
-	const { Document, Page, View, Text, Image, renderToBuffer } = await import(
-		'@react-pdf/renderer'
-	)
+	const { Document, Page, View, Text, Image, Font, renderToBuffer } =
+		await import('@react-pdf/renderer')
+
+	// Embed a Czech-capable TTF once per process (built-in Helvetica drops
+	// diacritics). Files bundled via vercel.json includeFiles.
+	if (!fontsRegistered) {
+		const dir = path.join(process.cwd(), 'api', '_fonts')
+		Font.register({
+			family: FONT_FAMILY,
+			fonts: [
+				{ src: path.join(dir, 'DejaVuSans.ttf'), fontWeight: 400 },
+				{ src: path.join(dir, 'DejaVuSans-Bold.ttf'), fontWeight: 700 }
+			]
+		})
+		fontsRegistered = true
+	}
 
 	const data = snapshot.response.Data ?? {}
 	const history = snapshot.history
@@ -160,6 +182,11 @@ export async function renderCertificatePdf(
 	children.push(
 		e(View, { style: styles.header, key: 'header' }, [
 			e(View, { key: 'left' }, [
+				e(Image, {
+					src: path.join(process.cwd(), 'api', '_fonts', 'vininfo-logo.png'),
+					style: styles.logo,
+					key: 'logo'
+				}),
 				e(Text, { style: styles.brand, key: 'b' }, 'VIN Info.cz'),
 				e(
 					Text,
@@ -332,6 +359,31 @@ export async function renderCertificatePdf(
 						im.country ?? 'zahraničí',
 						im.date ? fmtDate(im.date) : 'datum neuvedeno'
 					)
+				)
+			)
+		)
+	}
+
+	// Technical data — everything the registry holds (mirrors the on-site detail
+	// page), wrapped so it can break across pages.
+	const techFields = buildTechnicalFields(data)
+	if (techFields.length > 0) {
+		children.push(
+			e(
+				Text,
+				{ style: styles.sectionTitle, key: 'tech-t', wrap: false },
+				'Technické údaje'
+			)
+		)
+		children.push(
+			e(
+				View,
+				{ key: 'tech' },
+				techFields.map((f, i) =>
+					e(View, { style: styles.row, key: `tech-${i}` }, [
+						e(Text, { style: styles.cellLabel, key: 'l' }, f.label),
+						e(Text, { style: styles.cellValue, key: 'v' }, f.value)
+					])
 				)
 			)
 		)

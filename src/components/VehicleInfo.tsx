@@ -409,8 +409,6 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 				</div>
 			</div>
 
-			{history && <VehicleHistoryPanel history={history} vinCode={vinCode} />}
-
 			{/* Two distinct products, side by side — they do different jobs, so the
 			    user self-selects by need rather than choosing between buttons:
 			    our certificate = proof of what's IN the registry (99 Kč, instant);
@@ -468,6 +466,8 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 					onClose={() => setShowCertModal(false)}
 				/>
 			)}
+
+			{history && <VehicleHistoryPanel history={history} vinCode={vinCode} />}
 
 			{/* Promo section (if provided) */}
 			{promoSection}
