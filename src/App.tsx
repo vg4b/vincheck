@@ -4,6 +4,8 @@ import GoogleAnalytics from './components/GoogleAnalytics'
 import ScrollToTop from './components/ScrollToTop'
 import SklikAd from './components/SklikAd'
 import SklikScript from './components/SklikScript'
+import CertificateLandingPage from './pages/CertificateLandingPage'
+import CertificatePage from './pages/CertificatePage'
 import ClientZonePage from './pages/ClientZonePage'
 import FleetPage from './pages/FleetPage'
 import FleetSearchPage from './pages/FleetSearchPage'
@@ -18,6 +20,7 @@ import SjednatPojisteniPage from './pages/SjednatPojisteniPage'
 import TermsPage from './pages/TermsPage'
 import UpozorneniNaTerminyPage from './pages/UpozorneniNaTerminyPage'
 import VehicleDetailPage from './pages/VehicleDetailPage'
+import VerifyCertificatePage from './pages/VerifyCertificatePage'
 
 function App() {
 	return (
@@ -55,6 +58,12 @@ function App() {
 				<Route path='/orv/:code' element={<VehicleDetailPage type='orv' />} />
 				<Route path='/firma' element={<FleetSearchPage />} />
 				<Route path='/firma/:ico' element={<FleetPage />} />
+				<Route
+					path='/overeny-vypis-vozidla'
+					element={<CertificateLandingPage />}
+				/>
+				<Route path='/certifikat/:code' element={<CertificatePage />} />
+				<Route path='/overit/:code' element={<VerifyCertificatePage />} />
 				{/* Legacy route for direct access (auto-detects VIN/TP/ORV from code length) */}
 				<Route path='/:code' element={<VehicleDetailPage />} />
 				{/* Catch-all redirect to home page */}

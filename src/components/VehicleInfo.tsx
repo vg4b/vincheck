@@ -13,8 +13,14 @@ import {
 	groupVehicleFieldsByCategory,
 	type VehicleFieldCategoryId
 } from '../utils/vehicleFieldCategories'
+import CertificateCheckoutModal from './CertificateCheckoutModal'
 import Icon, { type IconName } from './Icon'
+import ProductComparison from './ProductComparison'
 import VehicleHistoryPanel from './VehicleHistoryPanel'
+
+// Display price of our own certificate (VAT incl.). Must match the backend
+// CERTIFICATE_PRICE_CZK env (api/_certificate.ts) and the Creem product price.
+const CERTIFICATE_PRICE_CZK = 99
 
 const CATEGORY_ICONS: Record<VehicleFieldCategoryId, IconName> = {
 	doklady_evidence: 'file-text',
@@ -199,6 +205,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	const [openGroups, setOpenGroups] = useState<Set<VehicleFieldCategoryId>>(
 		() => new Set(DEFAULT_OPEN_CATEGORIES)
 	)
+	const [showCertModal, setShowCertModal] = useState(false)
 	const allExpanded =
 		groupedData.length > 0 &&
 		groupedData.every((g) => openGroups.has(g.categoryId))
@@ -404,23 +411,63 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 
 			{history && <VehicleHistoryPanel history={history} vinCode={vinCode} />}
 
-			{/* Single, well-placed Cebia CTA — where history intent peaks. Targeted
-			    copy for imported vehicles, where the CZ registry can't help. */}
-			<div className='brand-callout my-4 d-flex flex-wrap align-items-center justify-content-between gap-3'>
-				<span>
-					<strong>{cebiaPitch.title}</strong>
-					<span className='d-block small'>{cebiaPitch.body}</span>
-				</span>
-				<a
-					href={cebia.getDirectUrl(vinCode, cebiaSource)}
-					target='_blank'
-					rel='noopener noreferrer'
-					className='btn btn-primary text-nowrap'
-					onClick={handleCebiaClick}
-				>
-					Prověřit historii ➜
-				</a>
-			</div>
+			{/* Two distinct products, side by side — they do different jobs, so the
+			    user self-selects by need rather than choosing between buttons:
+			    our certificate = proof of what's IN the registry (99 Kč, instant);
+			    Cebia = reveals what the registry CAN'T (mileage/accidents/liens/
+			    foreign history). Both cards only when there's a full 17-char VIN to
+			    sell a certificate against; otherwise fall back to a Cebia-only CTA. */}
+			{cleanVin.length === 17 ? (
+				<div className='my-4'>
+					<ProductComparison
+						priceCzk={CERTIFICATE_PRICE_CZK}
+						certificateCta={
+							<button
+								type='button'
+								className='btn btn-primary mt-auto'
+								onClick={() => setShowCertModal(true)}
+							>
+								Získat certifikát ({CERTIFICATE_PRICE_CZK} Kč) ➜
+							</button>
+						}
+						cebiaCta={
+							<a
+								href={cebia.getDirectUrl(vinCode, cebiaSource)}
+								target='_blank'
+								rel='noopener noreferrer'
+								className='btn btn-outline-primary mt-auto'
+								onClick={handleCebiaClick}
+							>
+								Prověřit na Cebia ➜
+							</a>
+						}
+					/>
+				</div>
+			) : (
+				<div className='brand-callout my-4 d-flex flex-wrap align-items-center justify-content-between gap-3'>
+					<span>
+						<strong>{cebiaPitch.title}</strong>
+						<span className='d-block small'>{cebiaPitch.body}</span>
+					</span>
+					<a
+						href={cebia.getDirectUrl(vinCode, cebiaSource)}
+						target='_blank'
+						rel='noopener noreferrer'
+						className='btn btn-primary text-nowrap'
+						onClick={handleCebiaClick}
+					>
+						Prověřit historii ➜
+					</a>
+				</div>
+			)}
+
+			{showCertModal && (
+				<CertificateCheckoutModal
+					vin={cleanVin}
+					priceCzk={CERTIFICATE_PRICE_CZK}
+					onClose={() => setShowCertModal(false)}
+				/>
+			)}
 
 			{/* Promo section (if provided) */}
 			{promoSection}

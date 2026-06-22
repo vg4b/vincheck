@@ -133,5 +133,43 @@ export async function ensureTables() {
 		ON odometer_readings(user_id, vehicle_id);
 	`
 
+	// Sellable vehicle-history certificates. The `snapshot` freezes the registry
+	// data at purchase time so a certificate stays immutable across monthly cache
+	// refreshes; the PDF is regenerated on demand from it. `user_id` is optional —
+	// guest checkout links by email only.
+	await sql`
+		CREATE TABLE IF NOT EXISTS certificates (
+			id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+			code text UNIQUE NOT NULL,
+			vin text NOT NULL,
+			buyer_email text NOT NULL,
+			user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+			status text NOT NULL DEFAULT 'pending',
+			snapshot jsonb NOT NULL,
+			registry_snapshot_date date,
+			provider text NOT NULL,
+			provider_ref text,
+			amount_czk integer,
+			download_token text NOT NULL,
+			created_at timestamptz NOT NULL DEFAULT now(),
+			issued_at timestamptz
+		);
+	`
+
+	await sql`
+		CREATE INDEX IF NOT EXISTS certificates_provider_ref_idx
+		ON certificates(provider_ref)
+		WHERE provider_ref IS NOT NULL;
+	`
+	await sql`
+		CREATE INDEX IF NOT EXISTS certificates_buyer_email_idx
+		ON certificates(buyer_email);
+	`
+	await sql`
+		CREATE INDEX IF NOT EXISTS certificates_user_idx
+		ON certificates(user_id)
+		WHERE user_id IS NOT NULL;
+	`
+
 	tablesReady = true
 }
