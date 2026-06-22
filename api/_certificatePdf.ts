@@ -209,7 +209,7 @@ export async function renderCertificatePdf(
 					style: styles.logo,
 					key: 'logo'
 				}),
-				e(Text, { style: styles.brand, key: 'b' }, 'VIN Info.cz'),
+				e(Text, { style: styles.brand, key: 'b' }, 'VINInfo.cz'),
 				e(
 					Text,
 					{ style: styles.docTitle, key: 't' },
@@ -454,7 +454,7 @@ export async function renderCertificatePdf(
 		{ style: styles.footer, fixed: true, key: 'footer' },
 		`Údaje pocházejí z veřejného registru silničních vozidel ČR (otevřená data)${
 			snapshotDate ? `, stav k ${fmtDate(snapshotDate)}` : ''
-		}. Tento přehled zpracoval VIN Info.cz z veřejných dat registru a není úředním dokumentem. Neobsahuje stav tachometru, záznamy o nehodách ani zástavy/leasing. Pravost ověříte na ${meta.verifyUrl}`
+		}. Tento přehled zpracoval VINInfo.cz z veřejných dat registru a není úředním dokumentem. Neobsahuje stav tachometru, záznamy o nehodách ani zástavy/leasing. Pravost ověříte na ${meta.verifyUrl}`
 	)
 
 	// Diagonal watermark on every page (sample/preview PDFs only).

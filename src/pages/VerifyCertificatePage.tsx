@@ -71,7 +71,7 @@ const VerifyCertificatePage: React.FC = () => {
 				{state === 'valid' && data && (
 					<div className='card-soft'>
 						<div className='alert alert-success' role='alert'>
-							<strong>Certifikát je pravý.</strong> Vystaveno službou VIN Info.cz.
+							<strong>Certifikát je pravý.</strong> Vystaveno službou VINInfo.cz.
 						</div>
 						<table className='table mb-0'>
 							<tbody>

@@ -243,7 +243,7 @@ export function generateCertificateEmailHtml(
 	<meta name="supported-color-schemes" content="light dark">
 	<meta name="format-detection" content="telephone=no,date=no,address=no,email=no">
 	<meta name="x-apple-disable-message-reformatting">
-	<title>Váš certifikát - VIN Info.cz</title>
+	<title>Váš certifikát - VINInfo.cz</title>
 	${EMAIL_HEAD_STYLES}
 </head>
 <body class="email-body" style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -320,7 +320,7 @@ export async function sendCertificateEmail(
 ): Promise<boolean> {
 	return sendEmail({
 		to: params.to,
-		subject: `Váš certifikát ${params.code} — VIN Info.cz`,
+		subject: `Váš certifikát ${params.code} — VINInfo.cz`,
 		html: generateCertificateEmailHtml(params),
 		text: generateCertificateEmailText(params)
 	})

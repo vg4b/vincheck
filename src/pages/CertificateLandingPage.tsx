@@ -59,7 +59,7 @@ const CertificateLandingPage: React.FC = () => {
 			'@type': 'Product',
 			name: 'Certifikát historie vozidla',
 			description: PAGE_DESCRIPTION,
-			brand: { '@type': 'Brand', name: 'VIN Info.cz' },
+			brand: { '@type': 'Brand', name: 'VINInfo.cz' },
 			offers: {
 				'@type': 'Offer',
 				price: String(PRICE_CZK),
