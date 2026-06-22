@@ -1014,6 +1014,16 @@ img {
 .stat-tile-value a:hover {
 	text-decoration: underline;
 }
+/* Odometer "known unknown" — spans the row so the 5th tile fills cleanly, and
+   reads as a highlighted open question rather than a settled data point. */
+.stat-tile--gap {
+	grid-column: 1 / -1;
+	background-color: var(--brand-50);
+	border-color: var(--brand-600);
+}
+.stat-tile--gap .stat-tile-value a {
+	color: var(--brand-700);
+}
 
 /* Collapsible spec group built on native <details>. */
 .spec-group {

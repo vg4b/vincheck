@@ -214,7 +214,7 @@ const VehicleHistoryPanel: FC<{ history: VehicleHistory; vinCode: string }> = ({
 					<div className='text-muted-ink mt-3' style={{ fontSize: '0.75rem' }}>
 						Údaje z veřejného registru silničních vozidel
 						{history.snapshot ? `, stav k ${fmtDate(history.snapshot)}` : ''}.
-						Neobsahuje stav tachometru.
+						Tento výpis neobsahuje stav tachometru.
 					</div>
 				</div>
 			</details>

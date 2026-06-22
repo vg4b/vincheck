@@ -238,6 +238,17 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	const isImported = Boolean(importInfo)
 	const cebiaSource = isImported ? 'vehicle_info_import' : 'vehicle_info_cta'
 
+	// The free timeline answers everything the public registry holds, but never
+	// mileage, accidents, liens or foreign history — exactly the paid report's
+	// value. Name the strongest unanswered question this vehicle invites so the
+	// callout reads as the answer to a doubt the page just raised.
+	const cebiaPitch = buildCebiaPitch({
+		isImported,
+		importCountry: importInfo?.country,
+		ownersTotal,
+		failedStk: history?.inspections.failed ?? 0
+	})
+
 	return (
 		<div className='mt-4 mb-5'>
 			{/* Notable registry flags — promoted above the fold. */}
@@ -367,6 +378,27 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 							{statusLabel || '—'}
 						</span>
 					</div>
+
+					{/* Odometer is logged at each STK but isn't in the open-data CSV we
+					    use, so a lone reading would be meaningless here anyway. Frame it
+					    as the full mileage history (rollback detection) the report
+					    reconstructs — the strongest doubt the free timeline can't show. */}
+					<div className='stat-tile stat-tile--gap'>
+						<span className='stat-tile-label'>
+							<Icon name='search' size={13} />
+							Stav tachometru
+						</span>
+						<span className='stat-tile-value' style={{ fontSize: '1rem' }}>
+							<a
+								href={cebia.getDirectUrl(vinCode, 'vehicle_info_odometer_gap')}
+								target='_blank'
+								rel='noopener noreferrer'
+								onClick={handleCebiaClick}
+							>
+								Prověřit historii nájezdu ➜
+							</a>
+						</span>
+					</div>
 				</div>
 			</div>
 
@@ -376,27 +408,8 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 			    copy for imported vehicles, where the CZ registry can't help. */}
 			<div className='brand-callout my-4 d-flex flex-wrap align-items-center justify-content-between gap-3'>
 				<span>
-					{isImported ? (
-						<>
-							<strong>
-								Dovezené vozidlo
-								{importInfo?.country ? ` z ${importInfo.country}` : ''} —
-								prověřte zahraniční historii
-							</strong>
-							<span className='d-block small'>
-								Český registr nezná historii ze země původu. Stav tachometru,
-								záznamy o nehodách a původ z ciziny prověříte v externí zprávě.
-							</span>
-						</>
-					) : (
-						<>
-							<strong>Historie a původ vozidla</strong>
-							<span className='d-block small'>
-								Stav tachometru, záznamy o nehodách, zástavy a další prověříte v
-								externí zprávě.
-							</span>
-						</>
-					)}
+					<strong>{cebiaPitch.title}</strong>
+					<span className='d-block small'>{cebiaPitch.body}</span>
 				</span>
 				<a
 					href={cebia.getDirectUrl(vinCode, cebiaSource)}
@@ -548,6 +561,49 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 			</div>
 		</div>
 	)
+}
+
+/** From this many owners on, frequent turnover is worth flagging as a doubt. */
+const MANY_OWNERS_THRESHOLD = 4
+
+type CebiaPitch = { title: string; body: string }
+
+/**
+ * Tailor the upsell to the strongest unanswered question the free data raises.
+ * Priority: imported (no foreign history) → failed STK (condition doubt) →
+ * many owners (turnover) → generic. Each names what the public registry can't
+ * show, so the paid report reads as the answer rather than an ad.
+ */
+function buildCebiaPitch(args: {
+	isImported: boolean
+	importCountry?: string | null
+	ownersTotal: number | null
+	failedStk: number
+}): CebiaPitch {
+	const { isImported, importCountry, ownersTotal, failedStk } = args
+	if (isImported) {
+		return {
+			title: `Dovezené vozidlo${importCountry ? ` z ${importCountry}` : ''} — prověřte zahraniční historii`,
+			body: 'Český registr nezná historii ze země původu. Stav tachometru, záznamy o nehodách a původ z ciziny prověříte v externí zprávě.'
+		}
+	}
+	if (failedStk > 0) {
+		return {
+			title: 'V historii je neúspěšná STK — prověřte stav vozu',
+			body: 'Neúspěšná technická prohlídka může signalizovat vážnější závadu nebo následky nehody. Kompletní historii nájezdu i záznamy o nehodách najdete jen v externí zprávě.'
+		}
+	}
+	if (ownersTotal != null && ownersTotal >= MANY_OWNERS_THRESHOLD) {
+		const word = ownersTotal >= 5 ? 'majitelů' : 'majitele'
+		return {
+			title: `Vozidlo vystřídalo ${ownersTotal} ${word} — kolik reálně najelo?`,
+			body: 'Častá obměna majitelů zvyšuje riziko stočeného tachometru i zamlčené nehody. Stav tachometru a záznamy o nehodách najdete v externí zprávě.'
+		}
+	}
+	return {
+		title: 'Historie a původ vozidla',
+		body: 'Stav tachometru, záznamy o nehodách, zástavy a další prověříte v externí zprávě.'
+	}
 }
 
 type HeroFlag = { label: string; severe: boolean }
