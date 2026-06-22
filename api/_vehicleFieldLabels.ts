@@ -119,18 +119,14 @@ const fieldLabels: Record<string, string> = {
 	HistorickeVozidloProhlidkaDne: 'Prohlídka historického vozidla – datum'
 }
 
-// Shown elsewhere on the certificate (identity / owners / STK) — skip in the
-// technical table to avoid duplication.
-const ALREADY_SHOWN = new Set<string>([
-	'VIN',
+// Mirrors VEHICLE_INFO_SUMMARY_FIELDS on the web — these show in the header, so
+// the web's technical table excludes exactly these (and nothing else).
+const SUMMARY_FIELDS = new Set<string>([
 	'TovarniZnacka',
-	'ObchodniOznaceni',
 	'Typ',
 	'DatumPrvniRegistrace',
-	'StatusNazev',
-	'Status',
-	'PocetVlastniku',
-	'PocetProvozovatelu'
+	'VIN',
+	'PravidelnaTechnickaProhlidkaDo'
 ])
 
 function formatFieldName(key: string): string {
@@ -155,29 +151,141 @@ function isBlank(value: unknown): boolean {
 	return value == null || String(value).replace(/[/\s]/g, '') === ''
 }
 
+// --- Category grouping (mirrors src/utils/vehicleFieldCategories.ts) so the PDF
+// technical section matches the on-site detail page section-for-section. -------
+
+const CATEGORY_ORDER = [
+	'doklady_evidence',
+	'druh_typ_homologace',
+	'oznaceni_vyroba',
+	'motor_palivo_spotreba',
+	'emise',
+	'karoserie',
+	'rozmery_hmotnosti',
+	'napravy_pneu',
+	'hluk_rychlost',
+	'ostatni'
+] as const
+type CategoryId = (typeof CATEGORY_ORDER)[number]
+
+const CATEGORY_LABELS: Record<CategoryId, string> = {
+	doklady_evidence: 'Doklady a evidence',
+	druh_typ_homologace: 'Druh, kategorie a homologace',
+	oznaceni_vyroba: 'Obchodní označení a výroba',
+	motor_palivo_spotreba: 'Motor, palivo a spotřeba',
+	emise: 'Emise a CO₂',
+	karoserie: 'Karoserie a barvy',
+	rozmery_hmotnosti: 'Rozměry a hmotnosti',
+	napravy_pneu: 'Nápravy, kola a pneumatiky',
+	hluk_rychlost: 'Hluk a rychlost',
+	ostatni: 'Ostatní údaje'
+}
+
+const DOKLADY = new Set<string>([
+	'CisloTp', 'CisloOrv', 'DatumPrvniRegistraceVCr', 'StatusNazev', 'Status',
+	'Pcv', 'ZarazeniVozidla', 'RzDruh', 'RzZadrzena', 'VariantaRz', 'RzVarianta',
+	'RzJkVydana', 'RzKeSkartaci', 'RzOdevzdano', 'OrvZadrzeno', 'OrvKeSkartaci',
+	'OrvOdevzdano', 'RmZaniku', 'PocetVlastniku', 'PocetProvozovatelu',
+	'PredRegistraciProhlidkaDne', 'PredSchvalenimProhlidkaDne',
+	'EvidencniProhlidkaDne', 'HistorickeVozidloProhlidkaDne'
+])
+const DRUH_TYP = new Set<string>([
+	'VozidloDruh', 'VozidloDruh2', 'Kategorie', 'CisloTypovehoSchvaleni',
+	'HomologaceEs', 'Varianta', 'Verze', 'TypKod', 'UcelVozidla', 'VozidloUcel',
+	'VozidloAutonomniStupen'
+])
+const OZNACENI = new Set<string>(['ObchodniOznaceni', 'VozidloVyrobce', 'RokVyroby'])
+const MOTOR_SPOTREBA = new Set<string>([
+	'MotorVyrobce', 'MotorTyp', 'MotorMaxVykon', 'MotorZdvihObjem', 'Palivo',
+	'CisloMotoru', 'MotorCislo', 'VozidloElektricke', 'VozidloHybridni',
+	'TridaHybridnihoVozidla', 'VozidloHybridniTrida', 'SpotrebaMetodika',
+	'SpotrebaNa100Km', 'SpotrebaPriRychlosti', 'SpotrebaElMobilWhKmZ', 'Spotreba',
+	'SpotrebaEl', 'DojezdZrKm', 'DojezdZR', 'PomerVykonHmotnost'
+])
+const EMISE = new Set<string>([
+	'EmiseEHKOSNEHSES', 'EmisniUroven', 'EmiseKSA', 'EmiseCO2', 'SpecifickaCo2',
+	'EmiseCO2Specificke', 'SnizeniEmisiNedc', 'SnizeniEmisiWltp', 'EmiseSnizeniNedc',
+	'EmiseSnizeniWltp'
+])
+const KAROSERIE = new Set<string>([
+	'VozidloKaroserieBarva', 'BarvaDoplnkova', 'VozidloKaroserieBarvaDoplnkova',
+	'VozidloKaroserieMist', 'VozidloKaroserieMistSezeniPozn',
+	'VozidloKaroserieMistStaniPozn', 'VyrobceKaroserie', 'DruhTyp', 'KaroserieDruh',
+	'VyrobniCisloKaroserie', 'KaroserieVyrobniCislo', 'DoplnkovyTextNaTp',
+	'AlternativniProvedeni'
+])
+const ROZMERY_HMOTNOSTI = new Set<string>([
+	'Rozmery', 'RozmeryRozvor', 'Rozchod', 'RozmeryDelkaDo', 'RozmeryVyskaDo',
+	'RozmeryLoznaDelka', 'RozmeryLoznaSirka', 'HmotnostiProvozni', 'HmotnostiPripPov',
+	'HmotnostiPripPovN', 'HmotnostiPripPovBrzdenePV', 'HmotnostiPripPovNebrzdenePV',
+	'HmotnostiPripPovJS', 'HmotnostiVozidlaPriTestuWltp', 'HmotnostiTestWltp',
+	'HmotnostiProvozniDo', 'HmotnostiZatizeniSz', 'HmotnostiZatizeniSzTyp',
+	'HmotnostiZatizeniSZ', 'PrumernaHodnotaUzitecnehoZatizeni',
+	'HmotnostUzitecneZatizeniPrumer', 'ObjemCisterny', 'ZatizeniStrechy', 'DelkaDo',
+	'LoznaDelka', 'LoznaSirka', 'VyskaDo'
+])
+const NAPRAVY = new Set<string>([
+	'NapravyPocetDruh', 'NapravyPneuRafky', 'VozidloSpojZarizNazev'
+])
+const HLUK_RYCHLOST = new Set<string>([
+	'HlukStojiciOtacky', 'HlukJizda', 'NejvyssiRychlost', 'NejvyssiRychlostOmezeni'
+])
+
+function categoryOf(key: string): CategoryId {
+	if (DOKLADY.has(key)) return 'doklady_evidence'
+	if (DRUH_TYP.has(key)) return 'druh_typ_homologace'
+	if (OZNACENI.has(key)) return 'oznaceni_vyroba'
+	if (MOTOR_SPOTREBA.has(key)) return 'motor_palivo_spotreba'
+	if (EMISE.has(key)) return 'emise'
+	if (KAROSERIE.has(key)) return 'karoserie'
+	if (ROZMERY_HMOTNOSTI.has(key)) return 'rozmery_hmotnosti'
+	if (NAPRAVY.has(key)) return 'napravy_pneu'
+	if (HLUK_RYCHLOST.has(key)) return 'hluk_rychlost'
+	if (key.startsWith('Orv') || key.startsWith('Rz')) return 'doklady_evidence'
+	if (key.startsWith('Karoserie') || key.startsWith('VozidloKaroserie'))
+		return 'karoserie'
+	if (key.startsWith('Rozmery') || key.startsWith('Hmotnosti'))
+		return 'rozmery_hmotnosti'
+	if (key.startsWith('Pred') && key.includes('Prohlidka'))
+		return 'doklady_evidence'
+	if (key.startsWith('Emise') || key.startsWith('Emisni')) return 'emise'
+	if (
+		key.startsWith('Motor') ||
+		key.startsWith('Spotreba') ||
+		key === 'Palivo' ||
+		key === 'DojezdZR' ||
+		key === 'DojezdZrKm'
+	)
+		return 'motor_palivo_spotreba'
+	return 'ostatni'
+}
+
 export interface TechnicalField {
 	label: string
 	value: string
 }
+export interface TechnicalGroup {
+	label: string
+	fields: TechnicalField[]
+}
 
 /**
- * Build the labeled, non-blank technical fields from the registry response Data,
- * skipping the ones already shown elsewhere. Ordered by the label dictionary
- * (logical grouping), with any unmapped extras appended.
+ * Group the registry Data into the same labeled sections shown on the detail
+ * page, in the same order, excluding the header summary fields and blanks.
  */
-export function buildTechnicalFields(
+export function buildTechnicalGroups(
 	data: Record<string, unknown>
-): TechnicalField[] {
-	const out: TechnicalField[] = []
-	const seen = new Set<string>()
-	const push = (key: string) => {
-		if (seen.has(key) || ALREADY_SHOWN.has(key)) return
-		const value = data[key]
-		if (isBlank(value)) return
-		seen.add(key)
-		out.push({ label: formatFieldName(key), value: formatValue(value) })
+): TechnicalGroup[] {
+	const buckets = new Map<CategoryId, TechnicalField[]>()
+	for (const id of CATEGORY_ORDER) buckets.set(id, [])
+	for (const [key, value] of Object.entries(data)) {
+		if (SUMMARY_FIELDS.has(key) || isBlank(value)) continue
+		buckets.get(categoryOf(key))?.push({
+			label: formatFieldName(key),
+			value: formatValue(value)
+		})
 	}
-	for (const key of Object.keys(fieldLabels)) push(key)
-	for (const key of Object.keys(data)) push(key)
-	return out
+	return CATEGORY_ORDER.filter((id) => (buckets.get(id)?.length ?? 0) > 0).map(
+		(id) => ({ label: CATEGORY_LABELS[id], fields: buckets.get(id) ?? [] })
+	)
 }

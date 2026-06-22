@@ -15,7 +15,7 @@ import path from 'node:path'
 import { createElement as e, type ReactNode } from 'react'
 import QRCode from 'qrcode'
 import type { VehicleCacheResult } from './_vehicleCache'
-import { buildTechnicalFields } from './_vehicleFieldLabels'
+import { buildTechnicalGroups } from './_vehicleFieldLabels'
 
 /** Everything the PDF needs that isn't derivable from the snapshot itself. */
 export interface CertificateMeta {
@@ -69,6 +69,13 @@ const styles = {
 		marginTop: 14,
 		marginBottom: 6
 	},
+	groupTitle: {
+		fontSize: 9.5,
+		fontWeight: 700,
+		color: INK,
+		marginTop: 8,
+		marginBottom: 3
+	},
 	row: {
 		flexDirection: 'row',
 		borderBottomWidth: 1,
@@ -108,10 +115,11 @@ const styles = {
 	}
 } as const
 
+// Lowercase to match the web (VehicleHistoryPanel RELATION_LABEL).
 const RELATION_LABEL: Record<string, string> = {
-	owner: 'Vlastník',
-	operator: 'Provozovatel',
-	other: 'Jiný vztah'
+	owner: 'vlastník',
+	operator: 'provozovatel',
+	other: 'jiný vztah'
 }
 
 // Matches StkResult in src/types: pass | defects | unfit | unknown.
@@ -213,31 +221,27 @@ export async function renderCertificatePdf(
 		])
 	)
 
-	// Notable flags (stolen / exported / deregistered) — surface first.
+	// Notable flags — wording matches the web (VehicleHistoryPanel buildFlags).
 	const flagNodes: ReactNode[] = []
 	if (history.flags.stolen)
 		flagNodes.push(
-			e(
-				Text,
-				{ style: styles.flag, key: 'stolen' },
-				'Vozidlo je evidováno jako odcizené'
-			)
+			e(Text, { style: styles.flag, key: 'stolen' }, 'Evidováno jako odcizené')
 		)
 	if (history.flags.exported)
 		flagNodes.push(
-			e(
-				Text,
-				{ style: styles.flag, key: 'exported' },
-				'Vozidlo bylo vyvezeno do zahraničí'
-			)
+			e(Text, { style: styles.flag, key: 'exported' }, 'Vyvezeno do zahraničí')
 		)
 	if (history.flags.deregistered && !history.flags.exported)
 		flagNodes.push(
 			e(
 				Text,
 				{ style: styles.flag, key: 'dereg' },
-				'Vozidlo je vyřazeno z provozu / zánik'
+				'Vyřazeno z provozu / zánik'
 			)
+		)
+	if (history.flags.insuranceLapsed)
+		flagNodes.push(
+			e(Text, { style: styles.flag, key: 'ins' }, 'Zaniklé pojištění')
 		)
 	if (flagNodes.length > 0) {
 		children.push(
@@ -267,7 +271,7 @@ export async function renderCertificatePdf(
 		e(
 			Text,
 			{ style: styles.sectionTitle, key: 'own-t' },
-			'Vlastníci a provozovatelé'
+			'Majitelé a provozovatelé'
 		)
 	)
 	children.push(
@@ -276,6 +280,15 @@ export async function renderCertificatePdf(
 			row('Počet provozovatelů', String(history.owners.operators))
 		])
 	)
+	if (history.owners.timeline.length > 0) {
+		children.push(
+			e(
+				Text,
+				{ style: styles.groupTitle, key: 'tl-t' },
+				'Časová osa vlastníků a provozovatelů'
+			)
+		)
+	}
 	if (history.owners.timeline.length > 0) {
 		children.push(
 			e(
@@ -291,8 +304,13 @@ export async function renderCertificatePdf(
 						e(
 							Text,
 							{ style: styles.tlMain, key: 'm' },
-							t.nazev ??
-								(t.subjectType === 'company' ? 'Firma' : 'Soukromá osoba')
+							t.subjectType === 'company'
+								? t.ico
+									? `${t.nazev ?? `IČO ${t.ico}`} · IČO ${t.ico}`
+									: (t.nazev ?? 'Firma')
+								: t.subjectType === 'private'
+									? 'Soukromá osoba'
+									: 'Neuvedeno'
 						),
 						e(
 							Text,
@@ -345,10 +363,10 @@ export async function renderCertificatePdf(
 		)
 	}
 
-	// Imports.
+	// Imports — labelled as on the web ("Dovezené vozidlo").
 	if (history.imports.length > 0) {
 		children.push(
-			e(Text, { style: styles.sectionTitle, key: 'imp-t' }, 'Dovoz vozidla')
+			e(Text, { style: styles.sectionTitle, key: 'imp-t' }, 'Dovezené vozidlo')
 		)
 		children.push(
 			e(
@@ -362,31 +380,58 @@ export async function renderCertificatePdf(
 				)
 			)
 		)
-	}
-
-	// Technical data — everything the registry holds (mirrors the on-site detail
-	// page), wrapped so it can break across pages.
-	const techFields = buildTechnicalFields(data)
-	if (techFields.length > 0) {
 		children.push(
 			e(
 				Text,
-				{ style: styles.sectionTitle, key: 'tech-t', wrap: false },
-				'Technické údaje'
+				{ style: styles.muted, key: 'imp-note' },
+				'Český registr neobsahuje historii ze země původu.'
 			)
+		)
+	}
+
+	// Deregistrations — shown on the web ("Vyřazení z provozu").
+	if (history.deregistrations.length > 0) {
+		children.push(
+			e(Text, { style: styles.sectionTitle, key: 'dereg-t' }, 'Vyřazení z provozu')
 		)
 		children.push(
 			e(
 				View,
-				{ key: 'tech' },
-				techFields.map((f, i) =>
-					e(View, { style: styles.row, key: `tech-${i}` }, [
-						e(Text, { style: styles.cellLabel, key: 'l' }, f.label),
-						e(Text, { style: styles.cellValue, key: 'v' }, f.value)
-					])
+				{ key: 'dereg' },
+				history.deregistrations.map((d) =>
+					row(d.reason ?? 'neuvedeno', d.from ? fmtDate(d.from) : '—')
 				)
 			)
 		)
+	}
+
+	// Technical data — grouped into the same labeled sections as the detail page.
+	const techGroups = buildTechnicalGroups(data)
+	if (techGroups.length > 0) {
+		children.push(
+			e(Text, { style: styles.sectionTitle, key: 'tech-t' }, 'Technické údaje')
+		)
+		for (const group of techGroups) {
+			children.push(
+				e(
+					View,
+					{ key: `techg-${group.label}`, wrap: false },
+					[
+						e(
+							Text,
+							{ style: styles.groupTitle, key: 'gt' },
+							group.label
+						),
+						...group.fields.map((f, i) =>
+							e(View, { style: styles.row, key: `f-${i}` }, [
+								e(Text, { style: styles.cellLabel, key: 'l' }, f.label),
+								e(Text, { style: styles.cellValue, key: 'v' }, f.value)
+							])
+						)
+					]
+				)
+			)
+		}
 	}
 
 	// Footer disclaimer — must not imply state authority.
