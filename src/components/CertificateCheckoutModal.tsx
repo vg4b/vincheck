@@ -71,10 +71,19 @@ const CertificateCheckoutModal: React.FC<CertificateCheckoutModalProps> = ({
 					</div>
 					<form onSubmit={handleSubmit}>
 						<div className='modal-body'>
-							<p className='mb-3'>
+							<p className='mb-2'>
 								Přehled historie vozidla pro VIN <strong>{vin}</strong>{' '}
 								zpracovaný z dat registru silničních vozidel ČR — vlastníci, STK,
 								dovoz a stav vozidla v ověřitelném PDF.
+							</p>
+							<p className='mb-3'>
+								<a
+									href='/api/certificate/sample'
+									target='_blank'
+									rel='noopener noreferrer'
+								>
+									Prohlédnout ukázku certifikátu (PDF) ↗
+								</a>
 							</p>
 							<div className='mb-3'>
 								<label htmlFor='cert-email' className='form-label'>

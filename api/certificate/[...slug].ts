@@ -22,6 +22,7 @@ import {
 } from '../_payments'
 import { renderCertificatePdf } from '../_certificatePdf'
 import {
+	buildSampleSnapshot,
 	generateCode,
 	generateDownloadToken,
 	getCertificatePriceCzk,
@@ -73,10 +74,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	if (req.method === 'POST' && slug === 'webhook') {
 		return handleWebhook(req, res)
 	}
+	if (req.method === 'GET' && slug === 'sample') {
+		return handleSample(req, res)
+	}
 	if (req.method === 'GET' && slug) {
 		return handleFetch(req, res, slug)
 	}
 	return res.status(405).json({ error: 'Method not allowed' })
+}
+
+/** GET /api/certificate/sample — public watermarked example PDF (no DB, no token). */
+async function handleSample(req: VercelRequest, res: VercelResponse) {
+	if (!rateLimit(req, res, { limit: 30, windowMs: 60_000 })) {
+		return
+	}
+	const pdf = await renderCertificatePdf(buildSampleSnapshot(), {
+		code: 'UKÁZKA',
+		issuedAt: new Date(),
+		verifyUrl: `${getPublicBaseUrl()}/overit/UKAZKA`,
+		watermark: 'UKÁZKA'
+	})
+	res.setHeader('Content-Type', 'application/pdf')
+	res.setHeader('Content-Disposition', 'inline; filename="certifikat-ukazka.pdf"')
+	// Static content — cache hard at the edge.
+	res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400')
+	return res.status(200).send(pdf)
 }
 
 /** POST /api/certificate/create — freeze registry data + open a checkout. */

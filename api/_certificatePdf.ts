@@ -22,6 +22,8 @@ export interface CertificateMeta {
 	code: string
 	issuedAt: Date
 	verifyUrl: string
+	/** When set, overlays a diagonal watermark on every page (e.g. "UKÁZKA"). */
+	watermark?: string
 }
 
 const BRAND = '#1f6feb'
@@ -75,6 +77,18 @@ const styles = {
 		color: INK,
 		marginTop: 8,
 		marginBottom: 3
+	},
+	watermark: {
+		position: 'absolute',
+		top: '45%',
+		left: 0,
+		right: 0,
+		textAlign: 'center',
+		fontSize: 90,
+		fontWeight: 700,
+		color: '#1f6feb',
+		opacity: 0.12,
+		transform: 'rotate(-35deg)'
 	},
 	row: {
 		flexDirection: 'row',
@@ -443,10 +457,23 @@ export async function renderCertificatePdf(
 		}. Tento přehled zpracoval VIN Info.cz z veřejných dat registru a není úředním dokumentem. Neobsahuje stav tachometru, záznamy o nehodách ani zástavy/leasing. Pravost ověříte na ${meta.verifyUrl}`
 	)
 
+	// Diagonal watermark on every page (sample/preview PDFs only).
+	const watermark = meta.watermark
+		? e(
+				Text,
+				{ style: styles.watermark, fixed: true, key: 'watermark' },
+				meta.watermark
+			)
+		: null
+
 	const doc = e(
 		Document,
 		{ title: `Certifikát ${meta.code}` },
-		e(Page, { size: 'A4', style: styles.page }, [...children, footer])
+		e(
+			Page,
+			{ size: 'A4', style: styles.page },
+			[...children, footer, watermark].filter(Boolean)
+		)
 	)
 
 	return renderToBuffer(doc)

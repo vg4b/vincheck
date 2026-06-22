@@ -3,6 +3,7 @@
  * base-URL config, VIN masking. Kept separate so create/webhook/[code] stay DRY.
  */
 import crypto from 'crypto'
+import type { VehicleCacheResult } from './_vehicleCache'
 
 // Unambiguous alphabet (no 0/O/1/I) for human-readable, phone-friendly codes.
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -40,4 +41,108 @@ export function getPublicBaseUrl(): string {
 export function maskVin(vin: string): string {
 	if (vin.length <= 7) return vin
 	return `${vin.slice(0, 3)}…${vin.slice(-4)}`
+}
+
+/**
+ * Realistic dummy data for the public sample ("UKÁZKA") certificate, so buyers
+ * can see exactly what they get before paying. Not a real vehicle.
+ */
+export function buildSampleSnapshot(): VehicleCacheResult {
+	return {
+		response: {
+			Status: 200,
+			Data: {
+				VIN: 'TMBJX7NE0J0XXXXXX',
+				TovarniZnacka: 'ŠKODA',
+				Typ: '5E',
+				ObchodniOznaceni: 'OCTAVIA',
+				DatumPrvniRegistrace: '2018-04-12',
+				DatumPrvniRegistraceVCr: '2018-04-12',
+				CisloTp: 'UABC123456',
+				CisloOrv: 'XY456789',
+				StatusNazev: 'Provozované',
+				Kategorie: 'M1',
+				VozidloDruh: 'OSOBNÍ AUTOMOBIL',
+				VozidloVyrobce: 'ŠKODA AUTO a.s.',
+				MotorVyrobce: 'ŠKODA',
+				MotorTyp: 'DFGA',
+				MotorMaxVykon: '110 / 3500',
+				MotorZdvihObjem: '1968',
+				Palivo: 'Nafta',
+				EmiseCO2: '120',
+				EmisniUroven: 'EURO 6',
+				VozidloKaroserieBarva: 'Šedá metalíza',
+				VozidloKaroserieMist: '5/5/0',
+				Rozmery: '4670/1814/1476',
+				RozmeryRozvor: '2686',
+				HmotnostiProvozni: '1395',
+				NapravyPocetDruh: '2/1',
+				NejvyssiRychlost: '212',
+				RokVyroby: '2018'
+			}
+		},
+		snapshot: '2026-05-01',
+		history: {
+			owners: {
+				total: 2,
+				operators: 2,
+				companies: 1,
+				everCompanyOwned: true,
+				currentlyCompany: false,
+				companyOwners: [],
+				timeline: [
+					{
+						subjectType: 'company',
+						ico: '00177041',
+						nazev: 'Autopůjčovna Příklad s.r.o.',
+						from: '2018-04-12',
+						to: '2020-01-01',
+						current: false,
+						relation: 'owner'
+					},
+					{
+						subjectType: 'private',
+						ico: null,
+						nazev: null,
+						from: '2020-01-01',
+						to: null,
+						current: true,
+						relation: 'owner'
+					}
+				]
+			},
+			inspections: {
+				total: 2,
+				failed: 1,
+				distinctStations: 2,
+				latest: null,
+				history: [
+					{
+						date: '2022-05-01',
+						result: 'pass',
+						nazevStk: 'STK Praha',
+						typ: 'P',
+						administrative: false
+					},
+					{
+						date: '2024-05-01',
+						result: 'defects',
+						nazevStk: 'STK Brno',
+						typ: 'P',
+						administrative: false
+					}
+				]
+			},
+			flags: {
+				stolen: false,
+				exported: false,
+				deregistered: false,
+				insuranceLapsed: false,
+				statusLabel: 'Provozované'
+			},
+			deregistrations: [],
+			imports: [{ country: 'Německo', date: '2018-03-01' }],
+			snapshot: '2026-05-01'
+		}
+	}
 }

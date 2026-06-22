@@ -131,6 +131,15 @@ const CertificateLandingPage: React.FC = () => {
 								VIN má 17 znaků. Nejdřív uvidíte náhled zdarma, certifikát
 								koupíte na detailu vozidla.
 							</div>
+							<div className='mt-2'>
+								<a
+									href='/api/certificate/sample'
+									target='_blank'
+									rel='noopener noreferrer'
+								>
+									Prohlédnout ukázku certifikátu (PDF) ↗
+								</a>
+							</div>
 						</form>
 					</div>
 				</section>
