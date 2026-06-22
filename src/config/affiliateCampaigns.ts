@@ -261,8 +261,8 @@ const EPOJISTENI_AFF_BASE = 'https://espolupracecz.go2cloud.org/aff_c'
 const EPOJISTENI_OFFER_ID = '2'
 const EPOJISTENI_AFF_ID = '6692'
 
-/** Typ pojištění vozidla – jedna iframe creativa na typ. */
-export type InsuranceKind = 'povinne' | 'havarijni'
+/** Typ pojištění – jedna iframe creativa na typ (vozidla + cestovní). */
+export type InsuranceKind = 'povinne' | 'havarijni' | 'cestovni'
 
 /** Identifikátor umístění odkazu – předává se jako `aff_sub` (atribuce leadu). */
 export type InsurancePlacement =
@@ -282,15 +282,18 @@ export type InsurancePlacement =
  * přesně jak je skládá tracking odkaz vygenerovaný v portálu eSpolupráce.
  * `url_id` vybírá vstupní formulář, `file_id` je ID creativy (reporting).
  * POV = „Iframe formular ePojištění POV" (1000×2100),
- * HAV = „Iframe formular ePojištění HAV" (1000×2400).
+ * HAV = „Iframe formular ePojištění HAV" (1000×2400),
+ * CEST = „Iframe formular ePojištění cestovní" (700×1600).
  */
 const EPOJISTENI_URL_IDS: Record<InsuranceKind, string> = {
 	povinne: '1401',
-	havarijni: '1856'
+	havarijni: '1856',
+	cestovni: '1999'
 }
 const EPOJISTENI_FILE_IDS: Record<InsuranceKind, string> = {
 	povinne: '40146',
-	havarijni: '40694'
+	havarijni: '40694',
+	cestovni: '42877'
 }
 
 /**

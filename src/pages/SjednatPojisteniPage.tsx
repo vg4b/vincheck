@@ -3,15 +3,10 @@ import { Link, useSearchParams } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
 import {
-	axaCestovniPojisteni,
 	epojisteni,
 	type InsuranceKind,
 	type InsurancePlacement
 } from '../config/affiliateCampaigns'
-
-// Page tabs: the two ePojištění iframe types + cestovní (separate affiliate;
-// dedicated iframe will be wired later, interim CTA for now).
-type TabKind = InsuranceKind | 'cestovni'
 
 /**
  * Pevná výška iframe (px) podle typu – rozměry creativy ePojištění
@@ -24,7 +19,20 @@ type TabKind = InsuranceKind | 'cestovni'
  */
 const IFRAME_HEIGHT: Record<InsuranceKind, number> = {
 	povinne: 2200,
-	havarijni: 2500
+	havarijni: 2500,
+	cestovni: 1700
+}
+
+// Design width of each creative; cestovní is narrower (700px) so we cap it
+// instead of stretching the form across the full container.
+const IFRAME_MAX_WIDTH: Partial<Record<InsuranceKind, number>> = {
+	cestovni: 700
+}
+
+const IFRAME_TITLE: Record<InsuranceKind, string> = {
+	povinne: 'Srovnání povinného ručení',
+	havarijni: 'Srovnání havarijního pojištění',
+	cestovni: 'Srovnání cestovního pojištění'
 }
 
 const VALID_PLACEMENTS: InsurancePlacement[] = [
@@ -91,7 +99,7 @@ const SjednatPojisteniPage: React.FC = () => {
 	const [searchParams] = useSearchParams()
 
 	const typParam = searchParams.get('typ')
-	const initialTyp: TabKind =
+	const initialTyp: InsuranceKind =
 		typParam === 'havarijni'
 			? 'havarijni'
 			: typParam === 'cestovni'
@@ -101,7 +109,7 @@ const SjednatPojisteniPage: React.FC = () => {
 	const placement: InsurancePlacement =
 		srcParam && VALID_PLACEMENTS.includes(srcParam) ? srcParam : 'sjednat_page'
 
-	const [typ, setTyp] = useState<TabKind>(initialTyp)
+	const [typ, setTyp] = useState<InsuranceKind>(initialTyp)
 
 	useEffect(() => {
 		document.title = 'Sjednat pojištění vozidla | VIN Info.cz'
@@ -114,8 +122,7 @@ const SjednatPojisteniPage: React.FC = () => {
 		}
 	}, [])
 
-	const iframeUrl =
-		typ === 'cestovni' ? null : epojisteni.getIframeUrl(typ, placement)
+	const iframeUrl = epojisteni.getIframeUrl(typ, placement)
 
 	return (
 		<>
@@ -174,48 +181,27 @@ const SjednatPojisteniPage: React.FC = () => {
 					</label>
 				</div>
 
-				{/* Srovnávač – embedovaný iframe ePojištění (cestovní zatím přes partnera) */}
-				{typ === 'cestovni' ? (
-					<div
-						className='rounded border mb-5 p-4 p-md-5 text-center'
-						style={{ borderColor: 'var(--ink-300)' }}
-					>
-						<h2 className='h5 mb-2'>{axaCestovniPojisteni.headline}</h2>
-						<p className='text-muted mb-4 mx-auto' style={{ maxWidth: 560 }}>
-							{axaCestovniPojisteni.partnerInfo}
-						</p>
-						<a
-							href={axaCestovniPojisteni.getUrl('sjednat_page')}
-							target='_blank'
-							rel='noopener noreferrer'
-							className='btn btn-primary btn-lg'
-						>
-							Sjednat cestovní pojištění ➜
-						</a>
-					</div>
-				) : (
-					<div
-						className='rounded overflow-hidden border mb-5'
-						style={{ borderColor: 'var(--ink-300)' }}
-					>
-						<iframe
-							key={typ}
-							src={iframeUrl ?? undefined}
-							title={
-								typ === 'povinne'
-									? 'Srovnání povinného ručení'
-									: 'Srovnání havarijního pojištění'
-							}
-							scrolling='yes'
-							style={{
-								display: 'block',
-								width: '100%',
-								height: IFRAME_HEIGHT[typ],
-								border: 0
-							}}
-						/>
-					</div>
-				)}
+				{/* Srovnávač – embedovaný iframe ePojištění (POV / HAV / cestovní) */}
+				<div
+					className='rounded overflow-hidden border mb-5 mx-auto'
+					style={{
+						borderColor: 'var(--ink-300)',
+						maxWidth: IFRAME_MAX_WIDTH[typ]
+					}}
+				>
+					<iframe
+						key={typ}
+						src={iframeUrl}
+						title={IFRAME_TITLE[typ]}
+						scrolling='yes'
+						style={{
+							display: 'block',
+							width: '100%',
+							height: IFRAME_HEIGHT[typ],
+							border: 0
+						}}
+					/>
+				</div>
 
 				<div className='row g-4'>
 					{/* Co získáte */}
