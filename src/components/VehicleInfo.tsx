@@ -436,7 +436,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 								className='btn btn-outline-primary mt-auto'
 								onClick={handleCebiaClick}
 							>
-								Prověřit na Cebia ➜
+								Prověřit u našeho partnera ➜
 							</a>
 						}
 					/>
@@ -549,7 +549,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 															rel='noopener noreferrer'
 															onClick={handleCebiaClick}
 														>
-															Prověřit historii na Cebia.cz ➜
+															Prověřit historii u našeho partnera ➜
 														</a>
 													</td>
 												</tr>

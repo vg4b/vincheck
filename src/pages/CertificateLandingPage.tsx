@@ -162,7 +162,7 @@ const CertificateLandingPage: React.FC = () => {
 									rel='noopener noreferrer'
 									className='btn btn-outline-primary mt-auto'
 								>
-									Prověřit na Cebia ➜
+									Prověřit u našeho partnera ➜
 								</a>
 							}
 						/>

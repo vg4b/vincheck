@@ -56,7 +56,7 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 		<div className='product-card'>
 			<div className='product-card-head'>
 				<h3 className='h6 mb-1'>Kompletní prověření</h3>
-				<span className='product-price'>od ~500 Kč · Cebia</span>
+				<span className='product-price'>od ~500 Kč · náš partner</span>
 			</div>
 			<ul className='product-features'>
 				<li>
