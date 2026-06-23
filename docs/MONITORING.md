@@ -25,9 +25,20 @@ store only the user id).
 
 ## Alerts
 
-A successful sale (`certificate_issued`) also sends an immediate operator email
-via `sendOperatorAlert` (`api/_email.ts`) — set `OPERATOR_EMAIL` to enable it.
-Unset = silently skipped.
+Operator emails (`sendOperatorAlert`, `api/_email.ts`) are sent **only on
+delivery failures** — not on sales (Lemon Squeezy already notifies of those).
+Set `OPERATOR_EMAIL` to enable; unset = silently skipped. Triggers:
+
+- **Checkout can't be created** — the customer couldn't even start paying
+  (provider/config issue → likely affects every order).
+- **Paid but unknown certificate** — a paid webhook references a code we don't
+  have; the customer paid with nothing to deliver.
+- **Paid + issued but the delivery email failed** — the core "ordered but not
+  delivered" case; the alert includes the tokenised download link for a manual
+  resend.
+
+The `certificate_issued` event is still recorded in the `events` table for
+revenue/abandonment queries; it just doesn't email.
 
 ## Querying
 

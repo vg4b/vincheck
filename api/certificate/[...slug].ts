@@ -173,6 +173,13 @@ async function handleCreate(req: VercelRequest, res: VercelResponse) {
 	} catch (error) {
 		console.error('Checkout creation failed:', error)
 		void logEvent('certificate_error', { stage: 'checkout', vin: maskVin(cleanVin) })
+		// A failure here means the customer can't even start paying — if it's the
+		// provider/config rather than a fluke, every order is broken, so alert.
+		void sendOperatorAlert('Platbu nelze zahájit', [
+			'Vytvoření platby u Lemon Squeezy selhalo (zákazník nemohl zaplatit).',
+			`VIN: ${maskVin(cleanVin)}`,
+			`Chyba: ${error instanceof Error ? error.message : String(error)}`
+		])
 		return res
 			.status(502)
 			.json({ error: 'Platbu se nepodařilo zahájit. Zkuste to prosím znovu.' })
@@ -238,7 +245,24 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 	`
 
 	if (rows.length === 0) {
-		// Already issued (replay) or no match — nothing to do, but ack.
+		// No pending row flipped. Either a harmless replay of an already-issued cert,
+		// or a paid event whose code we don't recognise at all — the latter means a
+		// customer paid but has nothing to deliver, which is a real delivery failure.
+		const { rows: existing } = await sql`
+			SELECT 1 FROM certificates WHERE code = ${parsed.certificateCode} LIMIT 1;
+		`
+		if (existing.length === 0) {
+			await logEvent('certificate_error', {
+				stage: 'webhook_unknown_code',
+				code: parsed.certificateCode
+			})
+			await sendOperatorAlert('Platba bez certifikátu', [
+				'Lemon Squeezy potvrdil platbu, ale neznáme odpovídající certifikát.',
+				`Kód: ${parsed.certificateCode}`,
+				`Provider ref: ${parsed.ref ?? '?'}`,
+				'Zákazník zaplatil, ale certifikát nelze doručit — zkontrolujte ručně.'
+			])
+		}
 		return res.status(200).json({ received: true })
 	}
 
@@ -250,22 +274,18 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 		amount_czk: number | null
 	}
 
-	// Revenue event — durable record + an immediate operator alert (best-effort).
+	// Durable record of the sale (no operator email — Lemon Squeezy already
+	// notifies of sales; operator alerts are reserved for delivery failures).
 	await logEvent('certificate_issued', {
 		code: cert.code,
 		vin: maskVin(cert.vin),
 		amountCzk: cert.amount_czk
 	})
-	await sendOperatorAlert('Certifikát zaplacen', [
-		`Kód: ${cert.code}`,
-		`VIN: ${maskVin(cert.vin)}`,
-		`Částka: ${cert.amount_czk ?? '?'} Kč`,
-		`E-mail kupujícího: ${cert.buyer_email}`
-	])
 
 	const base = getPublicBaseUrl()
+	let emailDelivered = false
 	try {
-		await sendCertificateEmail({
+		emailDelivered = await sendCertificateEmail({
 			to: cert.buyer_email,
 			code: cert.code,
 			vin: cert.vin,
@@ -274,9 +294,24 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 		})
 	} catch (error) {
 		// The certificate is paid + issued; a failed email must not 500 the webhook
-		// (that would trigger retries and risk double-processing). Log and move on —
-		// the buyer can still reach it via the success redirect.
+		// (that would trigger retries and risk double-processing). Log and alert —
+		// the buyer paid but didn't receive their certificate.
 		console.error('Certificate email failed:', error)
+	}
+
+	// Paid + issued but the delivery email didn't go out → notify the operator so
+	// they can resend manually. This is the core "ordered but not delivered" case.
+	if (!emailDelivered) {
+		await logEvent('certificate_error', {
+			stage: 'delivery_email',
+			code: cert.code
+		})
+		await sendOperatorAlert('Certifikát nedoručen', [
+			'Certifikát byl zaplacen a vystaven, ale doručovací e-mail se nepodařilo odeslat.',
+			`Kód: ${cert.code}`,
+			`E-mail kupujícího: ${cert.buyer_email}`,
+			`Stažení: ${base}/api/certificate/${cert.code}?token=${cert.download_token}`
+		])
 	}
 
 	return res.status(200).json({ received: true })
