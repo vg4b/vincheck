@@ -22,17 +22,22 @@ const CertificateCheckoutModal: React.FC<CertificateCheckoutModalProps> = ({
 	onClose
 }) => {
 	const [email, setEmail] = useState('')
+	const [agreed, setAgreed] = useState(false)
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
+		if (!agreed) {
+			setError('Pro pokračování je nutné souhlasit s obchodními podmínkami.')
+			return
+		}
 		setError(null)
 		setSubmitting(true)
 		try {
 			const res = await requestJson<CreateResponse>('/api/certificate/create', {
 				method: 'POST',
-				body: JSON.stringify({ vin, email })
+				body: JSON.stringify({ vin, email, termsAccepted: agreed })
 			})
 			// Hand off to the hosted payment page.
 			window.location.href = res.checkoutUrl
@@ -100,6 +105,28 @@ const CertificateCheckoutModal: React.FC<CertificateCheckoutModalProps> = ({
 									autoFocus
 								/>
 							</div>
+							<div className='form-check mb-2'>
+								<input
+									id='cert-terms'
+									type='checkbox'
+									className='form-check-input'
+									checked={agreed}
+									onChange={(ev) => setAgreed(ev.target.checked)}
+									required
+								/>
+								<label
+									htmlFor='cert-terms'
+									className='form-check-label small text-muted-ink'
+								>
+									Souhlasím s{' '}
+									<a href='/podminky' target='_blank' rel='noopener noreferrer'>
+										obchodními podmínkami
+									</a>{' '}
+									a žádám o dodání certifikátu (digitálního obsahu) ihned po
+									zaplacení. Beru na vědomí, že tím ztrácím právo na odstoupení od
+									smlouvy.
+								</label>
+							</div>
 							{error && (
 								<div className='alert alert-danger py-2 mb-0' role='alert'>
 									{error}
@@ -122,7 +149,7 @@ const CertificateCheckoutModal: React.FC<CertificateCheckoutModalProps> = ({
 							<button
 								type='submit'
 								className='btn btn-primary'
-								disabled={submitting}
+								disabled={submitting || !agreed}
 							>
 								{submitting
 									? 'Přesměrování…'

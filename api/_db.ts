@@ -152,8 +152,15 @@ export async function ensureTables() {
 			amount_czk integer,
 			download_token text NOT NULL,
 			created_at timestamptz NOT NULL DEFAULT now(),
-			issued_at timestamptz
+			issued_at timestamptz,
+			terms_accepted_at timestamptz
 		);
+	`
+
+	// Consent capture for the digital-content withdrawal waiver (added later).
+	await sql`
+		ALTER TABLE certificates
+		ADD COLUMN IF NOT EXISTS terms_accepted_at timestamptz;
 	`
 
 	await sql`

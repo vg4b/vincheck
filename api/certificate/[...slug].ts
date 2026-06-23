@@ -108,7 +108,7 @@ async function handleCreate(req: VercelRequest, res: VercelResponse) {
 		return
 	}
 
-	let body: { vin?: string; email?: string } = {}
+	let body: { vin?: string; email?: string; termsAccepted?: boolean } = {}
 	try {
 		const raw = await readRawBody(req)
 		body = raw.length ? JSON.parse(raw.toString('utf8')) : {}
@@ -126,6 +126,12 @@ async function handleCreate(req: VercelRequest, res: VercelResponse) {
 	}
 	if (!EMAIL_RE.test(cleanEmail)) {
 		return res.status(400).json({ error: 'Neplatný e-mail.' })
+	}
+	// Consent to the terms + immediate-delivery withdrawal waiver is mandatory.
+	if (body.termsAccepted !== true) {
+		return res
+			.status(400)
+			.json({ error: 'Je nutné souhlasit s obchodními podmínkami.' })
 	}
 	if (!isCacheConfigured()) {
 		return res
@@ -173,7 +179,8 @@ async function handleCreate(req: VercelRequest, res: VercelResponse) {
 	await sql`
 		INSERT INTO certificates (
 			code, vin, buyer_email, user_id, status, snapshot,
-			registry_snapshot_date, provider, provider_ref, amount_czk, download_token
+			registry_snapshot_date, provider, provider_ref, amount_czk, download_token,
+			terms_accepted_at
 		) VALUES (
 			${code},
 			${cleanVin},
@@ -185,7 +192,8 @@ async function handleCreate(req: VercelRequest, res: VercelResponse) {
 			${PAYMENT_PROVIDER},
 			${checkout.ref},
 			${amountCzk},
-			${downloadToken}
+			${downloadToken},
+			now()
 		);
 	`
 
