@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { cebia } from '../config/affiliateCampaigns'
+import { isCertificateEnabled } from '../config/featureFlags'
 import type { VehicleDataArray, VehicleHistory } from '../types'
 import { formatFuel, fuelBaseLabel } from '../utils/fuelLabels'
 import {
@@ -415,7 +416,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 			    Cebia = reveals what the registry CAN'T (mileage/accidents/liens/
 			    foreign history). Both cards only when there's a full 17-char VIN to
 			    sell a certificate against; otherwise fall back to a Cebia-only CTA. */}
-			{cleanVin.length === 17 ? (
+			{cleanVin.length === 17 && isCertificateEnabled() ? (
 				<div className='my-4'>
 					<ProductComparison
 						priceCzk={CERTIFICATE_PRICE_CZK}

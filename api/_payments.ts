@@ -38,10 +38,10 @@ function isLiveMode(): boolean {
 }
 
 /**
- * Resolve a mode-specific Lemon Squeezy secret. The API key and webhook secret
- * differ between test and live mode (the store/variant ids don't). In non-live
- * mode (local, preview, tests) prefer the `_TEST` variant, falling back to the
- * base name; in live mode always use the base (live) name.
+ * Resolve a mode-specific Lemon Squeezy value. The API key, webhook secret and
+ * product variant id all differ between test and live mode (the store id is
+ * shared). In non-live mode (local, preview, tests) prefer the `_TEST` variant,
+ * falling back to the base name; in live mode always use the base (live) name.
  */
 function lsModeEnv(base: string): string {
 	if (!isLiveMode()) {
@@ -93,7 +93,7 @@ export async function createCheckout(
 					data: { type: 'stores', id: env('LEMONSQUEEZY_STORE_ID') }
 				},
 				variant: {
-					data: { type: 'variants', id: env('LEMONSQUEEZY_VARIANT_ID') }
+					data: { type: 'variants', id: lsModeEnv('LEMONSQUEEZY_VARIANT_ID') }
 				}
 			}
 		}

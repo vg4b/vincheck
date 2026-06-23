@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import Navigation from '../components/Navigation'
 import Footer from '../components/Footer'
 import ProductComparison from '../components/ProductComparison'
 import { cebia } from '../config/affiliateCampaigns'
+import { isCertificateEnabled } from '../config/featureFlags'
 
 // Keep in sync with CERTIFICATE_PRICE_CZK (VehicleInfo.tsx / backend / Lemon Squeezy).
 const PRICE_CZK = 99
@@ -15,8 +16,13 @@ const CANONICAL_URL = 'https://vininfo.cz/overeny-vypis-vozidla'
 const CertificateLandingPage: React.FC = () => {
 	const navigate = useNavigate()
 	const [vin, setVin] = useState('')
+	const enabled = isCertificateEnabled()
 
 	useEffect(() => {
+		// Skip SEO/meta injection while the product is hidden — the page redirects.
+		if (!enabled) {
+			return
+		}
 		const prevTitle = document.title
 		document.title = PAGE_TITLE
 
@@ -77,7 +83,12 @@ const CertificateLandingPage: React.FC = () => {
 			}
 			ld.remove()
 		}
-	}, [])
+	}, [enabled])
+
+	// Product not launched yet — keep the route from being publicly reachable.
+	if (!enabled) {
+		return <Navigate to='/' replace />
+	}
 
 	const cleanVin = vin.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
 	const canSubmit = cleanVin.length === 17
