@@ -325,3 +325,30 @@ export async function sendCertificateEmail(
 		text: generateCertificateEmailText(params)
 	})
 }
+
+/**
+ * Internal operational alert to the site operator (not a customer email). Used
+ * for low-volume, high-signal events worth knowing about immediately — primarily
+ * a successful certificate sale. No-ops unless OPERATOR_EMAIL is configured, so
+ * it is safe to call unconditionally. Plain, minimal markup; never throws.
+ */
+export async function sendOperatorAlert(
+	subject: string,
+	lines: string[]
+): Promise<void> {
+	const to = process.env.OPERATOR_EMAIL
+	if (!to) {
+		return
+	}
+	const html = `<p>${lines.map((l) => l.replace(/</g, '&lt;')).join('<br>')}</p>`
+	try {
+		await sendEmail({
+			to,
+			subject: `[VINInfo] ${subject}`,
+			html,
+			text: lines.join('\n')
+		})
+	} catch (error) {
+		console.error('Operator alert failed:', error)
+	}
+}

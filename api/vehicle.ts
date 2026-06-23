@@ -12,6 +12,7 @@
  * VIN are served from Vercel's CDN — caps DB/upstream load and cost under bursts.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { logEvent } from './_metrics'
 import { rateLimit } from './_rateLimit'
 import {
 	isCacheConfigured,
@@ -89,6 +90,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 			.json({ error: 'Missing required parameter: vin, tp, or orv' })
 	}
 
+	// Identifier kind for monitoring — never the value itself.
+	const lookupBy = vin ? 'vin' : tp ? 'tp' : 'orv'
+
 	// 1. Cache first. A cache failure must never break the lookup — fall through.
 	let cached: Awaited<ReturnType<typeof lookupVehicleFromCache>> = null
 	if (isCacheConfigured()) {
@@ -99,6 +103,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 		}
 		if (cached && isCacheFresh(cached.snapshot)) {
 			setEdgeCacheHeaders(res)
+			// Fire-and-forget — must not add latency to the hot lookup path.
+			void logEvent('vin_lookup', { by: lookupBy, source: 'cache' })
 			// History is additive — present only on a cache hit (the live-API
 			// fallback below can't produce it). See docs/VEHICLE_HISTORY_PANEL.md.
 			return res
@@ -151,6 +157,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 		const data = await response.json()
 		setEdgeCacheHeaders(res)
+		void logEvent('vin_lookup', { by: lookupBy, source: 'live' })
 		return res.status(200).json(data)
 	} catch (error) {
 		console.error('Proxy error:', error)

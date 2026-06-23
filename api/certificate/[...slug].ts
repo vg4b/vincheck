@@ -13,7 +13,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { sql } from '@vercel/postgres'
 import { getUserFromToken } from '../_auth'
 import { ensureTables } from '../_db'
-import { sendCertificateEmail } from '../_email'
+import { sendCertificateEmail, sendOperatorAlert } from '../_email'
+import { logEvent } from '../_metrics'
 import { rateLimit } from '../_rateLimit'
 import {
 	createCheckout,
@@ -171,6 +172,7 @@ async function handleCreate(req: VercelRequest, res: VercelResponse) {
 		})
 	} catch (error) {
 		console.error('Checkout creation failed:', error)
+		void logEvent('certificate_error', { stage: 'checkout', vin: maskVin(cleanVin) })
 		return res
 			.status(502)
 			.json({ error: 'Platbu se nepodařilo zahájit. Zkuste to prosím znovu.' })
@@ -196,6 +198,12 @@ async function handleCreate(req: VercelRequest, res: VercelResponse) {
 			now()
 		);
 	`
+
+	void logEvent('certificate_created', {
+		code,
+		vin: maskVin(cleanVin),
+		amountCzk
+	})
 
 	return res.status(201).json({ code, checkoutUrl: checkout.url })
 }
@@ -226,7 +234,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 		SET status = 'issued', issued_at = now()
 		WHERE code = ${parsed.certificateCode}
 			AND status = 'pending'
-		RETURNING code, vin, buyer_email, download_token;
+		RETURNING code, vin, buyer_email, download_token, amount_czk;
 	`
 
 	if (rows.length === 0) {
@@ -239,7 +247,21 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 		vin: string
 		buyer_email: string
 		download_token: string
+		amount_czk: number | null
 	}
+
+	// Revenue event — durable record + an immediate operator alert (best-effort).
+	await logEvent('certificate_issued', {
+		code: cert.code,
+		vin: maskVin(cert.vin),
+		amountCzk: cert.amount_czk
+	})
+	await sendOperatorAlert('Certifikát zaplacen', [
+		`Kód: ${cert.code}`,
+		`VIN: ${maskVin(cert.vin)}`,
+		`Částka: ${cert.amount_czk ?? '?'} Kč`,
+		`E-mail kupujícího: ${cert.buyer_email}`
+	])
 
 	const base = getPublicBaseUrl()
 	try {
