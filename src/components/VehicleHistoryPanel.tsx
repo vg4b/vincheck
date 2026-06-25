@@ -20,11 +20,6 @@ function fmtDate(s: string | null): string {
 	return m ? `${Number(m[3])}. ${Number(m[2])}. ${m[1]}` : s
 }
 
-// Czech thousands grouping: 166845 → "166 845".
-function fmtKm(n: number): string {
-	return n.toLocaleString('cs-CZ')
-}
-
 function yearOf(s: string): string {
 	return s.slice(0, 4)
 }
@@ -99,7 +94,7 @@ const VehicleHistoryPanel: FC<{
 	const cleanVin = vinCode.replace(/[^a-zA-Z0-9]/g, '')
 	// Mileage is a paid-certificate feature — shown only behind the cert flag and
 	// only when we actually have readings. Free view = blurred values + unlock CTA.
-	const showMileage = isCertificateEnabled() && mileage.readings.length > 0
+	const showMileage = isCertificateEnabled() && mileage.count > 0
 	// Full owner/operator timeline (oldest first). Individuals are anonymised at
 	// the source — shown as "Soukromá osoba" with dates only, no personal info.
 	const timeline = [...owners.timeline].sort((a, b) =>
@@ -341,43 +336,35 @@ const VehicleHistoryPanel: FC<{
 							</div>
 						)}
 						<div className='small text-muted-ink mb-2'>
-							{mileage.readings.length}{' '}
-							{czPlural(
-								mileage.readings.length,
-								'záznam',
-								'záznamy',
-								'záznamů'
-							)}{' '}
-							stavu tachometru z prohlídek
-							{mileage.readings.length > 1 &&
-								` (${yearOf(mileage.readings[0].date)}–${yearOf(
-									mileage.readings[mileage.readings.length - 1].date
+							{mileage.count}{' '}
+							{czPlural(mileage.count, 'záznam', 'záznamy', 'záznamů')} stavu
+							tachometru z prohlídek
+							{mileage.count > 1 &&
+								` (${yearOf(mileage.readingDates[0])}–${yearOf(
+									mileage.readingDates[mileage.readingDates.length - 1]
 								)})`}
 							.
 						</div>
 
 						<ul className='list-unstyled mb-0 small'>
-							{[...mileage.readings].reverse().map((r) => (
+							{[...mileage.readingDates].reverse().map((date) => (
 								<li
-									key={r.date}
+									key={date}
 									className='d-flex gap-2 align-items-center mb-1'
 								>
 									<span
 										className='text-muted-ink text-nowrap'
 										style={{ minWidth: '6.5rem' }}
 									>
-										{fmtDate(r.date)}
+										{fmtDate(date)}
 									</span>
 									<span
-										aria-hidden
-										style={{
-											filter: 'blur(6px)',
-											userSelect: 'none',
-											fontWeight: 600
-										}}
+										className='text-muted-ink'
+										style={{ fontWeight: 600, letterSpacing: '0.1em' }}
 									>
-										{fmtKm(r.km)} km
+										•••••• km
 									</span>
+									<Icon name='lock' size={12} className='text-muted-ink' />
 								</li>
 							))}
 						</ul>

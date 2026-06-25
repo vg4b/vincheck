@@ -107,9 +107,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 			void logEvent('vin_lookup', { by: lookupBy, source: 'cache' })
 			// History is additive — present only on a cache hit (the live-API
 			// fallback below can't produce it). See docs/VEHICLE_HISTORY_PANEL.md.
+			//
+			// Mileage is a PAID feature: never put exact km in the public response
+			// (the blur would be cosmetic). Send only a teaser — count, inspection
+			// dates (already public via STK history) and the rollback flag. The full
+			// figures live server-side and are frozen into the certificate snapshot
+			// for the PDF.
+			const { mileage, ...restHistory } = cached.history
+			const publicHistory = {
+				...restHistory,
+				mileage: {
+					count: mileage.readings.length,
+					rollbackSuspected: mileage.rollbackSuspected,
+					readingDates: mileage.readings.map((r) => r.date)
+				}
+			}
 			return res
 				.status(200)
-				.json({ ...cached.response, History: cached.history })
+				.json({ ...cached.response, History: publicHistory })
 		}
 	}
 

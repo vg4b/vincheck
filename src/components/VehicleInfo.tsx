@@ -402,7 +402,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 						</span>
 						<span className='stat-tile-value' style={{ fontSize: '1rem' }}>
 							{isCertificateEnabled() &&
-							(history?.mileage?.readings.length ?? 0) > 0 ? (
+							(history?.mileage?.count ?? 0) > 0 ? (
 								<a href='#tachometr'>Zobrazit historii nájezdu ➜</a>
 							) : (
 								<a
@@ -432,7 +432,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 				<div className='my-4'>
 					<ProductComparison
 						priceCzk={CERTIFICATE_PRICE_CZK}
-						mileageAvailable={(history?.mileage?.readings.length ?? 0) > 0}
+						mileageAvailable={(history?.mileage?.count ?? 0) > 0}
 						certificateCta={
 							<button
 								type='button'
