@@ -387,24 +387,31 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 						</span>
 					</div>
 
-					{/* Odometer is logged at each STK but isn't in the open-data CSV we
-					    use, so a lone reading would be meaningless here anyway. Frame it
-					    as the full mileage history (rollback detection) the report
-					    reconstructs — the strongest doubt the free timeline can't show. */}
+					{/* Stav tachometru. With the certificate enabled we have the full
+					    mileage history (from STK/emission inspections) — point to that
+					    section. Otherwise fall back to the partner CTA. */}
 					<div className='stat-tile stat-tile--gap'>
 						<span className='stat-tile-label'>
 							<Icon name='search' size={13} />
 							Stav tachometru
 						</span>
 						<span className='stat-tile-value' style={{ fontSize: '1rem' }}>
-							<a
-								href={cebia.getDirectUrl(vinCode, 'vehicle_info_odometer_gap')}
-								target='_blank'
-								rel='noopener noreferrer'
-								onClick={handleCebiaClick}
-							>
-								Prověřit historii nájezdu ➜
-							</a>
+							{isCertificateEnabled() &&
+							(history?.mileage?.readings.length ?? 0) > 0 ? (
+								<a href='#tachometr'>Zobrazit historii nájezdu ➜</a>
+							) : (
+								<a
+									href={cebia.getDirectUrl(
+										vinCode,
+										'vehicle_info_odometer_gap'
+									)}
+									target='_blank'
+									rel='noopener noreferrer'
+									onClick={handleCebiaClick}
+								>
+									Prověřit historii nájezdu ➜
+								</a>
+							)}
 						</span>
 					</div>
 				</div>
@@ -468,7 +475,17 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 				/>
 			)}
 
-			{history && <VehicleHistoryPanel history={history} vinCode={vinCode} />}
+			{history && (
+				<VehicleHistoryPanel
+					history={history}
+					vinCode={vinCode}
+					onUnlock={
+						cleanVin.length === 17
+							? () => setShowCertModal(true)
+							: undefined
+					}
+				/>
+			)}
 
 			{/* Promo section (if provided) */}
 			{promoSection}
