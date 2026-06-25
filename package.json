@@ -41,7 +41,9 @@
 		"format": "biome format --write .",
 		"check": "biome check .",
 		"check:fix": "biome check --write .",
-		"preview:emails": "npx tsx scripts/preview-emails.ts"
+		"preview:emails": "npx tsx scripts/preview-emails.ts",
+		"odometer:crawl": "npx tsx scripts/crawl-odometer-catalog.ts",
+		"odometer:download": "npx tsx scripts/download-odometer.ts"
 	},
 	"eslintConfig": {
 		"extends": [
