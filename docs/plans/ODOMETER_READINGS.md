@@ -27,9 +27,54 @@ certificate.
   - **No local archive** (confirmed with user 2026-06-23) — the ~6442 daily files
     must be enumerated + downloaded day-by-day from the catalog (one dataset per
     day, each with its own `dcat:distribution` → `dcat:downloadURL`).
+  - **Catalogue crawl is solved** — `scripts/crawl-odometer-catalog.ts` (built
+    2026-06-24). It's a DCAT **dataset series**: parent ↔ members via
+    `dcat:seriesMember` / `dcat:inSeries`; each member has exactly one
+    `dcat:downloadURL` + a `dct:temporal` day. One SPARQL query (POST to
+    `https://data.gov.cz/sparql`, paged) yields all 6442 → a manifest of
+    `{ date, downloadUrl, datasetIri }`. **Range: 2008-07-01 → 2026-06-06.**
+  - **`downloadURL` serves gzip** (`Content` is `1f 8b` — a `.xml.gz`, original
+    name `prohlidky_YYYY_MM_DD.xml`), so the ingest must `gunzip` (stream via
+    `zlib.createGunzip()`) before parsing. Schema is the same `ProhlidkaSeznam`
+    (incl. `Vin`, `CisloProtokolu`, `Vysledek/Odometr`) **all the way back to
+    2008** — ~18 years of mileage history available.
   - Schema: https://istp.data.md.gov.cz/resources/istp/opendata/schemas/istp-opendata-schemas-ProhlidkaSeznam-v1.xsd
 - Bash/`COPY` can't parse XML and there are many files → odometer needs its own
   ingest path (Node/tsx, streaming).
+
+## Running the download phase ✅ BUILT (crawl + download)
+
+Two scripts get the raw data onto disk; the parse/ingest (Step 2) is separate.
+
+**Prerequisites:** Node + `tsx` (already a dev dep), network access to
+`data.gov.cz` (SPARQL) and `istp.data.md.gov.cz` (files), and **~32 GB free disk**
+(files are kept gzip; ~18 years ≈ 6442 × ~5 MB). Output defaults to
+`$CSV_DIR` (else `~/Desktop/datova kostka`), matching the CSV cache convention.
+
+1. **Crawl the catalogue → manifest** (fast, one SPARQL walk of all 6442 days):
+   ```bash
+   pnpm odometer:crawl
+   # → $CSV_DIR/odometer-manifest.json   [{date, downloadUrl, datasetIri}]
+   ```
+
+2. **Download the gzip XML files** (resumable, parallel):
+   ```bash
+   pnpm odometer:download --concurrency 8
+   # → $CSV_DIR/odometer-xml/prohlidky_<date>.xml.gz
+   ```
+   Re-runs skip already-present valid files, so an interrupted backfill just
+   resumes. Smoke-test first with `--limit 20`.
+
+3. **Daily incremental** (after the one-time backfill): re-crawl, then download
+   only the new day(s):
+   ```bash
+   pnpm odometer:crawl
+   pnpm odometer:download --from $(date -v-1d +%F)   # macOS; Linux: -d 'yesterday'
+   ```
+
+Notes: each `downloadURL` serves a `.xml.gz` (validated by gzip magic); files
+stay compressed and the parser gunzips on read. Flags: `--manifest`, `--dir`,
+`--concurrency`, `--from`/`--to`, `--limit`, `--force` (see script headers).
 
 ## Step 0 — Spike ✅ DONE (analysed `ProhlidkaSeznam_20260526-20260526.xml`)
 
