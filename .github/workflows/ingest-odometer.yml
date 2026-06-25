@@ -34,11 +34,17 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
-      # These scripts only need pg + tsx — install just those (no lockfile
-      # dependency, avoids pulling the whole CRA app into the runner).
-      - run: npm install --no-save pg tsx
+      # These scripts only need pg + tsx. Install ONLY those: temporarily hide
+      # package.json so npm doesn't pull the whole CRA dependency tree (~1600
+      # packages) into the runner — just pg + tsx land in ./node_modules, which is
+      # where the scripts in scripts/ resolve their imports from.
+      - name: Install pg + tsx only
+        run: |
+          mv package.json _package.json
+          npm install --no-save --no-package-lock --no-audit --no-fund pg tsx
+          mv _package.json package.json
 
       - name: Compute window start
         id: win
