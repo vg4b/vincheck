@@ -82,6 +82,15 @@ export interface VehicleHistory {
 		country: string | null
 		date: string | null
 	}>
+	/** Odometer/mileage history from the official STK/emission inspections
+	 *  (ISTP open data), one reading per inspection date. `rollbackSuspected` is
+	 *  true when a later reading is lower than an earlier one. */
+	mileage: {
+		latestKm: number | null
+		readings: Array<{ date: string; km: number }>
+		rollbackSuspected: boolean
+		avgKmPerYear: number | null
+	}
 	snapshot: string | null
 }
 
