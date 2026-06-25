@@ -19,7 +19,20 @@ import {
  */
 const IFRAME_HEIGHT: Record<InsuranceKind, number> = {
 	povinne: 2200,
-	havarijni: 2500
+	havarijni: 2500,
+	cestovni: 1700
+}
+
+// Design width of each creative; cestovní is narrower (700px) so we cap it
+// instead of stretching the form across the full container.
+const IFRAME_MAX_WIDTH: Partial<Record<InsuranceKind, number>> = {
+	cestovni: 700
+}
+
+const IFRAME_TITLE: Record<InsuranceKind, string> = {
+	povinne: 'Srovnání povinného ručení',
+	havarijni: 'Srovnání havarijního pojištění',
+	cestovni: 'Srovnání cestovního pojištění'
 }
 
 const VALID_PLACEMENTS: InsurancePlacement[] = [
@@ -85,8 +98,13 @@ const BENEFITS = [
 const SjednatPojisteniPage: React.FC = () => {
 	const [searchParams] = useSearchParams()
 
+	const typParam = searchParams.get('typ')
 	const initialTyp: InsuranceKind =
-		searchParams.get('typ') === 'havarijni' ? 'havarijni' : 'povinne'
+		typParam === 'havarijni'
+			? 'havarijni'
+			: typParam === 'cestovni'
+				? 'cestovni'
+				: 'povinne'
 	const srcParam = searchParams.get('src') as InsurancePlacement | null
 	const placement: InsurancePlacement =
 		srcParam && VALID_PLACEMENTS.includes(srcParam) ? srcParam : 'sjednat_page'
@@ -113,9 +131,9 @@ const SjednatPojisteniPage: React.FC = () => {
 				<h1 className='mb-3'>Sjednat pojištění vozidla</h1>
 				<p className='text-muted mb-4'>
 					Vyberte typ pojištění a porovnejte si nabídky pojišťoven přímo zde
-					online a zdarma. Vyplatí se to každý rok – při prodloužení smlouvy se
-					automaticky nepřepočítává bonus za bezeškodní průběh, takže novým
-					srovnáním často ušetříte.
+					online a zdarma – ušetříte čas i peníze.
+					{typ !== 'cestovni' &&
+						' Pojištění vozidla se obvykle sjednává na dobu neurčitou a bonus za bezeškodní průběh se automaticky nepřepočítává, takže novým srovnáním každý rok často ušetříte.'}
 				</p>
 
 				{/* Přepínač typu pojištění */}
@@ -146,21 +164,35 @@ const SjednatPojisteniPage: React.FC = () => {
 					>
 						Havarijní pojištění
 					</label>
+
+					<input
+						type='radio'
+						className='btn-check'
+						name='typ-pojisteni'
+						id='typ-cestovni'
+						checked={typ === 'cestovni'}
+						onChange={() => setTyp('cestovni')}
+					/>
+					<label
+						className='btn btn-outline-primary px-4'
+						htmlFor='typ-cestovni'
+					>
+						Cestovní pojištění
+					</label>
 				</div>
 
-				{/* Srovnávač – embedovaný iframe ePojištění */}
+				{/* Srovnávač – embedovaný iframe ePojištění (POV / HAV / cestovní) */}
 				<div
-					className='rounded overflow-hidden border mb-5'
-					style={{ borderColor: 'var(--ink-300)' }}
+					className='rounded overflow-hidden border mb-5 mx-auto'
+					style={{
+						borderColor: 'var(--ink-300)',
+						maxWidth: IFRAME_MAX_WIDTH[typ]
+					}}
 				>
 					<iframe
 						key={typ}
 						src={iframeUrl}
-						title={
-							typ === 'povinne'
-								? 'Srovnání povinného ručení'
-								: 'Srovnání havarijního pojištění'
-						}
+						title={IFRAME_TITLE[typ]}
 						scrolling='yes'
 						style={{
 							display: 'block',

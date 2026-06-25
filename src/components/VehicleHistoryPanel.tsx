@@ -1,5 +1,6 @@
 import type { FC } from 'react'
 import { Link } from 'react-router-dom'
+import { isCertificateEnabled } from '../config/featureFlags'
 import type { OwnerRelation, StkResult, VehicleHistory } from '../types'
 import Icon from './Icon'
 
@@ -17,6 +18,10 @@ function fmtDate(s: string | null): string {
 	if (!s) return '—'
 	const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
 	return m ? `${Number(m[3])}. ${Number(m[2])}. ${m[1]}` : s
+}
+
+function yearOf(s: string): string {
+	return s.slice(0, 4)
 }
 
 // vehicle_inspections.typ: "P - Pravidelná", "E - Evidenční", … Label by the
@@ -77,13 +82,19 @@ function buildFlags(h: VehicleHistory): Flag[] {
  * separate card for the STK inspection history. Rendered only on a cache hit
  * (the `history` prop is otherwise absent). See docs/VEHICLE_HISTORY_PANEL.md.
  */
-const VehicleHistoryPanel: FC<{ history: VehicleHistory; vinCode: string }> = ({
-	history,
-	vinCode
-}) => {
-	const { owners, inspections, deregistrations, imports } = history
+const VehicleHistoryPanel: FC<{
+	history: VehicleHistory
+	vinCode: string
+	/** Opens the certificate checkout (from the blurred mileage teaser). When
+	 *  absent, the teaser links to the certificate landing page instead. */
+	onUnlock?: () => void
+}> = ({ history, vinCode, onUnlock }) => {
+	const { owners, inspections, deregistrations, imports, mileage } = history
 	const flags = buildFlags(history)
 	const cleanVin = vinCode.replace(/[^a-zA-Z0-9]/g, '')
+	// Mileage is a paid-certificate feature — shown only behind the cert flag and
+	// only when we actually have readings. Free view = blurred values + unlock CTA.
+	const showMileage = isCertificateEnabled() && mileage.count > 0
 	// Full owner/operator timeline (oldest first). Individuals are anonymised at
 	// the source — shown as "Soukromá osoba" with dates only, no personal info.
 	const timeline = [...owners.timeline].sort((a, b) =>
@@ -214,7 +225,7 @@ const VehicleHistoryPanel: FC<{ history: VehicleHistory; vinCode: string }> = ({
 					<div className='text-muted-ink mt-3' style={{ fontSize: '0.75rem' }}>
 						Údaje z veřejného registru silničních vozidel
 						{history.snapshot ? `, stav k ${fmtDate(history.snapshot)}` : ''}.
-						Tento výpis neobsahuje stav tachometru.
+						{!showMileage && ' Tento výpis neobsahuje stav tachometru.'}
 					</div>
 				</div>
 			</details>
@@ -304,6 +315,83 @@ const VehicleHistoryPanel: FC<{ history: VehicleHistory; vinCode: string }> = ({
 					)}
 				</div>
 			</details>
+
+			{/* Mileage / odometer — paid-certificate teaser. The structure (how many
+			    readings, the year range) and any rollback suspicion are shown to hook
+			    the buyer; the exact km values stay blurred until they buy. */}
+			{showMileage && (
+				<details id='tachometr' className='spec-group mt-3' open>
+					<summary className='spec-summary'>
+						<Icon name='chart' size={18} className='text-brand' />
+						<span>Stav tachometru (z STK a měření emisí)</span>
+						<Icon name='chevron-right' size={18} className='spec-chevron' />
+					</summary>
+					<div className='spec-body'>
+						{mileage.rollbackSuspected && (
+							<div className='alert alert-danger py-2 px-3 small mb-3'>
+								<Icon name='alert-triangle' size={14} />{' '}
+								<strong>Podezření na stočení tachometru.</strong> Nalezli jsme
+								pozdější záznam s nižším stavem než dřívější. Přesné hodnoty
+								najdete v certifikátu.
+							</div>
+						)}
+						<div className='small text-muted-ink mb-2'>
+							{mileage.count}{' '}
+							{czPlural(mileage.count, 'záznam', 'záznamy', 'záznamů')} stavu
+							tachometru z prohlídek
+							{mileage.count > 1 &&
+								` (${yearOf(mileage.readingDates[0])}–${yearOf(
+									mileage.readingDates[mileage.readingDates.length - 1]
+								)})`}
+							.
+						</div>
+
+						<ul className='list-unstyled mb-0 small'>
+							{[...mileage.readingDates].reverse().map((date) => (
+								<li
+									key={date}
+									className='d-flex gap-2 align-items-center mb-1'
+								>
+									<span
+										className='text-muted-ink text-nowrap'
+										style={{ minWidth: '6.5rem' }}
+									>
+										{fmtDate(date)}
+									</span>
+									<span
+										className='text-muted-ink'
+										style={{ fontWeight: 600, letterSpacing: '0.1em' }}
+									>
+										•••••• km
+									</span>
+									<Icon name='lock' size={12} className='text-muted-ink' />
+								</li>
+							))}
+						</ul>
+
+						<div className='mt-3'>
+							{onUnlock ? (
+								<button
+									type='button'
+									className='btn btn-sm btn-primary'
+									onClick={onUnlock}
+								>
+									<Icon name='lock' size={14} /> Odemknout přesné hodnoty v
+									certifikátu
+								</button>
+							) : (
+								<Link
+									to='/overeny-vypis-vozidla'
+									className='btn btn-sm btn-primary'
+								>
+									<Icon name='lock' size={14} /> Odemknout přesné hodnoty v
+									certifikátu
+								</Link>
+							)}
+						</div>
+					</div>
+				</details>
+			)}
 		</>
 	)
 }

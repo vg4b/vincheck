@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { sql } from '@vercel/postgres'
 import { requireUserId } from '../_auth'
 import { ensureTables } from '../_db'
+import { logEvent } from '../_metrics'
 import { sendReminderEmailNow } from '../_reminderEmail'
 
 const reminderTypes = new Set([
@@ -45,6 +46,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	if (!userId) {
 		return
 	}
+
+	void logEvent('client_op', { endpoint: 'reminders', method: req.method, userId })
 
 	if (req.method === 'GET') {
 		const vehicleId = getQueryString(req.query.vehicleId)

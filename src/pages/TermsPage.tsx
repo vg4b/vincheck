@@ -96,7 +96,59 @@ const TermsPage: React.FC = () => {
 				</section>
 
 				<section className='mt-4'>
-					<h2 className='h4'>6. Odpovědnost</h2>
+					<h2 className='h4'>6. Certifikát historie vozidla (placená služba)</h2>
+					<p>
+						Provozovatel nabízí jednorázový digitální produkt „Certifikát historie
+						vozidla" – přehledný výpis údajů o vozidle zpracovaný z veřejných
+						otevřených dat registru silničních vozidel ČR a evidence technických a
+						emisních prohlídek (vlastníci a provozovatelé, historie STK, historie
+						stavu tachometru z prohlídek, dovoz a stav vozidla) dodaný ve formátu
+						PDF s QR kódem pro ověření pravosti.
+					</p>
+					<ul>
+						<li>
+							<strong>Cena a DPH.</strong> Cena je uvedena u produktu před
+							dokončením objednávky a je včetně DPH.
+						</li>
+						<li>
+							<strong>Platba a fakturace.</strong> Prodej, platbu a vystavení
+							daňového dokladu zajišťuje jako prodejce (Merchant of Record)
+							společnost Lemon Squeezy (Atlas Inc.). Dokončením objednávky vstupuje
+							uživatel do smluvního vztahu rovněž s tímto poskytovatelem a souhlasí
+							s jeho podmínkami zobrazenými v platební bráně.
+						</li>
+						<li>
+							<strong>Dodání.</strong> Certifikát je dodáván elektronicky – ihned po
+							připsání platby je zaslán na uvedený e-mail a zpřístupněn ke stažení.
+						</li>
+						<li>
+							<strong>Odstoupení od smlouvy.</strong> Jde o digitální obsah dodaný
+							před uplynutím lhůty pro odstoupení. Kupující při objednávce výslovně
+							žádá o zahájení dodávání před uplynutím čtrnáctidenní lhůty pro
+							odstoupení a bere na vědomí, že tím v souladu s § 1837 písm. l) zákona
+							č. 89/2012 Sb., občanského zákoníku, ztrácí právo na odstoupení od
+							smlouvy.
+						</li>
+						<li>
+							<strong>Povaha údajů.</strong> Certifikát vychází z veřejně dostupných
+							otevřených dat registru silničních vozidel a evidence technických
+							prohlídek k uvedenému datu, <strong>není úředním dokumentem</strong> a
+							neobsahuje záznamy o nehodách ani zástavy/leasing. Stav tachometru
+							vychází ze záznamů technických a emisních prohlídek; není-li pro dané
+							vozidlo k dispozici, certifikát jej neobsahuje. Provozovatel neručí za
+							úplnost ani aktuálnost dat poskytovaných registrem a stanicemi
+							technické kontroly.
+						</li>
+						<li>
+							<strong>Reklamace.</strong> Nebude-li certifikát doručen nebo bude
+							vadný, kontaktujte provozovatele na e-mailu uvedeném níže; po ověření
+							zajistíme nápravu nebo vrácení platby.
+						</li>
+					</ul>
+				</section>
+
+				<section className='mt-4'>
+					<h2 className='h4'>7. Odpovědnost</h2>
 					<p>
 						Informace poskytované službou jsou pouze orientační. Provozovatel
 						nenese odpovědnost za případné škody vzniklé v důsledku spoléhání
@@ -120,7 +172,7 @@ const TermsPage: React.FC = () => {
 				</section>
 
 				<section className='mt-4'>
-					<h2 className='h4'>7. Změny podmínek</h2>
+					<h2 className='h4'>8. Změny podmínek</h2>
 					<p>
 						Provozovatel si vyhrazuje právo tyto podmínky kdykoliv změnit.
 						O změnách bude uživatel informován emailem nebo oznámením ve službě.
@@ -132,10 +184,10 @@ const TermsPage: React.FC = () => {
 				</section>
 
 				<section className='mt-4'>
-					<h2 className='h4'>8. Kontakt</h2>
+					<h2 className='h4'>9. Kontakt</h2>
 					<p>
 						V případě dotazů nebo připomínek nás kontaktujte na emailu:{' '}
-						<a href='mailto:vininfo@fixweb.cz'>vininfo@fixweb.cz</a>
+						vininfo(zavináč)mail.vininfo.cz
 					</p>
 				</section>
 

@@ -902,6 +902,77 @@ img {
 	color: var(--surface);
 }
 
+/* Two-product comparison (certificate vs Cebia) — equal-weight cards that let
+   the user self-select by need. Stacks on mobile, side by side from md up. */
+.product-choice {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--space-3);
+}
+@media (min-width: 768px) {
+	.product-choice {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+.product-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	background-color: var(--surface);
+	border: 1px solid var(--ink-300);
+	border-radius: var(--radius-md);
+	padding: var(--space-4) var(--space-5);
+}
+/* Our own product — subtle accent (brand border + soft shadow) and a tag.
+   Kept light so the two cards still read as equal-weight choices. */
+.product-card--featured {
+	border-color: var(--brand-600);
+	box-shadow: var(--shadow-sm);
+}
+.product-badge {
+	position: absolute;
+	top: calc(-1 * var(--space-3));
+	right: var(--space-4);
+	background-color: var(--brand-600);
+	color: var(--surface);
+	font-size: 0.7rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	padding: 3px 10px;
+	border-radius: 999px;
+}
+.product-card-head {
+	margin-bottom: var(--space-3);
+}
+.product-price {
+	display: inline-block;
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: var(--brand-700);
+}
+.product-features {
+	list-style: none;
+	padding: 0;
+	margin: 0 0 var(--space-3);
+	font-size: 0.9rem;
+}
+.product-features li {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 0;
+}
+.product-features li svg {
+	color: var(--brand-600);
+	flex-shrink: 0;
+}
+.product-when {
+	font-size: 0.85rem;
+	color: var(--ink-500);
+	margin-bottom: var(--space-4);
+}
+
 /* =========================================================
    Vehicle detail page — hero, stat tiles, collapsible specs
    ========================================================= */

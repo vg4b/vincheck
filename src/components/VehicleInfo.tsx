@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { cebia } from '../config/affiliateCampaigns'
+import { isCertificateEnabled } from '../config/featureFlags'
 import type { VehicleDataArray, VehicleHistory } from '../types'
 import { formatFuel, fuelBaseLabel } from '../utils/fuelLabels'
 import {
@@ -13,8 +14,14 @@ import {
 	groupVehicleFieldsByCategory,
 	type VehicleFieldCategoryId
 } from '../utils/vehicleFieldCategories'
+import CertificateCheckoutModal from './CertificateCheckoutModal'
 import Icon, { type IconName } from './Icon'
+import ProductComparison from './ProductComparison'
 import VehicleHistoryPanel from './VehicleHistoryPanel'
+
+// Display price of our own certificate (VAT incl.). Must match the backend
+// CERTIFICATE_PRICE_CZK env (api/_certificate.ts) and the Creem product price.
+const CERTIFICATE_PRICE_CZK = 99
 
 const CATEGORY_ICONS: Record<VehicleFieldCategoryId, IconName> = {
 	doklady_evidence: 'file-text',
@@ -199,6 +206,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	const [openGroups, setOpenGroups] = useState<Set<VehicleFieldCategoryId>>(
 		() => new Set(DEFAULT_OPEN_CATEGORIES)
 	)
+	const [showCertModal, setShowCertModal] = useState(false)
 	const allExpanded =
 		groupedData.length > 0 &&
 		groupedData.every((g) => openGroups.has(g.categoryId))
@@ -220,6 +228,9 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	}
 
 	const cleanVin = vinCode.replace(/[^a-zA-Z0-9]/g, '')
+	// The two-product comparison replaces the standalone "full history" entry
+	// points (it presents both our certificate and the partner option).
+	const showProductComparison = cleanVin.length === 17 && isCertificateEnabled()
 	const historyUrl =
 		cleanVin.length === 17
 			? cebia.getTextLinkUrlWithVin(cleanVin, 'vehicle_info_history')
@@ -324,13 +335,15 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 						>
 							Sjednat pojištění
 						</Link>
-						<a
-							href='/kompletni-historie-vozu'
-							className='btn btn-outline-primary'
-							role='button'
-						>
-							Kompletní historie vozu
-						</a>
+						{!showProductComparison && (
+							<a
+								href='/kompletni-historie-vozu'
+								className='btn btn-outline-primary'
+								role='button'
+							>
+								Kompletní historie vozu
+							</a>
+						)}
 					</div>
 				</div>
 
@@ -379,48 +392,106 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 						</span>
 					</div>
 
-					{/* Odometer is logged at each STK but isn't in the open-data CSV we
-					    use, so a lone reading would be meaningless here anyway. Frame it
-					    as the full mileage history (rollback detection) the report
-					    reconstructs — the strongest doubt the free timeline can't show. */}
+					{/* Stav tachometru. With the certificate enabled we have the full
+					    mileage history (from STK/emission inspections) — point to that
+					    section. Otherwise fall back to the partner CTA. */}
 					<div className='stat-tile stat-tile--gap'>
 						<span className='stat-tile-label'>
 							<Icon name='search' size={13} />
 							Stav tachometru
 						</span>
 						<span className='stat-tile-value' style={{ fontSize: '1rem' }}>
-							<a
-								href={cebia.getDirectUrl(vinCode, 'vehicle_info_odometer_gap')}
-								target='_blank'
-								rel='noopener noreferrer'
-								onClick={handleCebiaClick}
-							>
-								Prověřit historii nájezdu ➜
-							</a>
+							{isCertificateEnabled() &&
+							(history?.mileage?.count ?? 0) > 0 ? (
+								<a href='#tachometr'>Zobrazit historii nájezdu ➜</a>
+							) : (
+								<a
+									href={cebia.getDirectUrl(
+										vinCode,
+										'vehicle_info_odometer_gap'
+									)}
+									target='_blank'
+									rel='noopener noreferrer'
+									onClick={handleCebiaClick}
+								>
+									Prověřit historii nájezdu ➜
+								</a>
+							)}
 						</span>
 					</div>
 				</div>
 			</div>
 
-			{history && <VehicleHistoryPanel history={history} vinCode={vinCode} />}
+			{/* Two distinct products, side by side — they do different jobs, so the
+			    user self-selects by need rather than choosing between buttons:
+			    our certificate = the registry record + official STK mileage history
+			    (99 Kč, instant); Cebia = what neither registry nor STK shows
+			    (accidents, liens, foreign history). Both cards only when there's a full
+			    17-char VIN to sell a certificate against; otherwise Cebia-only CTA. */}
+			{showProductComparison ? (
+				<div className='my-4'>
+					<ProductComparison
+						priceCzk={CERTIFICATE_PRICE_CZK}
+						mileageAvailable={(history?.mileage?.count ?? 0) > 0}
+						certificateCta={
+							<button
+								type='button'
+								className='btn btn-primary mt-auto'
+								onClick={() => setShowCertModal(true)}
+							>
+								Získat certifikát ({CERTIFICATE_PRICE_CZK} Kč) ➜
+							</button>
+						}
+						cebiaCta={
+							<a
+								href={cebia.getDirectUrl(vinCode, cebiaSource)}
+								target='_blank'
+								rel='noopener noreferrer'
+								className='btn btn-outline-primary mt-auto'
+								onClick={handleCebiaClick}
+							>
+								Prověřit u našeho partnera ➜
+							</a>
+						}
+					/>
+				</div>
+			) : (
+				<div className='brand-callout my-4 d-flex flex-wrap align-items-center justify-content-between gap-3'>
+					<span>
+						<strong>{cebiaPitch.title}</strong>
+						<span className='d-block small'>{cebiaPitch.body}</span>
+					</span>
+					<a
+						href={cebia.getDirectUrl(vinCode, cebiaSource)}
+						target='_blank'
+						rel='noopener noreferrer'
+						className='btn btn-primary text-nowrap'
+						onClick={handleCebiaClick}
+					>
+						Prověřit historii ➜
+					</a>
+				</div>
+			)}
 
-			{/* Single, well-placed Cebia CTA — where history intent peaks. Targeted
-			    copy for imported vehicles, where the CZ registry can't help. */}
-			<div className='brand-callout my-4 d-flex flex-wrap align-items-center justify-content-between gap-3'>
-				<span>
-					<strong>{cebiaPitch.title}</strong>
-					<span className='d-block small'>{cebiaPitch.body}</span>
-				</span>
-				<a
-					href={cebia.getDirectUrl(vinCode, cebiaSource)}
-					target='_blank'
-					rel='noopener noreferrer'
-					className='btn btn-primary text-nowrap'
-					onClick={handleCebiaClick}
-				>
-					Prověřit historii ➜
-				</a>
-			</div>
+			{showCertModal && (
+				<CertificateCheckoutModal
+					vin={cleanVin}
+					priceCzk={CERTIFICATE_PRICE_CZK}
+					onClose={() => setShowCertModal(false)}
+				/>
+			)}
+
+			{history && (
+				<VehicleHistoryPanel
+					history={history}
+					vinCode={vinCode}
+					onUnlock={
+						cleanVin.length === 17
+							? () => setShowCertModal(true)
+							: undefined
+					}
+				/>
+			)}
 
 			{/* Promo section (if provided) */}
 			{promoSection}
@@ -502,7 +573,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 															rel='noopener noreferrer'
 															onClick={handleCebiaClick}
 														>
-															Prověřit historii na Cebia.cz ➜
+															Prověřit historii u našeho partnera ➜
 														</a>
 													</td>
 												</tr>

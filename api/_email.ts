@@ -218,3 +218,137 @@ export async function sendVerificationEmail(email: string, code: string): Promis
 		text: generateVerificationEmailText(code)
 	})
 }
+
+interface CertificateEmailParams {
+	to: string
+	code: string
+	vin: string
+	/** Tokenised PDF download link (api/certificate/:code?token=…). */
+	downloadUrl: string
+	/** Public verification page. */
+	verifyUrl: string
+}
+
+export function generateCertificateEmailHtml(
+	params: CertificateEmailParams
+): string {
+	const { code, vin, downloadUrl, verifyUrl } = params
+	const preheader = `Váš certifikát historie vozidla (${code}) je připravený ke stažení.`
+	return `<!DOCTYPE html>
+<html lang="cs">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="color-scheme" content="light dark">
+	<meta name="supported-color-schemes" content="light dark">
+	<meta name="format-detection" content="telephone=no,date=no,address=no,email=no">
+	<meta name="x-apple-disable-message-reformatting">
+	<title>Váš certifikát - VINInfo.cz</title>
+	${EMAIL_HEAD_STYLES}
+</head>
+<body class="email-body" style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333;">
+	<div style="display:none!important;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#f5f5f5;opacity:0;">${preheader}</div>
+	<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="email-body" style="background-color: #f5f5f5;">
+		<tr>
+			<td align="center" style="padding: 20px;">
+				<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; width: 100%;">
+					<tr>
+						<td class="email-tint" style="background-color: #eaf4eb; padding: 25px 30px; border-radius: 8px 8px 0 0; text-align: center;">
+							<a href="https://vininfo.cz" style="display: inline-block; text-decoration: none; color: inherit;">
+								<img src="${EMAIL_LOGO_URL}" alt="" width="44" height="28" style="display: inline-block; vertical-align: middle; margin-right: 10px; border: 0;">
+								<span class="email-text" style="display: inline-block; vertical-align: middle; font-size: 22px; color: #333; font-weight: 600;">VINInfo.cz</span>
+							</a>
+						</td>
+					</tr>
+					<tr>
+						<td class="email-surface email-pad email-border" style="background-color: #ffffff; padding: 30px; border-left: 1px solid #e9ecef; border-right: 1px solid #e9ecef;">
+							<h2 class="email-h2" style="color: #333; margin: 0 0 16px; font-size: 20px;">Děkujeme za nákup!</h2>
+							<p class="email-text" style="color: #555; margin: 0 0 16px;">Váš certifikát historie vozidla pro VIN <strong>${vin}</strong> — zpracovaný z dat registru silničních vozidel ČR — je připravený.</p>
+							<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 25px 0;">
+								<tr>
+									<td class="email-tint" style="background-color: #eaf4eb; padding: 20px; border-radius: 8px; text-align: center;">
+										<span class="email-text-muted" style="display:block; font-size: 13px; color: #888; margin-bottom: 6px;">Číslo certifikátu</span>
+										<span class="email-text" style="font-size: 24px; font-weight: bold; letter-spacing: 3px; color: #333;">${code}</span>
+									</td>
+								</tr>
+							</table>
+							<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 0 0 16px;">
+								<tr>
+									<td align="center">
+										<a href="${downloadUrl}" style="display: inline-block; background-color: #2e7d32; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 16px;">Stáhnout certifikát (PDF)</a>
+									</td>
+								</tr>
+							</table>
+							<p class="email-text-muted" style="color: #888; font-size: 14px; margin: 16px 0 0;">Pravost certifikátu si kdokoliv ověří na <a href="${verifyUrl}" style="color: #2e7d32;">${verifyUrl}</a>. Odkaz na stažení je osobní — nesdílejte ho.</p>
+							<p class="email-text-muted" style="color: #888; font-size: 13px; margin: 16px 0 0;">Výpis vychází z veřejných dat registru a neobsahuje stav tachometru, záznamy o nehodách ani zástavy.</p>
+						</td>
+					</tr>
+					<tr>
+						<td class="email-footer email-border email-text-muted" style="background-color: #f8f9fa; padding: 20px; border: 1px solid #e9ecef; border-top: none; border-radius: 0 0 8px 8px; text-align: center; font-size: 12px; color: #888;">
+							<p style="margin: 0;">Tento email byl odeslán ze služby <a href="https://vininfo.cz" style="color: #555; text-decoration: none;">VINInfo.cz</a></p>
+						</td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+	</table>
+</body>
+</html>`
+}
+
+export function generateCertificateEmailText(
+	params: CertificateEmailParams
+): string {
+	return [
+		'Děkujeme za nákup!',
+		'',
+		`Váš certifikát historie vozidla pro VIN ${params.vin} — zpracovaný z dat registru silničních vozidel ČR — je připravený.`,
+		'',
+		`Číslo certifikátu: ${params.code}`,
+		'',
+		`Stáhnout certifikát (PDF): ${params.downloadUrl}`,
+		`Ověřit pravost: ${params.verifyUrl}`,
+		'',
+		'Odkaz na stažení je osobní — nesdílejte ho. Výpis vychází z veřejných dat registru a neobsahuje stav tachometru, záznamy o nehodách ani zástavy.',
+		'',
+		'— VINInfo.cz (https://vininfo.cz)'
+	].join('\n')
+}
+
+export async function sendCertificateEmail(
+	params: CertificateEmailParams
+): Promise<boolean> {
+	return sendEmail({
+		to: params.to,
+		subject: `Váš certifikát ${params.code} — VINInfo.cz`,
+		html: generateCertificateEmailHtml(params),
+		text: generateCertificateEmailText(params)
+	})
+}
+
+/**
+ * Internal operational alert to the site operator (not a customer email). Used
+ * for low-volume, high-signal events worth knowing about immediately — primarily
+ * a successful certificate sale. No-ops unless OPERATOR_EMAIL is configured, so
+ * it is safe to call unconditionally. Plain, minimal markup; never throws.
+ */
+export async function sendOperatorAlert(
+	subject: string,
+	lines: string[]
+): Promise<void> {
+	const to = process.env.OPERATOR_EMAIL
+	if (!to) {
+		return
+	}
+	const html = `<p>${lines.map((l) => l.replace(/</g, '&lt;')).join('<br>')}</p>`
+	try {
+		await sendEmail({
+			to,
+			subject: `[VINInfo] ${subject}`,
+			html,
+			text: lines.join('\n')
+		})
+	} catch (error) {
+		console.error('Operator alert failed:', error)
+	}
+}

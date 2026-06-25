@@ -82,6 +82,15 @@ export interface VehicleHistory {
 		country: string | null
 		date: string | null
 	}>
+	/** Odometer/mileage TEASER from the official STK/emission inspections (ISTP).
+	 *  Exact km are a paid feature and are NOT sent to the client — only the
+	 *  reading count, the inspection dates (already public via the STK history),
+	 *  and whether a rollback is suspected. Full figures are in the certificate. */
+	mileage: {
+		count: number
+		rollbackSuspected: boolean
+		readingDates: string[]
+	}
 	snapshot: string | null
 }
 

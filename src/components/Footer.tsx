@@ -32,7 +32,7 @@ const Footer: React.FC = () => {
 								Datová kostka
 							</a>
 							<br />
-							Kontakt: vininfo(zavináč)fixweb.cz
+							Kontakt: vininfo(zavináč)mail.vininfo.cz
 						</p>
 
 						<h6 className='fw-bold mb-3 mt-4'>

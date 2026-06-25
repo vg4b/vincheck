@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { sql } from '@vercel/postgres'
 import { ensureTables } from '../_db'
 import { requireUserId } from '../_auth'
+import { logEvent } from '../_metrics'
 
 const getQueryString = (
 	value: string | string[] | undefined
@@ -32,6 +33,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	if (!userId) {
 		return
 	}
+
+	void logEvent('client_op', { endpoint: 'vehicles', method: req.method, userId })
 
 	if (req.method === 'GET') {
 		const result = await sql`

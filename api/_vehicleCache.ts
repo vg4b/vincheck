@@ -288,6 +288,16 @@ export type VehicleHistory = {
 		country: string | null
 		date: string | null
 	}>
+	/** Odometer/mileage history from the ISTP inspection open data
+	 *  (vehicle_inspection_odometer), one reading per inspection date (same-day
+	 *  STK+emission protocols collapsed). Empty when we have no readings for the
+	 *  VIN. `rollbackSuspected` flags a later reading lower than an earlier one. */
+	mileage: {
+		latestKm: number | null
+		readings: Array<{ date: string; km: number }>
+		rollbackSuspected: boolean
+		avgKmPerYear: number | null
+	}
 	snapshot: string | null
 }
 
@@ -303,6 +313,63 @@ const LOOKUP_COLUMNS: Record<keyof LookupParams, string> = {
 	vin: 'vin',
 	tp: 'cislo_tp',
 	orv: 'cislo_orv'
+}
+
+// Odometer sanity bounds. Heavy trucks/buses can exceed 1M km, so the upper
+// cap is generous; values above it (we've seen 425M) are data-entry junk and are
+// dropped. The rollback tolerance avoids flagging tiny dips from rounding/typos.
+const MAX_PLAUSIBLE_KM = 3_000_000
+const ROLLBACK_TOLERANCE_KM = 1_000
+
+/**
+ * Derive the mileage view from raw odometer rows ({ d: date, km }):
+ *   - drop implausible values (<=0 or > MAX_PLAUSIBLE_KM),
+ *   - collapse same-day readings (a regular inspection logs separate STK +
+ *     emission protocols, a few km apart) to one per date (keep the max),
+ *   - flag a rollback if any reading falls below the running max of earlier ones,
+ *   - estimate average km/year over the observed span.
+ */
+function computeMileage(
+	rows: Array<{ d: string; km: unknown }>
+): VehicleHistory['mileage'] {
+	const byDate = new Map<string, number>()
+	for (const r of rows) {
+		const km = Number(r.km)
+		if (!Number.isFinite(km) || km <= 0 || km > MAX_PLAUSIBLE_KM) continue
+		const prev = byDate.get(r.d)
+		if (prev === undefined || km > prev) byDate.set(r.d, km)
+	}
+	const readings = [...byDate.entries()]
+		.map(([date, km]) => ({ date, km }))
+		.sort((a, b) => a.date.localeCompare(b.date))
+
+	if (readings.length === 0) {
+		return {
+			latestKm: null,
+			readings: [],
+			rollbackSuspected: false,
+			avgKmPerYear: null
+		}
+	}
+
+	let runningMax = readings[0].km
+	let rollbackSuspected = false
+	for (let i = 1; i < readings.length; i++) {
+		if (readings[i].km < runningMax - ROLLBACK_TOLERANCE_KM) {
+			rollbackSuspected = true
+		}
+		if (readings[i].km > runningMax) runningMax = readings[i].km
+	}
+
+	const first = readings[0]
+	const last = readings[readings.length - 1]
+	const days = (Date.parse(last.date) - Date.parse(first.date)) / 86_400_000
+	const avgKmPerYear =
+		days >= 180 && last.km > first.km
+			? Math.round(((last.km - first.km) / days) * 365)
+			: null
+
+	return { latestKm: last.km, readings, rollbackSuspected, avgKmPerYear }
 }
 
 /**
@@ -344,8 +411,16 @@ export async function lookupVehicleFromCache(
 	const row = registry.rows[0] as Record<string, unknown>
 	const pcv = row.pcv
 
-	const [inspections, owners, meta, ownerRows, inspRecent, dereg, imports] =
-		await Promise.all([
+	const [
+		inspections,
+		owners,
+		meta,
+		ownerRows,
+		inspRecent,
+		dereg,
+		imports,
+		mileageRows
+	] = await Promise.all([
 			p.query(
 				// kod_stk '9999' is the registry sentinel for synthetic administrative
 				// records ("Administrativní omezení - nové vozidlo": a new vehicle's
@@ -423,6 +498,28 @@ export async function lookupVehicleFromCache(
 						if (e.code === '42501') {
 							console.warn(
 								'vehicle_imports: permission denied for vincheck_api'
+							)
+						}
+						return { rows: [] as Array<Record<string, unknown>> }
+					}
+					throw e
+				}),
+			p
+				.query(
+					// Odometer history by VIN (ISTP open data). Same fault-tolerance as
+					// imports: degrade to "no readings" if the table isn't migrated yet
+					// (42P01) or the read-only user lacks the grant (42501).
+					`SELECT inspection_date::text AS d, odometer_km AS km
+       FROM vehicle_inspection_odometer
+       WHERE vin = $1 AND odometer_km IS NOT NULL
+       ORDER BY inspection_date ASC`,
+					[String(row.vin ?? '')]
+				)
+				.catch((e: { code?: string }) => {
+					if (e?.code === '42P01' || e?.code === '42501') {
+						if (e.code === '42501') {
+							console.warn(
+								'vehicle_inspection_odometer: permission denied for vincheck_api'
 							)
 						}
 						return { rows: [] as Array<Record<string, unknown>> }
@@ -540,6 +637,9 @@ export async function lookupVehicleFromCache(
 			reason: nullIfEmpty(r.duvod)
 		})),
 		imports: importsList,
+		mileage: computeMileage(
+			mileageRows.rows as Array<{ d: string; km: unknown }>
+		),
 		snapshot
 	}
 

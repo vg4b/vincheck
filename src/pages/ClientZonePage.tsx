@@ -4,12 +4,7 @@ import Footer from '../components/Footer'
 import Icon from '../components/Icon'
 import Navigation from '../components/Navigation'
 import { OdometerSection } from '../components/OdometerSection'
-import {
-	axaCestovniPojisteni,
-	cebia,
-	csob,
-	dealora
-} from '../config/affiliateCampaigns'
+import { cebia, csob, dealora } from '../config/affiliateCampaigns'
 import { useAuth } from '../contexts/AuthContext'
 import {
 	ClientVehicle,
@@ -148,6 +143,79 @@ function formatDaysLeft(days: number): string {
 	if (days === 1) return 'za 1 den'
 	if (days >= 2 && days <= 4) return `za ${days} dny`
 	return `za ${days} dní`
+}
+
+/** STK termín – naléhavost podle počtu zbývajících dní. */
+type StkUrgency = 'overdue' | 'critical' | 'soon' | 'ok'
+
+function getStkUrgency(daysLeft: number): StkUrgency {
+	if (daysLeft < 0) return 'overdue'
+	if (daysLeft <= 30) return 'critical'
+	if (daysLeft <= 90) return 'soon'
+	return 'ok'
+}
+
+/**
+ * Parse a registry date string (ISO `2026-01-02T00:00:00` or Czech `2. 1. 2026`)
+ * to a local-midnight Date, or null when unparseable.
+ */
+function parseRegistryDate(raw: string | null | undefined): Date | null {
+	if (!raw || raw === 'Neznámé datum') return null
+	const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})(T.*)?$/)
+	if (isoMatch) {
+		return new Date(`${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}T00:00:00`)
+	}
+	const [day, month, year] = raw.split('.').map((part) => part.trim())
+	if (day && month && year) {
+		return new Date(
+			`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00`
+		)
+	}
+	return null
+}
+
+/** Local-timezone YYYY-MM-DD (avoids the UTC day-shift of toISOString). */
+function toIsoDate(date: Date): string {
+	const y = date.getFullYear()
+	const m = String(date.getMonth() + 1).padStart(2, '0')
+	const d = String(date.getDate()).padStart(2, '0')
+	return `${y}-${m}-${d}`
+}
+
+/** Jedno vozidlo v přehledu termínů STK (odvozeno ze snapshotu registru). */
+interface StkOverviewEntry {
+	vehicle: ClientVehicle
+	stkDate: Date
+	stkIso: string
+	daysLeft: number
+	urgency: StkUrgency
+	hasOpenStkReminder: boolean
+}
+
+/** Barva + text odznaku podle naléhavosti termínu STK. */
+function getStkBadge(entry: StkOverviewEntry): {
+	className: string
+	label: string
+} {
+	if (entry.urgency === 'overdue') {
+		return { className: 'bg-danger', label: 'Po termínu' }
+	}
+	if (entry.urgency === 'critical') {
+		return { className: 'bg-danger', label: formatDaysLeft(entry.daysLeft) }
+	}
+	return {
+		className: 'bg-warning text-dark',
+		label: formatDaysLeft(entry.daysLeft)
+	}
+}
+
+/** Čeština: "Další vozidlo / Další 3 vozidla / Dalších 7 vozidel má/mají…". */
+function formatOkVehicles(count: number): string {
+	if (count === 1) return 'Další vozidlo má STK v pořádku.'
+	if (count >= 2 && count <= 4) {
+		return `Další ${count} vozidla mají STK v pořádku.`
+	}
+	return `Dalších ${count} vozidel má STK v pořádku.`
 }
 
 /**
@@ -295,6 +363,10 @@ const ClientZonePage: React.FC = () => {
 	const [deleteConfirmVehicleId, setDeleteConfirmVehicleId] = useState<
 		string | null
 	>(null)
+	const [stkReminderBusyId, setStkReminderBusyId] = useState<string | null>(
+		null
+	)
+	const [stkActionError, setStkActionError] = useState('')
 	const [preferences, setPreferences] = useState<UserPreferences | null>(null)
 	const [preferencesLoading, setPreferencesLoading] = useState(false)
 	const [preferencesSaving, setPreferencesSaving] = useState(false)
@@ -323,6 +395,40 @@ const ClientZonePage: React.FC = () => {
 	const upcomingReminders = useMemo(() => {
 		return [...reminders].sort((a, b) => a.due_date.localeCompare(b.due_date))
 	}, [reminders])
+
+	// Přehled termínů STK napříč vozidly – odvozeno ze snapshotu registru
+	// (`PravidelnaTechnickaProhlidkaDo`), takže funguje i bez ručního upozornění.
+	const stkOverview = useMemo<StkOverviewEntry[]>(() => {
+		const today = new Date()
+		today.setHours(0, 0, 0, 0)
+		const entries = vehicles.flatMap((vehicle) => {
+			const snapshotData = parseSnapshot(vehicle.snapshot)
+			const raw = snapshotData
+				? getDataValue(snapshotData, 'PravidelnaTechnickaProhlidkaDo', '')
+				: ''
+			const stkDate = parseRegistryDate(raw)
+			if (!stkDate) return []
+			const daysLeft = Math.round(
+				(stkDate.getTime() - today.getTime()) / 86_400_000
+			)
+			const vehicleReminders = remindersByVehicle[vehicle.id] ?? []
+			const hasOpenStkReminder = vehicleReminders.some(
+				(r) => r.type === 'stk' && !r.is_done
+			)
+			return [
+				{
+					vehicle,
+					stkDate,
+					stkIso: toIsoDate(stkDate),
+					daysLeft,
+					urgency: getStkUrgency(daysLeft),
+					hasOpenStkReminder
+				}
+			]
+		})
+		entries.sort((a, b) => a.stkDate.getTime() - b.stkDate.getTime())
+		return entries
+	}, [vehicles, remindersByVehicle])
 
 	const loadData = async () => {
 		if (loadRef.current.inFlight) {
@@ -416,6 +522,23 @@ const ClientZonePage: React.FC = () => {
 			emailSendAt: emailSendAt || undefined
 		})
 		setReminders((prev) => [...prev, reminder])
+	}
+
+	// Z termínu STK z registru udělá sledované upozornění (+ emailovou notifikaci).
+	const handleQuickStkReminder = async (
+		vehicle: ClientVehicle,
+		stkIso: string
+	) => {
+		if (stkReminderBusyId) return
+		setStkReminderBusyId(vehicle.id)
+		setStkActionError('')
+		try {
+			await handleAddReminder(vehicle.id, 'stk', stkIso, '', true, null)
+		} catch {
+			setStkActionError('Nepodařilo se vytvořit připomínku STK.')
+		} finally {
+			setStkReminderBusyId(null)
+		}
 	}
 
 	const loadPreferences = async () => {
@@ -912,27 +1035,7 @@ const ClientZonePage: React.FC = () => {
 
 								// Parse and check tech inspection date
 								const currentDate = new Date()
-								let techInspectionDate: Date | null = null
-								if (
-									techInspectionRaw &&
-									techInspectionRaw !== 'Neznámé datum'
-								) {
-									// Try to parse ISO date format first
-									const isoDateRegex = /^(\d{4})-(\d{2})-(\d{2})(T.*)?$/
-									const isoMatch = techInspectionRaw.match(isoDateRegex)
-									if (isoMatch) {
-										const year = isoMatch[1]
-										const month = isoMatch[2]
-										const day = isoMatch[3]
-										techInspectionDate = new Date(`${year}-${month}-${day}`)
-									} else {
-										// Fall back to Czech format (d.m.yyyy)
-										const [day, month, year] = techInspectionRaw.split('.')
-										if (day && month && year) {
-											techInspectionDate = new Date(`${year}-${month}-${day}`)
-										}
-									}
-								}
+								const techInspectionDate = parseRegistryDate(techInspectionRaw)
 
 								const isExpired = Boolean(
 									techInspectionDate &&
@@ -1294,6 +1397,122 @@ const ClientZonePage: React.FC = () => {
 						<h2 className='h4'>
 							<span className='heading-accent'>Moje upozornění</span>
 						</h2>
+
+						{stkOverview.length > 0 &&
+							(() => {
+								const stkDueSoon = stkOverview.filter(
+									(entry) => entry.urgency !== 'ok'
+								)
+								const stkOkCount = stkOverview.length - stkDueSoon.length
+								return (
+									<div
+										className='rounded p-3 mt-3 mb-4'
+										style={{
+											backgroundColor: 'var(--surface-soft)',
+											border:
+												'1px solid color-mix(in srgb, var(--brand-600) 25%, transparent)'
+										}}
+									>
+										<div className='d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2'>
+											<h3 className='h6 mb-0 d-flex align-items-center gap-2'>
+												<Icon name='calendar' size={16} />
+												<span className='heading-accent'>
+													Nadcházející termíny STK
+												</span>
+											</h3>
+											<span className='small text-muted-ink'>
+												Podle údajů z registru vozidel
+											</span>
+										</div>
+
+										{stkDueSoon.length === 0 ? (
+											<p className='small text-muted-ink mb-0'>
+												Všechna vozidla mají STK v pořádku.
+											</p>
+										) : (
+											<ul className='list-unstyled mb-0 d-flex flex-column gap-2'>
+												{stkDueSoon.map((entry) => {
+													const badge = getStkBadge(entry)
+													const vehicleName =
+														entry.vehicle.title?.trim() ||
+														`${entry.vehicle.brand ?? ''} ${entry.vehicle.model ?? ''}`.trim() ||
+														'Vozidlo'
+													const detailHref = entry.vehicle.vin
+														? `/vin/${encodeURIComponent(entry.vehicle.vin)}`
+														: entry.vehicle.tp
+															? `/tp/${encodeURIComponent(entry.vehicle.tp)}`
+															: entry.vehicle.orv
+																? `/orv/${encodeURIComponent(entry.vehicle.orv)}`
+																: null
+													return (
+														<li
+															key={entry.vehicle.id}
+															className='d-flex flex-wrap align-items-center justify-content-between gap-2 rounded bg-white p-2 px-3'
+														>
+															<div className='flex-grow-1'>
+																<div className='fw-semibold'>{vehicleName}</div>
+																<div className='small text-muted-ink'>
+																	STK do: {formatDate(entry.stkIso)}
+																</div>
+															</div>
+															<div className='d-flex align-items-center gap-2 flex-wrap'>
+																<span className={`badge ${badge.className}`}>
+																	{badge.label}
+																</span>
+																{entry.urgency !== 'overdue' &&
+																	(entry.hasOpenStkReminder ? (
+																		<span className='small text-success d-inline-flex align-items-center gap-1'>
+																			<Icon name='check' size={14} />
+																			Hlídáme
+																		</span>
+																	) : (
+																		<button
+																			type='button'
+																			className='btn btn-sm btn-primary'
+																			onClick={() =>
+																				handleQuickStkReminder(
+																					entry.vehicle,
+																					entry.stkIso
+																				)
+																			}
+																			disabled={
+																				stkReminderBusyId === entry.vehicle.id
+																			}
+																		>
+																			{stkReminderBusyId === entry.vehicle.id
+																				? 'Ukládám…'
+																				: 'Připomenout'}
+																		</button>
+																	))}
+																{detailHref && (
+																	<Link
+																		to={detailHref}
+																		className='btn btn-sm btn-outline-secondary'
+																	>
+																		Detail
+																	</Link>
+																)}
+															</div>
+														</li>
+													)
+												})}
+											</ul>
+										)}
+
+										{stkOkCount > 0 && stkDueSoon.length > 0 && (
+											<p className='small text-muted-ink mb-0 mt-2'>
+												{formatOkVehicles(stkOkCount)}
+											</p>
+										)}
+										{stkActionError && (
+											<div className='alert alert-danger mt-2 mb-0 py-2 small'>
+												{stkActionError}
+											</div>
+										)}
+									</div>
+								)
+							})()}
+
 						{upcomingReminders.length === 0 ? (
 							<div
 								className='rounded p-3 mt-3 small text-muted-ink'
@@ -1453,20 +1672,17 @@ const ClientZonePage: React.FC = () => {
 							<div className='col-md-6'>
 								<div className='card h-100'>
 									<div className='card-body'>
-										<h5 className='card-title'>
-											{axaCestovniPojisteni.headline}
-										</h5>
+										<h5 className='card-title'>Cestovní pojištění</h5>
 										<p className='card-text text-muted small mb-2'>
-											{axaCestovniPojisteni.partnerInfo}
+											Pojištění léčebných výloh, úrazu, odpovědnosti i zavazadel
+											na cesty po Evropě i do světa. Porovnejte si nabídky online.
 										</p>
-										<a
-											href={axaCestovniPojisteni.getUrl('client_zone_benefits')}
-											target='_blank'
-											rel='noopener noreferrer'
+										<Link
+											to='/sjednat-pojisteni?typ=cestovni&src=client_zone_benefits'
 											className='btn btn-outline-primary'
 										>
-											Sjednat cestovní pojištění
-										</a>
+											Porovnat cestovní pojištění
+										</Link>
 									</div>
 								</div>
 							</div>

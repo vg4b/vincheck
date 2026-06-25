@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
 import { cebia } from '../config/affiliateCampaigns'
@@ -82,7 +83,7 @@ const KompletniHistorieVozuPage: React.FC = () => {
 							Základní údaje o vozidle zahrnují značku, model, rok výroby, typ
 							motoru, objem motoru, výkon a další technické parametry. Tyto
 							informace můžete zdarma zkontrolovat pomocí{' '}
-							<a href='#/'>našeho nástroje pro kontrolu VIN kódu</a>.
+							<Link to='/'>našeho nástroje pro kontrolu VIN kódu</Link>.
 						</p>
 
 						<h3 className='mt-4 mb-3'>2. Historie nehod</h3>
@@ -174,9 +175,9 @@ const KompletniHistorieVozuPage: React.FC = () => {
 									technické údaje, datum první registrace, platnost STK a další
 									základní informace.
 								</p>
-								<a href='#/' className='btn btn-primary'>
+								<Link to='/' className='btn btn-primary'>
 									Zkontrolovat VIN kód zdarma
-								</a>
+								</Link>
 							</div>
 						</div>
 

@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { sql } from '@vercel/postgres'
 import { requireUserId } from '../_auth'
 import { ensureTables } from '../_db'
+import { logEvent } from '../_metrics'
 
 const NOTE_MAX_LENGTH = 70
 const KM_MIN = 0
@@ -45,6 +46,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 	const userId = requireUserId(req, res)
 	if (!userId) return
+
+	void logEvent('client_op', {
+		endpoint: 'odometer-readings',
+		method: req.method,
+		userId
+	})
 
 	if (req.method === 'GET') {
 		const vehicleId = getQueryString(req.query.vehicleId)

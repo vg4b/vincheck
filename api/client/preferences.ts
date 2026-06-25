@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { sql } from '@vercel/postgres'
 import { ensureTables } from '../_db'
 import { getUserById, requireUserId } from '../_auth'
+import { logEvent } from '../_metrics'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
 	await ensureTables()
@@ -10,6 +11,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	if (!userId) {
 		return
 	}
+
+	void logEvent('client_op', {
+		endpoint: 'preferences',
+		method: req.method,
+		userId
+	})
 
 	if (req.method === 'GET') {
 		const user = await getUserById(userId)

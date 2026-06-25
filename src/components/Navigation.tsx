@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { isCertificateEnabled } from '../config/featureFlags'
 import { useAuth } from '../contexts/AuthContext'
 import BrandMark from './BrandMark'
 
@@ -89,6 +90,18 @@ const Navigation: React.FC = () => {
 								Kontrola vozidla
 							</Link>
 						</li>
+
+						{isCertificateEnabled() && (
+							<li className='nav-item'>
+								<Link
+									className={navLinkClass('/overeny-vypis-vozidla')}
+									to='/overeny-vypis-vozidla'
+									onClick={closeMenu}
+								>
+									Certifikát vozidla
+								</Link>
+							</li>
+						)}
 
 						<li className='nav-item'>
 							<Link
