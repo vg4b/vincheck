@@ -228,6 +228,9 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	}
 
 	const cleanVin = vinCode.replace(/[^a-zA-Z0-9]/g, '')
+	// The two-product comparison replaces the standalone "full history" entry
+	// points (it presents both our certificate and the partner option).
+	const showProductComparison = cleanVin.length === 17 && isCertificateEnabled()
 	const historyUrl =
 		cleanVin.length === 17
 			? cebia.getTextLinkUrlWithVin(cleanVin, 'vehicle_info_history')
@@ -332,13 +335,15 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 						>
 							Sjednat pojištění
 						</Link>
-						<a
-							href='/kompletni-historie-vozu'
-							className='btn btn-outline-primary'
-							role='button'
-						>
-							Kompletní historie vozu
-						</a>
+						{!showProductComparison && (
+							<a
+								href='/kompletni-historie-vozu'
+								className='btn btn-outline-primary'
+								role='button'
+							>
+								Kompletní historie vozu
+							</a>
+						)}
 					</div>
 				</div>
 
@@ -419,14 +424,15 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 
 			{/* Two distinct products, side by side — they do different jobs, so the
 			    user self-selects by need rather than choosing between buttons:
-			    our certificate = proof of what's IN the registry (99 Kč, instant);
-			    Cebia = reveals what the registry CAN'T (mileage/accidents/liens/
-			    foreign history). Both cards only when there's a full 17-char VIN to
-			    sell a certificate against; otherwise fall back to a Cebia-only CTA. */}
-			{cleanVin.length === 17 && isCertificateEnabled() ? (
+			    our certificate = the registry record + official STK mileage history
+			    (99 Kč, instant); Cebia = what neither registry nor STK shows
+			    (accidents, liens, foreign history). Both cards only when there's a full
+			    17-char VIN to sell a certificate against; otherwise Cebia-only CTA. */}
+			{showProductComparison ? (
 				<div className='my-4'>
 					<ProductComparison
 						priceCzk={CERTIFICATE_PRICE_CZK}
+						mileageAvailable={(history?.mileage?.readings.length ?? 0) > 0}
 						certificateCta={
 							<button
 								type='button'

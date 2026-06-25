@@ -99,9 +99,11 @@ const TermsPage: React.FC = () => {
 					<h2 className='h4'>6. Certifikát historie vozidla (placená služba)</h2>
 					<p>
 						Provozovatel nabízí jednorázový digitální produkt „Certifikát historie
-						vozidla" – přehled údajů o vozidle zpracovaný z veřejných dat registru
-						silničních vozidel ČR (vlastníci a provozovatelé, historie STK, dovoz a
-						stav vozidla) dodaný ve formátu PDF.
+						vozidla" – přehledný výpis údajů o vozidle zpracovaný z veřejných
+						otevřených dat registru silničních vozidel ČR a evidence technických a
+						emisních prohlídek (vlastníci a provozovatelé, historie STK, historie
+						stavu tachometru z prohlídek, dovoz a stav vozidla) dodaný ve formátu
+						PDF s QR kódem pro ověření pravosti.
 					</p>
 					<ul>
 						<li>
@@ -129,10 +131,13 @@ const TermsPage: React.FC = () => {
 						</li>
 						<li>
 							<strong>Povaha údajů.</strong> Certifikát vychází z veřejně dostupných
-							dat registru k uvedenému datu, <strong>není úředním dokumentem</strong>{' '}
-							a neobsahuje stav tachometru, záznamy o nehodách ani zástavy.
-							Provozovatel neručí za úplnost ani aktuálnost dat poskytovaných
-							registrem.
+							otevřených dat registru silničních vozidel a evidence technických
+							prohlídek k uvedenému datu, <strong>není úředním dokumentem</strong> a
+							neobsahuje záznamy o nehodách ani zástavy/leasing. Stav tachometru
+							vychází ze záznamů technických a emisních prohlídek; není-li pro dané
+							vozidlo k dispozici, certifikát jej neobsahuje. Provozovatel neručí za
+							úplnost ani aktuálnost dat poskytovaných registrem a stanicemi
+							technické kontroly.
 						</li>
 						<li>
 							<strong>Reklamace.</strong> Nebude-li certifikát doručen nebo bude

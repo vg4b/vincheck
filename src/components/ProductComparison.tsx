@@ -7,13 +7,21 @@ interface ProductComparisonProps {
 	certificateCta: React.ReactNode
 	/** CTA for the Cebia affiliate. */
 	cebiaCta: React.ReactNode
+	/**
+	 * Whether the looked-up vehicle has odometer readings. Pass `false` on the
+	 * detail page when this specific vehicle has none, so we don't advertise
+	 * mileage the certificate won't contain. Omit (undefined) on the generic
+	 * landing page, where the feature is described in general terms.
+	 */
+	mileageAvailable?: boolean
 }
 
 /**
  * Two distinct products side by side — they do different jobs, so the user
- * self-selects by need: our certificate = proof of what's IN the registry;
- * Cebia = reveals what the registry CAN'T (mileage/accidents/liens/foreign
- * history). Shared by the vehicle detail page and the certificate landing page so
+ * self-selects by need: our certificate = the registry record plus the official
+ * STK mileage history (rollback detection); the partner = what neither registry
+ * nor STK shows (accidents, liens/leasing, foreign history, cross-source
+ * odometer). Shared by the vehicle detail page and the certificate landing page so
  * the messaging stays identical. The certificate card carries a subtle
  * "Nejoblíbenější" tag — our owned product, repeat customers — without breaking
  * the equal-weight layout.
@@ -21,7 +29,8 @@ interface ProductComparisonProps {
 const ProductComparison: React.FC<ProductComparisonProps> = ({
 	priceCzk,
 	certificateCta,
-	cebiaCta
+	cebiaCta,
+	mileageAvailable
 }) => (
 	<div className='product-choice'>
 		{/* Our product — official registry data. */}
@@ -38,16 +47,23 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 				<li>
 					<Icon name='check' size={15} /> Historie STK
 				</li>
+				{mileageAvailable !== false && (
+					<li>
+						<Icon name='check' size={15} /> Historie stavu tachometru (může
+						odhalit stočení)
+					</li>
+				)}
 				<li>
 					<Icon name='check' size={15} /> Dovoz a stav vozidla
 				</li>
 				<li>
-					<Icon name='check' size={15} /> Ověřitelné PDF s QR kódem
+					<Icon name='check' size={15} /> Přehledné, sdílitelné PDF s QR ověřením
 				</li>
 			</ul>
 			<p className='product-when'>
-				Vyberte, když chcete srozumitelný přehled historie vozidla zpracovaný z
-				dat registru ČR — ideální při prodeji nebo pro vlastní evidenci.
+				Přehledný, sdílitelný a ověřitelný PDF výpis s nejdůležitějšími údaji o
+				vozidle z registru a STK ČR — ideální jako podklad při prodeji i koupi
+				nebo pro vlastní evidenci.
 			</p>
 			{certificateCta}
 		</div>
@@ -60,21 +76,21 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 			</div>
 			<ul className='product-features'>
 				<li>
-					<Icon name='check' size={15} /> Stav tachometru (odhalí stočení)
-				</li>
-				<li>
-					<Icon name='check' size={15} /> Záznamy o nehodách
+					<Icon name='check' size={15} /> Záznamy o nehodách a poškození
 				</li>
 				<li>
 					<Icon name='check' size={15} /> Zástavy a leasing
+				</li>
+				<li>
+					<Icon name='check' size={15} /> Tachometr z více zdrojů (i ze zahraničí)
 				</li>
 				<li>
 					<Icon name='check' size={15} /> Historie ze zahraničí
 				</li>
 			</ul>
 			<p className='product-when'>
-				Vyberte, když kupujete ojetinu nebo dovoz a chcete vyloučit stočený
-				tachometr či zamlčenou nehodu — data, která registr nemá.
+				Vyberte, když kupujete ojetinu nebo dovoz a chcete prověřit nehody,
+				zástavy a původ ze zahraničí — data, která registr nemá.
 			</p>
 			{cebiaCta}
 		</div>
