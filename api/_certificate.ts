@@ -142,6 +142,18 @@ export function buildSampleSnapshot(): VehicleCacheResult {
 			},
 			deregistrations: [],
 			imports: [{ country: 'Německo', date: '2018-03-01' }],
+			mileage: {
+				latestKm: 142500,
+				readings: [
+					{ date: '2018-04-12', km: 5 },
+					{ date: '2020-04-20', km: 41200 },
+					{ date: '2022-05-01', km: 88300 },
+					{ date: '2024-05-01', km: 121900 },
+					{ date: '2026-04-28', km: 142500 }
+				],
+				rollbackSuspected: false,
+				avgKmPerYear: 17800
+			},
 			snapshot: '2026-05-01'
 		}
 	}

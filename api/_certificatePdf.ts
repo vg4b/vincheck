@@ -150,6 +150,14 @@ function fmtDate(s: string | null): string {
 	return m ? `${Number(m[3])}. ${Number(m[2])}. ${m[1]}` : s
 }
 
+// Thousands grouping with a plain space (avoids locale/NBSP rendering quirks in
+// the PDF): 166845 → "166 845".
+function fmtKm(n: number): string {
+	return Math.round(n)
+		.toString()
+		.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+}
+
 function dataValue(
 	data: Record<string, unknown>,
 	key: string,
@@ -377,6 +385,61 @@ export async function renderCertificatePdf(
 		)
 	}
 
+	// Mileage / odometer history — the certificate's headline value, shown in full
+	// (the free web view only teases it, blurred). From STK/emission inspections.
+	if (history.mileage.readings.length > 0) {
+		const m = history.mileage
+		children.push(
+			e(
+				Text,
+				{ style: styles.sectionTitle, key: 'mil-t' },
+				'Historie stavu tachometru'
+			)
+		)
+		if (m.rollbackSuspected) {
+			children.push(
+				e(
+					Text,
+					{ style: styles.flag, key: 'mil-rb' },
+					'Podezření na stočení tachometru: pozdější záznam má nižší stav tachometru než dřívější.'
+				)
+			)
+		}
+		children.push(
+			e(View, { key: 'mil-s' }, [
+				row(
+					'Poslední známý stav',
+					m.latestKm != null ? `${fmtKm(m.latestKm)} km` : '—'
+				),
+				...(m.avgKmPerYear != null
+					? [row('Průměrný roční nájezd', `~${fmtKm(m.avgKmPerYear)} km`)]
+					: []),
+				row('Počet záznamů', String(m.readings.length))
+			])
+		)
+		children.push(
+			e(
+				View,
+				{ key: 'mil-h', style: { marginTop: 4 } },
+				[...m.readings]
+					.reverse()
+					.map((r, i) =>
+						e(View, { style: styles.tlRow, key: `mil-${i}` }, [
+							e(Text, { style: styles.tlDate, key: 'd' }, fmtDate(r.date)),
+							e(Text, { style: styles.tlMain, key: 'm' }, `${fmtKm(r.km)} km`)
+						])
+					)
+			)
+		)
+		children.push(
+			e(
+				Text,
+				{ style: styles.muted, key: 'mil-note' },
+				'Stav tachometru ze záznamů technických a emisních prohlídek (STK/ME).'
+			)
+		)
+	}
+
 	// Imports — labelled as on the web ("Dovezené vozidlo").
 	if (history.imports.length > 0) {
 		children.push(
@@ -448,13 +511,19 @@ export async function renderCertificatePdf(
 		}
 	}
 
-	// Footer disclaimer — must not imply state authority.
+	// Footer disclaimer — must not imply state authority. The "neobsahuje" list
+	// drops "stav tachometru" when this certificate actually includes it (from the
+	// STK/emission inspection data), so the footer never contradicts the content.
+	const excludes =
+		history.mileage.readings.length > 0
+			? 'záznamy o nehodách ani zástavy/leasing'
+			: 'stav tachometru, záznamy o nehodách ani zástavy/leasing'
 	const footer = e(
 		Text,
 		{ style: styles.footer, fixed: true, key: 'footer' },
 		`Údaje pocházejí z veřejného registru silničních vozidel ČR (otevřená data)${
 			snapshotDate ? `, stav k ${fmtDate(snapshotDate)}` : ''
-		}. Tento přehled zpracoval VINInfo.cz z veřejných dat registru a není úředním dokumentem. Neobsahuje stav tachometru, záznamy o nehodách ani zástavy/leasing. Pravost ověříte na ${meta.verifyUrl}`
+		}. Tento přehled zpracoval VINInfo.cz z veřejných dat registru a není úředním dokumentem. Neobsahuje ${excludes}. Pravost ověříte na ${meta.verifyUrl}`
 	)
 
 	// Diagonal watermark on every page (sample/preview PDFs only).
