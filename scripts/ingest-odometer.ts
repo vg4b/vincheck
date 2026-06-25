@@ -337,6 +337,19 @@ async function main(): Promise<void> {
 		await upsertBatch(client, pending)
 	}
 
+	// Stamp cache_meta so freshness is queryable alongside the other datasets.
+	// source_snapshot = the latest inspection day we ingested this run.
+	if (client && dateMax) {
+		await client.query(
+			`INSERT INTO cache_meta (dataset, source_snapshot, imported_at)
+			 VALUES ('odometer', $1, now())
+			 ON CONFLICT (dataset) DO UPDATE
+			   SET source_snapshot = GREATEST(cache_meta.source_snapshot, EXCLUDED.source_snapshot),
+			       imported_at = EXCLUDED.imported_at`,
+			[dateMax]
+		)
+	}
+
 	if (client) client.release()
 	if (pool) await pool.end()
 

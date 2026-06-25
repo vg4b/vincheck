@@ -1,0 +1,70 @@
+name: Ingest odometer (ISTP)
+
+# Keeps the odometer cache (vehicle_inspection_odometer) current from the ISTP
+# open data. The source publishes each day's file with a ~2–3 week lag, so a
+# daily run would add no freshness while multiplying DB load — instead we run
+# WEEKLY and re-process a rolling window wide enough to absorb that lag. The load
+# is idempotent (download skips existing within a run; ingest UPSERTs on
+# cislo_protokolu) and never touches the other cache tables.
+#
+# Required secret: SCALEWAY_ADMIN_DATABASE_URL — the admin connection string
+#   (postgres://<admin>:<pw>@<host>:<port>/rdb?sslmode=require). Read+write.
+
+on:
+  schedule:
+    # Mondays 03:30 UTC — off-peak, after the source's weekly publishes.
+    - cron: '30 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      from:
+        description: 'Override --from date (YYYY-MM-DD). Default: 35 days ago.'
+        required: false
+
+# Never let two ingests overlap on the shared DB node.
+concurrency:
+  group: ingest-odometer
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # These scripts only need pg + tsx — install just those (no lockfile
+      # dependency, avoids pulling the whole CRA app into the runner).
+      - run: npm install --no-save pg tsx
+
+      - name: Compute window start
+        id: win
+        run: |
+          FROM="${{ github.event.inputs.from }}"
+          if [ -z "$FROM" ]; then FROM=$(date -u -d '35 days ago' +%F); fi
+          echo "from=$FROM" >> "$GITHUB_OUTPUT"
+          echo "Ingesting from $FROM"
+
+      - name: Crawl catalog
+        run: npx tsx scripts/crawl-odometer-catalog.ts --out odometer-data/manifest.json
+
+      - name: Download new files
+        run: >
+          npx tsx scripts/download-odometer.ts
+          --manifest odometer-data/manifest.json
+          --dir odometer-data/xml
+          --from ${{ steps.win.outputs.from }}
+          --concurrency 6
+
+      - name: Ingest into Scaleway
+        env:
+          DATABASE_URL: ${{ secrets.SCALEWAY_ADMIN_DATABASE_URL }}
+        run: >
+          npx tsx scripts/ingest-odometer.ts
+          --apply-schema
+          --dir odometer-data/xml
+          --from ${{ steps.win.outputs.from }}
+          --throttle 25
