@@ -198,7 +198,7 @@ function getStkBadge(entry: StkOverviewEntry): {
 	label: string
 } {
 	if (entry.urgency === 'overdue') {
-		return { className: 'bg-danger', label: 'Po splatnosti' }
+		return { className: 'bg-danger', label: 'Po termínu' }
 	}
 	if (entry.urgency === 'critical') {
 		return { className: 'bg-danger', label: formatDaysLeft(entry.daysLeft) }

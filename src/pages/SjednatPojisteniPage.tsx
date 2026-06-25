@@ -131,9 +131,9 @@ const SjednatPojisteniPage: React.FC = () => {
 				<h1 className='mb-3'>Sjednat pojištění vozidla</h1>
 				<p className='text-muted mb-4'>
 					Vyberte typ pojištění a porovnejte si nabídky pojišťoven přímo zde
-					online a zdarma. Vyplatí se to každý rok – při prodloužení smlouvy se
-					automaticky nepřepočítává bonus za bezeškodní průběh, takže novým
-					srovnáním často ušetříte.
+					online a zdarma – ušetříte čas i peníze.
+					{typ !== 'cestovni' &&
+						' Pojištění vozidla se obvykle sjednává na dobu neurčitou a bonus za bezeškodní průběh se automaticky nepřepočítává, takže novým srovnáním každý rok často ušetříte.'}
 				</p>
 
 				{/* Přepínač typu pojištění */}

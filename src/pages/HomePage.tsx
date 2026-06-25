@@ -659,6 +659,11 @@ const HomePage: React.FC = () => {
 											kdy je vozidlo technicky způsobilé
 										</li>
 										<li className='mb-2'>
+											✅ <strong>Náhled historie tachometru</strong> - počet
+											záznamů z STK a upozornění na možné stočení (přesné hodnoty
+											v certifikátu)
+										</li>
+										<li className='mb-2'>
 											✅ <strong>Upozornění na termíny</strong> - uložte si
 											vozidlo a nechte se emailem připomenout STK, pojištění a
 											servis
@@ -948,31 +953,35 @@ const HomePage: React.FC = () => {
 										Zobrazí se i historie najetých kilometrů?
 									</h4>
 									<p>
-										Základní registr vozidel obsahuje technické údaje, ale
-										nikoliv historii nájezdu kilometrů z STK. Pro kontrolu
-										tachometru doporučujeme využít specializované placené služby
-										(např.{' '}
+										Ano. V certifikátu zobrazujeme historii stavu tachometru ze
+										záznamů technických a emisních prohlídek (STK/ME), včetně
+										upozornění na možné stočení. V náhledu zdarma uvidíte počet
+										záznamů a případné podezření na stočení, přesné hodnoty jsou
+										součástí certifikátu. Údaje pocházejí z otevřených dat
+										(stejný zdroj jako kontrolatachometru.cz Ministerstva
+										dopravy) – jde o stav počítadla zjištěný při prohlídkách,
+										který nemusí odpovídat aktuálnímu celkovému nájezdu, a nejsou
+										k dispozici pro každé vozidlo. Záznamy o nehodách či nájezd
+										ze zahraničí registr neobsahuje – ty prověříte v{' '}
 										<a
 											href={cebia.getTextLinkUrl('homepage_faq')}
 											target='_blank'
 											rel='noopener noreferrer'
 										>
-											Cebia.cz
+											placené zprávě partnera
 										</a>
-										) nebo stránky Ministerstva dopravy (kontrolatachometru.cz),
-										kde je možné zobrazit zjištěné na počítadle ujeté
-										vzdálenosti vozidla při technických prohlídkách vozidla na
-										stanicích technické kontroly a stanicích měření emisí a
-										nemusí odrážet skutečný (aktuální) celkový stav ujetých
-										kilometrů vozidla..
+										.
 									</p>
 
 									<h4 className='h6 mt-3'>Mohu zjistit majitele vozidla?</h4>
 									<p>
-										Ne. Z důvodu ochrany osobních údajů není možné veřejně
-										zjistit jméno ani adresu vlastníka nebo provozovatele
-										vozidla. Registr poskytuje pouze technická data o vozidle,
-										nikoliv o jeho majiteli.
+										U fyzických osob ne – z důvodu ochrany osobních údajů
+										nezveřejňujeme jméno ani adresu vlastníka či provozovatele.
+										Výjimkou jsou vozidla registrovaná na firmu (IČO): u nich
+										zobrazujeme název společnosti a IČO, protože nejde o osobní
+										údaje. U každého vozidla navíc najdete časovou osu vlastníků
+										a provozovatelů (počty a období držby, u fyzických osob bez
+										jmen).
 									</p>
 
 									<h4 className='h6 mt-3'>
