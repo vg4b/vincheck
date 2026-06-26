@@ -19,7 +19,8 @@ import { rateLimit } from '../_rateLimit'
 import {
 	createCheckout,
 	PAYMENT_PROVIDER,
-	verifyAndParseWebhook
+	verifyAndParseWebhook,
+	webhookAckBody
 } from '../_payments'
 import { renderCertificatePdf } from '../_certificatePdf'
 import {
@@ -215,13 +216,20 @@ async function handleCreate(req: VercelRequest, res: VercelResponse) {
 	return res.status(201).json({ code, checkoutUrl: checkout.url })
 }
 
+/** Provider-appropriate 2xx acknowledgement (Comgate wants `code=0&message=OK`). */
+function ackWebhook(res: VercelResponse) {
+	const { contentType, body } = webhookAckBody()
+	res.setHeader('Content-Type', contentType)
+	return res.status(200).send(body)
+}
+
 /** POST /api/certificate/webhook — mark paid + deliver. Idempotent. */
 async function handleWebhook(req: VercelRequest, res: VercelResponse) {
-	let parsed: ReturnType<typeof verifyAndParseWebhook>
+	let parsed: Awaited<ReturnType<typeof verifyAndParseWebhook>>
 	try {
 		const rawBody = await readRawBody(req)
 		const signature = req.headers['x-signature'] as string | undefined
-		parsed = verifyAndParseWebhook(rawBody, signature)
+		parsed = await verifyAndParseWebhook(rawBody, signature)
 	} catch (error) {
 		console.error('Webhook verification error:', error)
 		return res.status(400).json({ error: 'Invalid webhook' })
@@ -230,7 +238,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 	// Bad signature / unhandled event, or not a completed payment — ack so the
 	// provider stops retrying.
 	if (!parsed?.paid) {
-		return res.status(200).json({ received: true })
+		return ackWebhook(res)
 	}
 
 	// Paid, but no VIN/certificate context — someone bought via the public Lemon
@@ -242,11 +250,11 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 			ref: parsed.ref
 		})
 		await sendOperatorAlert('Platba bez VIN (přímý checkout)', [
-			'Přišla platba bez kontextu certifikátu — zřejmě přímé otevření Lemon Squeezy checkoutu.',
+			'Přišla platba bez kontextu certifikátu — zřejmě přímé otevření platební brány.',
 			`Provider ref: ${parsed.ref ?? '?'}`,
 			'Certifikát nelze vystavit. Vyřešte ručně: vraťte platbu, nebo si od zákazníka vyžádejte VIN.'
 		])
-		return res.status(200).json({ received: true })
+		return ackWebhook(res)
 	}
 
 	await ensureTables()
@@ -274,13 +282,13 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 				code: parsed.certificateCode
 			})
 			await sendOperatorAlert('Platba bez certifikátu', [
-				'Lemon Squeezy potvrdil platbu, ale neznáme odpovídající certifikát.',
+				'Platební brána potvrdila platbu, ale neznáme odpovídající certifikát.',
 				`Kód: ${parsed.certificateCode}`,
 				`Provider ref: ${parsed.ref ?? '?'}`,
 				'Zákazník zaplatil, ale certifikát nelze doručit — zkontrolujte ručně.'
 			])
 		}
-		return res.status(200).json({ received: true })
+		return ackWebhook(res)
 	}
 
 	const cert = rows[0] as {
