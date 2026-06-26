@@ -233,8 +233,9 @@ interface CertificateEmailParams {
 	paidAt: Date
 }
 
-/** Seller identity for the doklad o zaplacení (neplátce — no VAT). */
+/** Seller identity for the doklad o zaplacení (§435 obč. zák.; neplátce — no VAT). */
 const SELLER_NAME = 'Bc. Václav Gabriel'
+const SELLER_ADDRESS = 'Krkoškova 1662/37, 613 00 Brno'
 const SELLER_ICO = '88350207'
 
 function fmtReceiptDate(d: Date): string {
@@ -302,8 +303,8 @@ export function generateCertificateEmailHtml(
 											Variabilní symbol / číslo certifikátu: ${code}<br>
 											Částka: ${amountCzk} Kč<br>
 											Datum úhrady: ${fmtReceiptDate(paidAt)}<br>
-											Prodávající: ${SELLER_NAME}, IČO ${SELLER_ICO}<br>
-											Nejsme plátci DPH.
+											Prodávající: ${SELLER_NAME}, ${SELLER_ADDRESS}, IČO ${SELLER_ICO}<br>
+											Fyzická osoba zapsaná v živnostenském rejstříku. Nejsme plátci DPH.
 										</p>
 									</td>
 								</tr>
@@ -343,8 +344,8 @@ export function generateCertificateEmailText(
 		`Variabilní symbol / číslo certifikátu: ${params.code}`,
 		`Částka: ${params.amountCzk} Kč`,
 		`Datum úhrady: ${fmtReceiptDate(params.paidAt)}`,
-		`Prodávající: ${SELLER_NAME}, IČO ${SELLER_ICO}`,
-		'Nejsme plátci DPH.',
+		`Prodávající: ${SELLER_NAME}, ${SELLER_ADDRESS}, IČO ${SELLER_ICO}`,
+		'Fyzická osoba zapsaná v živnostenském rejstříku. Nejsme plátci DPH.',
 		'',
 		'— VINInfo.cz (https://vininfo.cz)'
 	].join('\n')

@@ -34,6 +34,14 @@ const Footer: React.FC = () => {
 							<br />
 							Kontakt: vininfo(zavináč)mail.vininfo.cz
 						</p>
+						<p
+							className='text-muted-ink mb-0 mt-2'
+							style={{ fontSize: '0.75rem' }}
+						>
+							Provozovatel: Bc. Václav Gabriel, Krkoškova 1662/37, 613 00 Brno,
+							IČO 88350207. Fyzická osoba zapsaná v živnostenském rejstříku.
+							Neplátce DPH.
+						</p>
 
 						<h6 className='fw-bold mb-3 mt-4'>
 							<span className='heading-accent'>Právní info</span>

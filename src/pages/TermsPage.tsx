@@ -20,8 +20,9 @@ const TermsPage: React.FC = () => {
 					<p>
 						Tyto obchodní podmínky (dále jen „podmínky") upravují práva a
 						povinnosti uživatelů služby VINInfo (dále jen „služba") provozované
-						fyzickou osobou Bc. Václav Gabriel, IČO 88350207 (dále jen
-						„provozovatel").
+						fyzickou osobou Bc. Václav Gabriel, se sídlem Krkoškova 1662/37,
+						613 00 Brno, IČO 88350207, zapsanou v živnostenském rejstříku (dále
+						jen „provozovatel"). Provozovatel není plátcem DPH.
 					</p>
 					<p>
 						Používáním služby uživatel souhlasí s těmito podmínkami a zavazuje
