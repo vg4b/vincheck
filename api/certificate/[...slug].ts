@@ -315,7 +315,9 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 			code: cert.code,
 			vin: cert.vin,
 			downloadUrl: `${base}/api/certificate/${cert.code}?token=${cert.download_token}`,
-			verifyUrl: `${base}/overit/${cert.code}`
+			verifyUrl: `${base}/overit/${cert.code}`,
+			amountCzk: cert.amount_czk ?? getCertificatePriceCzk(),
+			paidAt: new Date()
 		})
 	} catch (error) {
 		// The certificate is paid + issued; a failed email must not 500 the webhook

@@ -227,12 +227,24 @@ interface CertificateEmailParams {
 	downloadUrl: string
 	/** Public verification page. */
 	verifyUrl: string
+	/** Amount paid in whole crowns — for the receipt (doklad o zaplacení). */
+	amountCzk: number
+	/** Payment date — for the receipt. */
+	paidAt: Date
+}
+
+/** Seller identity for the doklad o zaplacení (neplátce — no VAT). */
+const SELLER_NAME = 'Bc. Václav Gabriel'
+const SELLER_ICO = '88350207'
+
+function fmtReceiptDate(d: Date): string {
+	return `${d.getDate()}. ${d.getMonth() + 1}. ${d.getFullYear()}`
 }
 
 export function generateCertificateEmailHtml(
 	params: CertificateEmailParams
 ): string {
-	const { code, vin, downloadUrl, verifyUrl } = params
+	const { code, vin, downloadUrl, verifyUrl, amountCzk, paidAt } = params
 	const preheader = `Váš certifikát historie vozidla (${code}) je připravený ke stažení.`
 	return `<!DOCTYPE html>
 <html lang="cs">
@@ -280,7 +292,22 @@ export function generateCertificateEmailHtml(
 								</tr>
 							</table>
 							<p class="email-text-muted" style="color: #888; font-size: 14px; margin: 16px 0 0;">Pravost certifikátu si kdokoliv ověří na <a href="${verifyUrl}" style="color: #2e7d32;">${verifyUrl}</a>. Odkaz na stažení je osobní — nesdílejte ho.</p>
-							<p class="email-text-muted" style="color: #888; font-size: 13px; margin: 16px 0 0;">Výpis vychází z veřejných dat registru a neobsahuje stav tachometru, záznamy o nehodách ani zástavy.</p>
+							<p class="email-text-muted" style="color: #888; font-size: 13px; margin: 16px 0 0;">Výpis vychází z veřejných dat registru a STK a neobsahuje záznamy o nehodách ani zástavy.</p>
+							<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 24px 0 0;">
+								<tr>
+									<td style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+										<p class="email-text" style="color: #333; font-weight: 600; margin: 0 0 8px; font-size: 14px;">Doklad o zaplacení</p>
+										<p class="email-text-muted" style="color: #777; font-size: 13px; margin: 0; line-height: 1.9;">
+											Položka: Certifikát historie vozidla<br>
+											Variabilní symbol / číslo certifikátu: ${code}<br>
+											Částka: ${amountCzk} Kč<br>
+											Datum úhrady: ${fmtReceiptDate(paidAt)}<br>
+											Prodávající: ${SELLER_NAME}, IČO ${SELLER_ICO}<br>
+											Nejsme plátci DPH.
+										</p>
+									</td>
+								</tr>
+							</table>
 						</td>
 					</tr>
 					<tr>
@@ -309,7 +336,15 @@ export function generateCertificateEmailText(
 		`Stáhnout certifikát (PDF): ${params.downloadUrl}`,
 		`Ověřit pravost: ${params.verifyUrl}`,
 		'',
-		'Odkaz na stažení je osobní — nesdílejte ho. Výpis vychází z veřejných dat registru a neobsahuje stav tachometru, záznamy o nehodách ani zástavy.',
+		'Odkaz na stažení je osobní — nesdílejte ho. Výpis vychází z veřejných dat registru a STK a neobsahuje záznamy o nehodách ani zástavy.',
+		'',
+		'Doklad o zaplacení',
+		'Položka: Certifikát historie vozidla',
+		`Variabilní symbol / číslo certifikátu: ${params.code}`,
+		`Částka: ${params.amountCzk} Kč`,
+		`Datum úhrady: ${fmtReceiptDate(params.paidAt)}`,
+		`Prodávající: ${SELLER_NAME}, IČO ${SELLER_ICO}`,
+		'Nejsme plátci DPH.',
 		'',
 		'— VINInfo.cz (https://vininfo.cz)'
 	].join('\n')
