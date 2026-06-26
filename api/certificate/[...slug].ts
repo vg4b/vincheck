@@ -227,8 +227,25 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 		return res.status(400).json({ error: 'Invalid webhook' })
 	}
 
-	// Unknown/unhandled event or bad signature — ack so the provider stops retrying.
-	if (!parsed || !parsed.paid || !parsed.certificateCode) {
+	// Bad signature / unhandled event, or not a completed payment — ack so the
+	// provider stops retrying.
+	if (!parsed?.paid) {
+		return res.status(200).json({ received: true })
+	}
+
+	// Paid, but no VIN/certificate context — someone bought via the public Lemon
+	// Squeezy checkout directly, bypassing our flow, so there's nothing to issue.
+	// Never keep the money silently: alert for a manual refund.
+	if (!parsed.certificateCode) {
+		await logEvent('certificate_error', {
+			stage: 'webhook_no_code',
+			ref: parsed.ref
+		})
+		await sendOperatorAlert('Platba bez VIN (přímý checkout)', [
+			'Přišla platba bez kontextu certifikátu — zřejmě přímé otevření Lemon Squeezy checkoutu.',
+			`Provider ref: ${parsed.ref ?? '?'}`,
+			'Certifikát nelze vystavit. Vyřešte ručně: vraťte platbu, nebo si od zákazníka vyžádejte VIN.'
+		])
 		return res.status(200).json({ received: true })
 	}
 
