@@ -57,13 +57,13 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 					<Icon name='check' size={15} /> Dovoz a stav vozidla
 				</li>
 				<li>
-					<Icon name='check' size={15} /> Přehledné, sdílitelné PDF s QR ověřením
+					<Icon name='check' size={15} /> Přehledné PDF s QR ověřením ke sdílení
 				</li>
 			</ul>
 			<p className='product-when'>
-				Přehledný, sdílitelný a ověřitelný PDF výpis s nejdůležitějšími údaji o
-				vozidle z registru a STK ČR — ideální jako podklad při prodeji i koupi
-				nebo pro vlastní evidenci.
+				Přehledný a ověřitelný PDF výpis s nejdůležitějšími údaji o vozidle z
+				registru a STK ČR — ideální podklad při prodeji i koupi nebo pro vlastní
+				evidenci.
 			</p>
 			{certificateCta}
 		</div>
