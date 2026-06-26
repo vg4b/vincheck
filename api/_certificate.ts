@@ -24,8 +24,9 @@ export function generateDownloadToken(): string {
 }
 
 /**
- * Certificate display price in whole crowns (VAT-inclusive). Display-only — the
- * real charge is the Creem product's configured price, so keep them in sync.
+ * Certificate price in whole crowns. With Comgate this is the amount actually
+ * charged (passed to /create). We are a neplátce, so the price is final with no
+ * VAT. (With the Lemon Squeezy fallback the real charge is the variant price.)
  */
 export function getCertificatePriceCzk(): number {
 	const raw = Number(process.env.CERTIFICATE_PRICE_CZK)

@@ -19,8 +19,8 @@ import Icon, { type IconName } from './Icon'
 import ProductComparison from './ProductComparison'
 import VehicleHistoryPanel from './VehicleHistoryPanel'
 
-// Display price of our own certificate (VAT incl.). Must match the backend
-// CERTIFICATE_PRICE_CZK env (api/_certificate.ts) and the Creem product price.
+// Display price of our own certificate (final price; we are a neplátce, no VAT).
+// Must match the backend CERTIFICATE_PRICE_CZK env (api/_certificate.ts).
 const CERTIFICATE_PRICE_CZK = 99
 
 const CATEGORY_ICONS: Record<VehicleFieldCategoryId, IconName> = {

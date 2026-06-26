@@ -78,8 +78,9 @@ const CertificateCheckoutModal: React.FC<CertificateCheckoutModalProps> = ({
 						<div className='modal-body'>
 							<p className='mb-2'>
 								Přehled historie vozidla pro VIN <strong>{vin}</strong>{' '}
-								zpracovaný z dat registru silničních vozidel ČR — vlastníci, STK,
-								dovoz a stav vozidla v ověřitelném PDF.
+								zpracovaný z dat registru silničních vozidel ČR a STK — vlastníci,
+								historie STK, stav tachometru, dovoz a stav vozidla v ověřitelném
+								PDF.
 							</p>
 							<p className='mb-3'>
 								<a
@@ -133,8 +134,8 @@ const CertificateCheckoutModal: React.FC<CertificateCheckoutModalProps> = ({
 								</div>
 							)}
 							<p className='text-muted-ink small mt-3 mb-0'>
-								Cena zahrnuje DPH. Výpis vychází z veřejných dat registru a
-								neobsahuje stav tachometru, záznamy o nehodách ani zástavy.
+								Cena je konečná (nejsme plátci DPH). Výpis vychází z veřejných dat
+								registru a STK a neobsahuje záznamy o nehodách ani zástavy.
 							</p>
 						</div>
 						<div className='modal-footer'>

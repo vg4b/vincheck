@@ -10,7 +10,7 @@ import { isCertificateEnabled } from '../config/featureFlags'
 const PRICE_CZK = 99
 
 const PAGE_TITLE = `Certifikát historie vozidla z registru ČR za ${PRICE_CZK} Kč | VIN Info.cz`
-const PAGE_DESCRIPTION = `Přehledný certifikát historie vozidla zpracovaný z dat registru silničních vozidel ČR — vlastníci, STK, dovoz a stav vozidla. Ihned, v ověřitelném PDF, za ${PRICE_CZK} Kč.`
+const PAGE_DESCRIPTION = `Přehledný certifikát historie vozidla zpracovaný z dat registru silničních vozidel ČR a STK — vlastníci, STK, stav tachometru, dovoz a stav vozidla. Ihned, v ověřitelném PDF, za ${PRICE_CZK} Kč.`
 const CANONICAL_URL = 'https://vininfo.cz/overeny-vypis-vozidla'
 
 const CertificateLandingPage: React.FC = () => {
@@ -109,10 +109,10 @@ const CertificateLandingPage: React.FC = () => {
 							Přehled historie vozidla z registru ČR za {PRICE_CZK} Kč
 						</h1>
 						<p className='lead mb-4'>
-							Data z registru silničních vozidel ČR jsou špatně čitelná — my je
-							za vás zpracujeme do srozumitelného přehledu: vlastníci, STK, dovoz
-							a stav vozidla. Ihned, v ověřitelném PDF — podklad pro koupi i
-							prodej vozidla.
+							Data z registru silničních vozidel ČR a STK jsou špatně čitelná — my
+							je za vás zpracujeme do srozumitelného přehledu: vlastníci, STK, stav
+							tachometru, dovoz a stav vozidla. Ihned, v ověřitelném PDF — podklad
+							pro koupi i prodej vozidla.
 						</p>
 						<form onSubmit={handleSubmit}>
 							<label htmlFor='landing-vin' className='form-label fw-semibold'>
@@ -187,7 +187,8 @@ const CertificateLandingPage: React.FC = () => {
 						<ol className='mb-0' style={{ lineHeight: 2 }}>
 							<li>Zadáte VIN a zobrazíte si vozidlo (náhled je zdarma).</li>
 							<li>
-								Na detailu vozidla koupíte certifikát za {PRICE_CZK} Kč (vč. DPH).
+								Na detailu vozidla koupíte certifikát za {PRICE_CZK} Kč (konečná
+								cena).
 							</li>
 							<li>
 								Certifikát v PDF dostanete e-mailem a ke stažení — s QR kódem pro
