@@ -6,6 +6,7 @@ import Icon from '../components/Icon'
 import Navigation from '../components/Navigation'
 import VehicleInfo from '../components/VehicleInfo'
 import { cebia } from '../config/affiliateCampaigns'
+import { isCertificateEnabled } from '../config/featureFlags'
 import { useAuth } from '../contexts/AuthContext'
 import { VehicleDataArray, VehicleHistory } from '../types'
 import { ApiError } from '../utils/apiClient'
@@ -658,11 +659,13 @@ const HomePage: React.FC = () => {
 											✅ <strong>Platnost technické prohlídky STK</strong> - do
 											kdy je vozidlo technicky způsobilé
 										</li>
-										<li className='mb-2'>
-											✅ <strong>Náhled historie tachometru</strong> - počet
-											záznamů z STK a upozornění na možné stočení (přesné hodnoty
-											v certifikátu)
-										</li>
+										{isCertificateEnabled() && (
+											<li className='mb-2'>
+												✅ <strong>Náhled historie tachometru</strong> - počet
+												záznamů z STK a upozornění na možné stočení (přesné
+												hodnoty v certifikátu)
+											</li>
+										)}
 										<li className='mb-2'>
 											✅ <strong>Upozornění na termíny</strong> - uložte si
 											vozidlo a nechte se emailem připomenout STK, pojištění a
@@ -952,26 +955,45 @@ const HomePage: React.FC = () => {
 									<h4 className='h6 mt-3'>
 										Zobrazí se i historie najetých kilometrů?
 									</h4>
-									<p>
-										Ano. V certifikátu zobrazujeme historii stavu tachometru ze
-										záznamů technických a emisních prohlídek (STK/ME), včetně
-										upozornění na možné stočení. V náhledu zdarma uvidíte počet
-										záznamů a případné podezření na stočení, přesné hodnoty jsou
-										součástí certifikátu. Údaje pocházejí z otevřených dat
-										(stejný zdroj jako kontrolatachometru.cz Ministerstva
-										dopravy) – jde o stav počítadla zjištěný při prohlídkách,
-										který nemusí odpovídat aktuálnímu celkovému nájezdu, a nejsou
-										k dispozici pro každé vozidlo. Záznamy o nehodách či nájezd
-										ze zahraničí registr neobsahuje – ty prověříte v{' '}
-										<a
-											href={cebia.getTextLinkUrl('homepage_faq')}
-											target='_blank'
-											rel='noopener noreferrer'
-										>
-											placené zprávě partnera
-										</a>
-										.
-									</p>
+									{isCertificateEnabled() ? (
+										<p>
+											Ano. V certifikátu zobrazujeme historii stavu tachometru
+											ze záznamů technických a emisních prohlídek (STK/ME),
+											včetně upozornění na možné stočení. V náhledu zdarma
+											uvidíte počet záznamů a případné podezření na stočení,
+											přesné hodnoty jsou součástí certifikátu. Údaje pocházejí
+											z otevřených dat (stejný zdroj jako kontrolatachometru.cz
+											Ministerstva dopravy) – jde o stav počítadla zjištěný při
+											prohlídkách, který nemusí odpovídat aktuálnímu celkovému
+											nájezdu, a nejsou k dispozici pro každé vozidlo. Záznamy o
+											nehodách či nájezd ze zahraničí registr neobsahuje – ty
+											prověříte v{' '}
+											<a
+												href={cebia.getTextLinkUrl('homepage_faq')}
+												target='_blank'
+												rel='noopener noreferrer'
+											>
+												placené zprávě partnera
+											</a>
+											.
+										</p>
+									) : (
+										<p>
+											Základní registr obsahuje technické údaje, ale historii
+											stavu tachometru z prohlídek nezobrazuje. Stav počítadla
+											ze záznamů STK je veřejně dostupný na stránkách
+											Ministerstva dopravy (kontrolatachometru.cz). Kompletní
+											prověření tachometru, nehod a původu ze zahraničí nabízí{' '}
+											<a
+												href={cebia.getTextLinkUrl('homepage_faq')}
+												target='_blank'
+												rel='noopener noreferrer'
+											>
+												placená zpráva partnera
+											</a>
+											.
+										</p>
+									)}
 
 									<h4 className='h6 mt-3'>Mohu zjistit majitele vozidla?</h4>
 									<p>
