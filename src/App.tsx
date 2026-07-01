@@ -12,6 +12,7 @@ import FleetSearchPage from './pages/FleetSearchPage'
 import HavarijniPojisteniPage from './pages/HavarijniPojisteniPage'
 import HomePage from './pages/HomePage'
 import KompletniHistorieVozuPage from './pages/KompletniHistorieVozuPage'
+import KontaktPage from './pages/KontaktPage'
 import LoginPage from './pages/LoginPage'
 import PovinneRuceniPage from './pages/PovinneRuceniPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
@@ -52,6 +53,7 @@ function App() {
 					element={<UpozorneniNaTerminyPage />}
 				/>
 				<Route path='/ochrana-osobnich-udaju' element={<PrivacyPolicyPage />} />
+				<Route path='/kontakt' element={<KontaktPage />} />
 				<Route path='/podminky' element={<TermsPage />} />
 				<Route path='/vin/:code' element={<VehicleDetailPage type='vin' />} />
 				<Route path='/tp/:code' element={<VehicleDetailPage type='tp' />} />

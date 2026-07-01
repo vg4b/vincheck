@@ -32,15 +32,26 @@ const Footer: React.FC = () => {
 								Datová kostka
 							</a>
 							<br />
+							Tel.:{' '}
+							<a href='tel:+420774931227' className='text-decoration-none'>
+								+420 774 931 227
+							</a>
+							<br />
 							Kontakt: vininfo(zavináč)mail.vininfo.cz
 						</p>
-						<p
+						{/* <p
 							className='text-muted-ink mb-0 mt-2'
 							style={{ fontSize: '0.75rem' }}
 						>
 							Provozovatel: Bc. Václav Gabriel, Krkoškova 1662/37, 613 00 Brno,
 							IČO 88350207. Fyzická osoba zapsaná v živnostenském rejstříku.
 							Neplátce DPH.
+						</p> */}
+						<p
+							className='text-muted-ink mb-0 mt-2'
+							style={{ fontSize: '0.75rem' }}
+						>
+							Platby zpracovává platební brána Comgate (ComGate Payments, a.s.).
 						</p>
 
 						<h6 className='fw-bold mb-3 mt-4'>
@@ -61,6 +72,14 @@ const Footer: React.FC = () => {
 									className='text-muted-ink text-decoration-none small'
 								>
 									Ochrana osobních údajů
+								</Link>
+							</li>
+							<li className='mb-2'>
+								<Link
+									to='/kontakt'
+									className='text-muted-ink text-decoration-none small'
+								>
+									Kontakt
 								</Link>
 							</li>
 						</ul>

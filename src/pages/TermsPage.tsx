@@ -203,8 +203,11 @@ const TermsPage: React.FC = () => {
 				<section className='mt-4'>
 					<h2 className='h4'>{certOn ? '9' : '8'}. Kontakt</h2>
 					<p>
-						V případě dotazů nebo připomínek nás kontaktujte na emailu:{' '}
-						vininfo(zavináč)mail.vininfo.cz
+						V případě dotazů nebo připomínek nás kontaktujte:
+						<br />
+						Telefon: +420 774 931 227
+						<br />
+						E-mail: vininfo(zavináč)mail.vininfo.cz
 					</p>
 				</section>
 
