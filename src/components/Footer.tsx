@@ -32,12 +32,12 @@ const Footer: React.FC = () => {
 								Datová kostka
 							</a>
 							<br />
+							Kontakt: vininfo(zavináč)mail.vininfo.cz
+							<br />
 							Tel.:{' '}
 							<a href='tel:+420774931227' className='text-decoration-none'>
 								+420 774 931 227
 							</a>
-							<br />
-							Kontakt: vininfo(zavináč)mail.vininfo.cz
 						</p>
 						{/* <p
 							className='text-muted-ink mb-0 mt-2'
@@ -47,12 +47,12 @@ const Footer: React.FC = () => {
 							IČO 88350207. Fyzická osoba zapsaná v živnostenském rejstříku.
 							Neplátce DPH.
 						</p> */}
-						<p
+						{/* <p
 							className='text-muted-ink mb-0 mt-2'
 							style={{ fontSize: '0.75rem' }}
 						>
 							Platby zpracovává platební brána Comgate (ComGate Payments, a.s.).
-						</p>
+						</p> */}
 
 						<h6 className='fw-bold mb-3 mt-4'>
 							<span className='heading-accent'>Právní info</span>
@@ -72,6 +72,14 @@ const Footer: React.FC = () => {
 									className='text-muted-ink text-decoration-none small'
 								>
 									Ochrana osobních údajů
+								</Link>
+							</li>
+							<li className='mb-2'>
+								<Link
+									to='/platba'
+									className='text-muted-ink text-decoration-none small'
+								>
+									Platba a doručení
 								</Link>
 							</li>
 							<li className='mb-2'>
@@ -222,8 +230,17 @@ const Footer: React.FC = () => {
 					</div>
 				</div>
 
-				{/* Bottom Bar */}
+				{/* Accepted payment methods (Comgate, VISA, Mastercard, …) */}
 				<hr className='my-4' />
+				<div className='text-center mb-4'>
+					<img
+						src='/logos/comgate-payments.png'
+						alt='Platební metody: Comgate, VISA, Mastercard, Google Pay, Apple Pay'
+						style={{ height: 28, width: 'auto', maxWidth: '100%' }}
+					/>
+				</div>
+
+				{/* Bottom Bar */}
 				<div className='row align-items-center'>
 					<div className='col-12 col-md-6 text-center text-md-start'>
 						<span className='text-muted-ink small'>

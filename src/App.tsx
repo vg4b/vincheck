@@ -14,6 +14,7 @@ import HomePage from './pages/HomePage'
 import KompletniHistorieVozuPage from './pages/KompletniHistorieVozuPage'
 import KontaktPage from './pages/KontaktPage'
 import LoginPage from './pages/LoginPage'
+import PlatbaPage from './pages/PlatbaPage'
 import PovinneRuceniPage from './pages/PovinneRuceniPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import RegisterPage from './pages/RegisterPage'
@@ -54,6 +55,7 @@ function App() {
 				/>
 				<Route path='/ochrana-osobnich-udaju' element={<PrivacyPolicyPage />} />
 				<Route path='/kontakt' element={<KontaktPage />} />
+				<Route path='/platba' element={<PlatbaPage />} />
 				<Route path='/podminky' element={<TermsPage />} />
 				<Route path='/vin/:code' element={<VehicleDetailPage type='vin' />} />
 				<Route path='/tp/:code' element={<VehicleDetailPage type='tp' />} />
