@@ -381,7 +381,13 @@ async function handleFetch(
 		| undefined
 
 	if (!cert || cert.status !== 'issued') {
-		return res.status(404).json({ valid: false, error: 'Certifikát nenalezen.' })
+		// A token means a PDF request for a cert that isn't issued → real 404.
+		// Without a token this is the public/polling metadata endpoint: "not issued
+		// yet" is a normal state (the success page polls a pending cert), so answer
+		// 200 {valid:false} instead of 404 to avoid noisy console errors while polling.
+		return token
+			? res.status(404).json({ error: 'Certifikát nenalezen.' })
+			: res.status(200).json({ valid: false })
 	}
 
 	// No token → public verification view only.

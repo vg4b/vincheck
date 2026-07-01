@@ -38,6 +38,18 @@ function isLiveMode(): boolean {
 	return process.env.NODE_ENV === 'production'
 }
 
+/**
+ * Whether to create a Comgate *test* payment (test=true): true on any non-live
+ * environment, or when PAYMENTS_TEST_MODE is explicitly set. The env override lets
+ * us run a full end-to-end test on the real production deployment (correct webhook
+ * URL + prod DB) against Comgate's virtual bank — no card is charged and the
+ * payment shows under portal → Testovací platby. Unset it to go live again.
+ */
+function useTestPayment(): boolean {
+	if (process.env.PAYMENTS_TEST_MODE === 'true') return true
+	return !isLiveMode()
+}
+
 /** Timing-safe string compare (equal-length-guarded). */
 function safeEqual(a: string, b: string): boolean {
 	const ab = Buffer.from(a)
@@ -150,7 +162,7 @@ async function comgateCreateCheckout(
 		url_pending: params.pendingUrl ?? params.successUrl,
 		// Notification URL is set in the Comgate portal (e-shop connection); it must
 		// point at /api/certificate/webhook.
-		...(isLiveMode() ? {} : { test: 'true' })
+		...(useTestPayment() ? { test: 'true' } : {})
 	})
 
 	if (out.get('code') !== '0') {

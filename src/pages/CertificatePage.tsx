@@ -89,19 +89,30 @@ const CertificatePage: React.FC = () => {
 					</div>
 				)}
 
-				{/* Paid / pending — waiting for the webhook to issue the certificate. */}
-				{!isCancelled && !ready && !timedOut && (
+				{/* Pending — the payment wasn't completed. Show the outcome right away
+				    (no long spinner); we keep polling in the background, so if a bank
+				    transfer settles this flips to the success screen. */}
+				{!isCancelled && !ready && isPending && (
+					<div className='text-center'>
+						<h1 className='h4 mb-3'>Platba zatím nebyla dokončena</h1>
+						<p className='text-muted-ink mb-4'>
+							Jakmile platba projde, pošleme vám odkaz na stažení e-mailem. Pokud
+							jste platbu nedokončili nebo platíte bankovním převodem, můžete tuto
+							stránku za chvíli obnovit, nebo platbu zkusit znovu.
+						</p>
+						<Link to={retryUrl} className='btn btn-outline-primary'>
+							Zkusit platbu znovu
+						</Link>
+					</div>
+				)}
+
+				{/* Paid — waiting for the webhook to issue the certificate. */}
+				{!isCancelled && !ready && !isPending && !timedOut && (
 					<div className='text-center'>
 						<div className='spinner-border text-primary mb-3' role='status' />
-						<h1 className='h4'>
-							{isPending
-								? 'Kontrolujeme stav platby…'
-								: 'Dokončujeme váš certifikát…'}
-						</h1>
+						<h1 className='h4'>Dokončujeme váš certifikát…</h1>
 						<p className='text-muted-ink'>
-							{isPending
-								? 'Pokud platíte bankovním převodem, může připsání chvíli trvat.'
-								: 'Potvrzujeme platbu. Obvykle to trvá jen pár vteřin.'}
+							Potvrzujeme platbu. Obvykle to trvá jen pár vteřin.
 						</p>
 					</div>
 				)}
@@ -135,23 +146,15 @@ const CertificatePage: React.FC = () => {
 					</div>
 				)}
 
-				{/* Timed out without issuance. For a pending payment that likely means
-				    it wasn't finished; otherwise the webhook is just slow. */}
-				{!isCancelled && timedOut && (
+				{/* Paid but the webhook is still slow after our polling window. */}
+				{!isCancelled && !isPending && timedOut && (
 					<div className='text-center'>
-						<h1 className='h4 mb-3'>
-							{isPending ? 'Platba zatím nebyla dokončena' : 'Platba se zpracovává'}
-						</h1>
+						<h1 className='h4 mb-3'>Platba se zpracovává</h1>
 						<p className='text-muted-ink mb-4'>
-							{isPending
-								? 'Jakmile platba projde, pošleme vám odkaz na stažení e-mailem. Pokud jste platbu nedokončili, můžete ji zkusit znovu.'
-								: 'Certifikát zatím není připravený. Jakmile platba projde, pošleme vám odkaz na stažení e-mailem. Můžete také tuto stránku za chvíli obnovit.'}
+							Certifikát zatím není připravený. Jakmile platba projde, pošleme vám
+							odkaz na stažení e-mailem. Můžete také tuto stránku za chvíli
+							obnovit.
 						</p>
-						{isPending && (
-							<Link to={retryUrl} className='btn btn-outline-primary'>
-								Zkusit platbu znovu
-							</Link>
-						)}
 					</div>
 				)}
 			</main>
