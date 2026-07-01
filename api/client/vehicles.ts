@@ -3,6 +3,11 @@ import { sql } from '@vercel/postgres'
 import { ensureTables } from '../_db'
 import { requireUserId } from '../_auth'
 import { logEvent } from '../_metrics'
+import {
+	isCacheConfigured,
+	isCacheFresh,
+	lookupVehicleFromCache
+} from '../_vehicleCache'
 
 const getQueryString = (
 	value: string | string[] | undefined
@@ -21,9 +26,35 @@ const toJsonString = (value: unknown): string | null => {
 	}
 	try {
 		return JSON.stringify(value)
-	} catch (error) {
+	} catch {
 		return null
 	}
+}
+
+/**
+ * Replace a saved vehicle's frozen snapshot with current registry-cache data
+ * (the same { name, value } shape the client's getDataValue reads). Returns the
+ * row unchanged on a cache miss/stale/error so the client zone still renders.
+ */
+async function refreshVehicleSnapshot(
+	v: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+	try {
+		const cached = await lookupVehicleFromCache({
+			vin: (v.vin as string | null) ?? undefined,
+			tp: (v.tp as string | null) ?? undefined,
+			orv: (v.orv as string | null) ?? undefined
+		})
+		if (cached && isCacheFresh(cached.snapshot)) {
+			const fresh = Object.entries(cached.response.Data)
+				.filter(([, val]) => val !== null && val !== undefined && val !== '')
+				.map(([name, value]) => ({ name, value }))
+			return { ...v, snapshot: fresh }
+		}
+	} catch (error) {
+		console.error('vehicle snapshot refresh failed:', error)
+	}
+	return v
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -43,7 +74,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 			WHERE user_id = ${userId}
 			ORDER BY created_at DESC;
 		`
-		return res.status(200).json({ vehicles: result.rows })
+		// The stored snapshot is frozen at save time, so fields like the STK due
+		// date go stale (the client zone would then disagree with the live detail
+		// page). Refresh each vehicle from the registry cache on read; fall back to
+		// the stored snapshot on any miss/error.
+		const vehicles = isCacheConfigured()
+			? await Promise.all(result.rows.map(refreshVehicleSnapshot))
+			: result.rows
+		return res.status(200).json({ vehicles })
 	}
 
 	if (req.method === 'POST') {
