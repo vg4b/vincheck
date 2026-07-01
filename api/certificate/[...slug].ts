@@ -177,7 +177,7 @@ async function handleCreate(req: VercelRequest, res: VercelResponse) {
 		// A failure here means the customer can't even start paying — if it's the
 		// provider/config rather than a fluke, every order is broken, so alert.
 		void sendOperatorAlert('Platbu nelze zahájit', [
-			'Vytvoření platby u Lemon Squeezy selhalo (zákazník nemohl zaplatit).',
+			`Vytvoření platby u poskytovatele ${PAYMENT_PROVIDER} selhalo (zákazník nemohl zaplatit).`,
 			`VIN: ${maskVin(cleanVin)}`,
 			`Chyba: ${error instanceof Error ? error.message : String(error)}`
 		])
@@ -299,7 +299,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 		amount_czk: number | null
 	}
 
-	// Durable record of the sale (no operator email — Lemon Squeezy already
+	// Durable record of the sale (no operator email — the payment provider
 	// notifies of sales; operator alerts are reserved for delivery failures).
 	await logEvent('certificate_issued', {
 		code: cert.code,
