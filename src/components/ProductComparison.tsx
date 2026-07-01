@@ -76,6 +76,10 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 			</div>
 			<ul className='product-features'>
 				<li>
+					<Icon name='check' size={15} />{' '}
+					<strong>Vše z našeho certifikátu, plus:</strong>
+				</li>
+				<li>
 					<Icon name='check' size={15} /> Záznamy o nehodách a poškození
 				</li>
 				<li>
