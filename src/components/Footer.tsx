@@ -32,7 +32,7 @@ const Footer: React.FC = () => {
 								Datová kostka
 							</a>
 							<br />
-							Kontakt: vininfo(zavináč)mail.vininfo.cz
+							Email: vininfo(zavináč)mail.vininfo.cz
 							<br />
 							Tel.:{' '}
 							<a href='tel:+420774931227' className='text-decoration-none'>
