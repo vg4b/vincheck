@@ -55,6 +55,10 @@ export interface CheckoutParams {
 	vin: string
 	successUrl: string
 	cancelUrl: string
+	/** Where to send a payment that was initiated but not completed (Comgate
+	 *  PENDING — e.g. the buyer clicked "back to shop", or a bank transfer is
+	 *  still settling). Defaults to successUrl when omitted. */
+	pendingUrl?: string
 }
 
 export interface CheckoutResult {
@@ -143,7 +147,7 @@ async function comgateCreateCheckout(
 		country: 'CZ',
 		url_paid: params.successUrl,
 		url_cancelled: params.cancelUrl,
-		url_pending: params.successUrl,
+		url_pending: params.pendingUrl ?? params.successUrl,
 		// Notification URL is set in the Comgate portal (e-shop connection); it must
 		// point at /api/certificate/webhook.
 		...(isLiveMode() ? {} : { test: 'true' })

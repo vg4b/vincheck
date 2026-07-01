@@ -167,9 +167,13 @@ async function handleCreate(req: VercelRequest, res: VercelResponse) {
 			certificateCode: code,
 			vin: cleanVin,
 			// Token in the redirect gives the buyer instant download once the webhook
-			// marks the row issued; it is also delivered by email.
+			// marks the row issued; it is also delivered by email. The result screen
+			// keys off `stav`: paid (default) polls for the PDF, `ceka` (pending) shows
+			// a "not finished / we'll email you" screen but still polls in case a bank
+			// transfer settles, and `zruseno` (cancelled) shows a retry screen.
 			successUrl: `${base}/certifikat/${code}?token=${downloadToken}`,
-			cancelUrl: `${base}/vin/${cleanVin}`
+			pendingUrl: `${base}/certifikat/${code}?token=${downloadToken}&stav=ceka&vin=${cleanVin}`,
+			cancelUrl: `${base}/certifikat/${code}?stav=zruseno&vin=${cleanVin}`
 		})
 	} catch (error) {
 		console.error('Checkout creation failed:', error)

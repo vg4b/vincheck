@@ -13,19 +13,30 @@ interface VerifyResponse {
 }
 
 /**
- * Post-payment success page (/certifikat/:code). The webhook that issues the
- * certificate is async, so we poll the public metadata until it's ready, then
- * offer the PDF download (token comes in via the success redirect + email).
+ * Post-payment result page (/certifikat/:code). The Comgate redirect carries a
+ * `stav` (state) so we can show the right screen for each outcome:
+ *   - paid (default): the webhook issues the certificate asynchronously, so we
+ *     poll the public metadata until it's ready, then offer the PDF download.
+ *   - `ceka` (pending): the payment was initiated but not completed (buyer went
+ *     back, or a bank transfer is still settling). We keep polling in case it
+ *     settles, but the copy makes clear it isn't finished yet.
+ *   - `zruseno` (cancelled): the payment was cancelled — nothing was charged;
+ *     offer to try again.
  */
 const CertificatePage: React.FC = () => {
 	const { code } = useParams<{ code: string }>()
 	const [searchParams] = useSearchParams()
 	const token = searchParams.get('token')
+	const stav = searchParams.get('stav')
+	const vin = searchParams.get('vin')
+	const isCancelled = stav === 'zruseno'
+	const isPending = stav === 'ceka'
 	const [ready, setReady] = useState(false)
 	const [timedOut, setTimedOut] = useState(false)
 
 	useEffect(() => {
-		if (!code) return
+		// A cancelled payment will never issue a certificate — don't poll.
+		if (!code || isCancelled) return
 		let cancelled = false
 		let attempts = 0
 		const tick = async () => {
@@ -52,28 +63,50 @@ const CertificatePage: React.FC = () => {
 		return () => {
 			cancelled = true
 		}
-	}, [code])
+	}, [code, isCancelled])
 
 	const downloadUrl =
 		code && token
 			? `/api/certificate/${encodeURIComponent(code)}?token=${encodeURIComponent(token)}`
 			: null
+	const retryUrl = vin ? `/vin/${encodeURIComponent(vin)}` : '/'
 
 	return (
 		<>
 			<Navigation />
 			<main className='container py-5' style={{ maxWidth: 640 }}>
-				{!ready && !timedOut && (
+				{/* Cancelled — nothing charged, offer a retry. */}
+				{isCancelled && (
+					<div className='text-center'>
+						<h1 className='h4 mb-3'>Platba nebyla dokončena</h1>
+						<p className='text-muted-ink mb-4'>
+							Platbu jste zrušili a nic jsme vám neúčtovali. Certifikát můžete
+							kdykoli objednat znovu.
+						</p>
+						<Link to={retryUrl} className='btn btn-primary'>
+							Zpět na vozidlo
+						</Link>
+					</div>
+				)}
+
+				{/* Paid / pending — waiting for the webhook to issue the certificate. */}
+				{!isCancelled && !ready && !timedOut && (
 					<div className='text-center'>
 						<div className='spinner-border text-primary mb-3' role='status' />
-						<h1 className='h4'>Dokončujeme váš certifikát…</h1>
+						<h1 className='h4'>
+							{isPending
+								? 'Kontrolujeme stav platby…'
+								: 'Dokončujeme váš certifikát…'}
+						</h1>
 						<p className='text-muted-ink'>
-							Potvrzujeme platbu. Obvykle to trvá jen pár vteřin.
+							{isPending
+								? 'Pokud platíte bankovním převodem, může připsání chvíli trvat.'
+								: 'Potvrzujeme platbu. Obvykle to trvá jen pár vteřin.'}
 						</p>
 					</div>
 				)}
 
-				{ready && (
+				{!isCancelled && ready && (
 					<div className='text-center'>
 						<h1 className='h3 mb-3'>Děkujeme za nákup!</h1>
 						<p className='mb-2'>
@@ -102,14 +135,23 @@ const CertificatePage: React.FC = () => {
 					</div>
 				)}
 
-				{timedOut && (
+				{/* Timed out without issuance. For a pending payment that likely means
+				    it wasn't finished; otherwise the webhook is just slow. */}
+				{!isCancelled && timedOut && (
 					<div className='text-center'>
-						<h1 className='h4 mb-3'>Platba se zpracovává</h1>
-						<p className='text-muted-ink'>
-							Certifikát zatím není připravený. Jakmile platba projde, pošleme
-							vám odkaz na stažení e-mailem. Můžete také tuto stránku za chvíli
-							obnovit.
+						<h1 className='h4 mb-3'>
+							{isPending ? 'Platba zatím nebyla dokončena' : 'Platba se zpracovává'}
+						</h1>
+						<p className='text-muted-ink mb-4'>
+							{isPending
+								? 'Jakmile platba projde, pošleme vám odkaz na stažení e-mailem. Pokud jste platbu nedokončili, můžete ji zkusit znovu.'
+								: 'Certifikát zatím není připravený. Jakmile platba projde, pošleme vám odkaz na stažení e-mailem. Můžete také tuto stránku za chvíli obnovit.'}
 						</p>
+						{isPending && (
+							<Link to={retryUrl} className='btn btn-outline-primary'>
+								Zkusit platbu znovu
+							</Link>
+						)}
 					</div>
 				)}
 			</main>
