@@ -171,6 +171,21 @@ const PrivacyPolicyPage: React.FC = () => {
 							</li>
 						</ul>
 
+						<h3 className='h5 mt-3'>Platební služby</h3>
+						<ul>
+							<li>
+								<strong>ComGate Payments, a.s.</strong> (Gočárova třída
+								1754/48b, 500 02 Hradec Králové, IČO 27924505, Česká republika,
+								EU)
+								<br />
+								<em>Služby:</em> platební brána Comgate.
+								<br />
+								<em>Účel:</em> zpracování plateb za placené produkty (e-mail
+								kupujícího, platební údaje, částka). Údaje jsou zpracovávány v
+								EU.
+							</li>
+						</ul>
+
 						<h3 className='h5 mt-3'>Analytika a Reklama</h3>
 						<ul>
 							<li>
