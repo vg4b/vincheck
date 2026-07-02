@@ -14,14 +14,9 @@ const EMAIL_FROM = 'VINInfo.cz <vininfo@mail.vininfo.cz>'
 /**
  * Reply-To target — a real monitored inbox so users who reply land
  * somewhere a human reads. Matches the contact address shown in the
- * site footer.
- *
- * Note: MX inbound for mail.vininfo.cz is configured for a future
- * webhook-based reply handler (Resend inbound requires a webhook —
- * https://resend.com/docs/dashboard/receiving/forward-emails). Until
- * that lands, replies go to the existing fixweb.cz mailbox.
+ * site footer and on the contact page.
  */
-const EMAIL_REPLY_TO = 'vininfo@fixweb.cz'
+const EMAIL_REPLY_TO = 'vininfo@mail.vininfo.cz'
 
 /**
  * Absolute URL for the email logo. Must be reachable from any recipient's
@@ -292,8 +287,25 @@ export function generateCertificateEmailHtml(
 									</td>
 								</tr>
 							</table>
-							<p class="email-text-muted" style="color: #888; font-size: 14px; margin: 16px 0 0;">Pravost certifikátu si kdokoliv ověří na <a href="${verifyUrl}" style="color: #2e7d32;">${verifyUrl}</a>. Odkaz na stažení je osobní — nesdílejte ho.</p>
+							<p class="email-text-muted" style="color: #888; font-size: 14px; margin: 16px 0 0;">Pravost certifikátu si kdokoliv ověří na <a href="${verifyUrl}" style="color: #2e7d32;">${verifyUrl}</a>.</p>
 							<p class="email-text-muted" style="color: #888; font-size: 13px; margin: 16px 0 0;">Výpis vychází z veřejných dat registru a STK a neobsahuje záznamy o nehodách ani zástavy.</p>
+							<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 24px 0 0;">
+								<tr>
+									<td style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+										<p class="email-text" style="color: #333; font-weight: 600; margin: 0 0 8px; font-size: 15px;">Uložte si vozidla do Moje VINInfo</p>
+										<p class="email-text-muted" style="color: #777; font-size: 14px; margin: 0 0 12px;">Vytvořte si zdarma účet a mějte svá vozidla přehledně na jednom místě. Můžete si u nich nastavit e-mailová upozornění, například na blížící se STK nebo konec pojištění.</p>
+										<a href="https://vininfo.cz/registrace" style="display: inline-block; background-color: #eaf4eb; color: #2e7d32; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px;">Vytvořit Moje VINInfo</a>
+									</td>
+								</tr>
+							</table>
+							<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 24px 0 0;">
+								<tr>
+									<td style="border-top: 1px solid #e9ecef; padding-top: 16px;">
+										<p class="email-text" style="color: #333; font-weight: 600; margin: 0 0 8px; font-size: 15px;">Bylo vše v pořádku?</p>
+										<p class="email-text-muted" style="color: #777; font-size: 14px; margin: 0;">Dejte nám vědět — stačí odpovědět na tento e-mail nebo napsat na <a href="mailto:vininfo@mail.vininfo.cz" style="color: #2e7d32;">vininfo@mail.vininfo.cz</a>. Každá zpětná vazba nám pomáhá službu vylepšovat.</p>
+									</td>
+								</tr>
+							</table>
 							<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 24px 0 0;">
 								<tr>
 									<td style="border-top: 1px solid #e9ecef; padding-top: 16px;">
@@ -337,7 +349,13 @@ export function generateCertificateEmailText(
 		`Stáhnout certifikát (PDF): ${params.downloadUrl}`,
 		`Ověřit pravost: ${params.verifyUrl}`,
 		'',
-		'Odkaz na stažení je osobní — nesdílejte ho. Výpis vychází z veřejných dat registru a STK a neobsahuje záznamy o nehodách ani zástavy.',
+		'Výpis vychází z veřejných dat registru a STK a neobsahuje záznamy o nehodách ani zástavy.',
+		'',
+		'Uložte si vozidla do Moje VINInfo',
+		'Vytvořte si zdarma účet a mějte svá vozidla přehledně na jednom místě. Můžete si u nich nastavit e-mailová upozornění na blížící se STK a konec pojištění: https://vininfo.cz/registrace',
+		'',
+		'Bylo vše v pořádku?',
+		'Dejte nám vědět — stačí odpovědět na tento e-mail nebo napsat na vininfo@mail.vininfo.cz. Každá zpětná vazba nám pomáhá službu vylepšovat.',
 		'',
 		'Doklad o zaplacení',
 		'Položka: Certifikát historie vozidla',

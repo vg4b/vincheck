@@ -80,7 +80,7 @@ const CertificatePage: React.FC = () => {
 					<div className='text-center'>
 						<h1 className='h4 mb-3'>Platba nebyla dokončena</h1>
 						<p className='text-muted-ink mb-4'>
-							Platbu jste zrušili a nic jsme vám neúčtovali. Certifikát můžete
+							Platba byla zrušena a nic jsme vám neúčtovali. Certifikát můžete
 							kdykoli objednat znovu.
 						</p>
 						<Link to={retryUrl} className='btn btn-primary'>

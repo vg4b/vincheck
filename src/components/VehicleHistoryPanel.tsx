@@ -266,7 +266,9 @@ const VehicleHistoryPanel: FC<{
 							</div>
 
 							<ul className='list-unstyled mb-0 small'>
-								{inspections.history.map((h, i) => (
+								{/* Oldest → newest, consistent with the owner timeline and
+								    mileage list below. */}
+								{[...inspections.history].reverse().map((h, i) => (
 									<li
 										key={`${h.date ?? 'd'}-${i}`}
 										className='d-flex gap-2 align-items-center mb-1'
@@ -347,7 +349,8 @@ const VehicleHistoryPanel: FC<{
 						</div>
 
 						<ul className='list-unstyled mb-0 small'>
-							{[...mileage.readingDates].reverse().map((date) => (
+							{/* Oldest → newest, so a rollback shows as a visible dip. */}
+							{mileage.readingDates.map((date) => (
 								<li
 									key={date}
 									className='d-flex gap-2 align-items-center mb-1'

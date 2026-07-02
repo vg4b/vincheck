@@ -364,7 +364,8 @@ export async function renderCertificatePdf(
 			e(
 				View,
 				{ key: 'stk-h', style: { marginTop: 4 } },
-				history.inspections.history.map((h, i) =>
+				// Oldest → newest, consistent with the owner timeline and mileage list.
+				[...history.inspections.history].reverse().map((h, i) =>
 					e(View, { style: styles.tlRow, key: `stk-${i}` }, [
 						e(Text, { style: styles.tlDate, key: 'd' }, fmtDate(h.date)),
 						e(
@@ -421,21 +422,22 @@ export async function renderCertificatePdf(
 			e(
 				View,
 				{ key: 'mil-h', style: { marginTop: 4 } },
-				[...m.readings]
-					.reverse()
-					.map((r, i) =>
-						e(View, { style: styles.tlRow, key: `mil-${i}` }, [
-							e(Text, { style: styles.tlDate, key: 'd' }, fmtDate(r.date)),
-							e(Text, { style: styles.tlMain, key: 'm' }, `${fmtKm(r.km)} km`)
-						])
-					)
+				// Oldest → newest, so a rollback shows as a visible dip.
+				m.readings.map((r, i) =>
+					e(View, { style: styles.tlRow, key: `mil-${i}` }, [
+						e(Text, { style: styles.tlDate, key: 'd' }, fmtDate(r.date)),
+						e(Text, { style: styles.tlMain, key: 'm' }, `${fmtKm(r.km)} km`)
+					])
+				)
 			)
 		)
 		children.push(
 			e(
 				Text,
 				{ style: styles.muted, key: 'mil-note' },
-				'Stav tachometru ze záznamů technických a emisních prohlídek (STK/ME).'
+				m.avgKmPerYear != null
+					? 'Stav tachometru ze záznamů technických a emisních prohlídek (STK/ME). Průměrný roční nájezd je vypočten z rozsahu záznamů v registru ČR.'
+					: 'Stav tachometru ze záznamů technických a emisních prohlídek (STK/ME).'
 			)
 		)
 	}

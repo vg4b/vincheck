@@ -117,18 +117,20 @@ export function buildSampleSnapshot(): VehicleCacheResult {
 				failed: 1,
 				distinctStations: 2,
 				latest: null,
+				// Newest first, matching the real cache (ORDER BY platnost_od DESC);
+				// the renderers reverse this to show oldest → newest.
 				history: [
-					{
-						date: '2022-05-01',
-						result: 'pass',
-						nazevStk: 'STK Praha',
-						typ: 'P',
-						administrative: false
-					},
 					{
 						date: '2024-05-01',
 						result: 'defects',
 						nazevStk: 'STK Brno',
+						typ: 'P',
+						administrative: false
+					},
+					{
+						date: '2022-05-01',
+						result: 'pass',
+						nazevStk: 'STK Praha',
 						typ: 'P',
 						administrative: false
 					}
