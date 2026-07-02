@@ -801,7 +801,7 @@ const HomePage: React.FC = () => {
 						</div>
 					)}
 
-					{/* New Publisher Content Section for AdSense Approval */}
+					{/* VIN guide — long-form SEO content */}
 					<article className='section border-top'>
 						<div className='row justify-content-center'>
 							<div className='col-lg-10'>

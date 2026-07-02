@@ -186,25 +186,15 @@ const PrivacyPolicyPage: React.FC = () => {
 							</li>
 						</ul>
 
-						<h3 className='h5 mt-3'>Analytika a Reklama</h3>
+						<h3 className='h5 mt-3'>Analytika</h3>
 						<ul>
 							<li>
 								<strong>Google Ireland Ltd.</strong> (Gordon House, Barrow
 								Street, Dublin 4, Irsko)
 								<br />
-								<em>Služby:</em> Google Analytics, Google AdSense.
+								<em>Služby:</em> Google Analytics.
 								<br />
-								<em>Účel:</em> Analýza návštěvnosti, zobrazování reklamy,
-								remarketing.
-							</li>
-							<li>
-								<strong>Seznam.cz, a.s.</strong> (Radlická 3294/10, 150 00 Praha
-								5)
-								<br />
-								<em>Služby:</em> Sklik (reklamní systém).
-								<br />
-								<em>Účel:</em> Zobrazování reklamy, retargeting, měření
-								konverzí.
+								<em>Účel:</em> Anonymní analýza návštěvnosti webu.
 							</li>
 						</ul>
 
@@ -309,11 +299,11 @@ const PrivacyPolicyPage: React.FC = () => {
 							</table>
 						</div>
 
-						<h3 className='h5 mt-3'>Marketingové a Affiliate cookies</h3>
+						<h3 className='h5 mt-3'>Affiliate cookies</h3>
 						<p>
-							Používáme pouze s vaším souhlasem (pro reklamu) nebo na základě
-							oprávněného zájmu (pro affiliate tracking, kde je to nezbytné pro
-							přiřazení provize, avšak profilování podléhá souhlasu).
+							Používáme na základě oprávněného zájmu (pro affiliate tracking, kde
+							je to nezbytné pro přiřazení provize, avšak profilování podléhá
+							souhlasu).
 						</p>
 						<div className='table-responsive'>
 							<table className='table table-bordered table-sm'>
@@ -326,18 +316,6 @@ const PrivacyPolicyPage: React.FC = () => {
 									</tr>
 								</thead>
 								<tbody>
-									<tr>
-										<td>_gcl_au</td>
-										<td>Google AdSense</td>
-										<td>3 měsíce</td>
-										<td>Měření konverzí a účinnosti reklamy.</td>
-									</tr>
-									<tr>
-										<td>IDE / test_cookie</td>
-										<td>DoubleClick (Google)</td>
-										<td>1 rok / 15 min</td>
-										<td>Zobrazování relevantních reklam v síti Google.</td>
-									</tr>
 									<tr>
 										<td>ehub_tracking</td>
 										<td>eHub</td>

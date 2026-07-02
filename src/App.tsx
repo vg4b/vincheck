@@ -2,8 +2,6 @@ import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 import './App.css'
 import GoogleAnalytics from './components/GoogleAnalytics'
 import ScrollToTop from './components/ScrollToTop'
-import SklikAd from './components/SklikAd'
-import SklikScript from './components/SklikScript'
 import CertificateLandingPage from './pages/CertificateLandingPage'
 import CertificatePage from './pages/CertificatePage'
 import ClientZonePage from './pages/ClientZonePage'
@@ -29,11 +27,6 @@ function App() {
 		<Router>
 			<ScrollToTop />
 			<GoogleAnalytics />
-			<SklikScript />
-			{/* Mobile Overlay */}
-			<SklikAd zoneId={403872} id='ssp-zone-403872' width={300} height={600} />
-			{/* Desktop Pop-up */}
-			<SklikAd zoneId={403875} id='ssp-zone-403875' width={970} height={310} />
 			<Routes>
 				<Route path='/' element={<HomePage />} />
 				<Route path='/klientska-zona' element={<ClientZonePage />} />
