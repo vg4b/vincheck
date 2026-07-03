@@ -115,7 +115,7 @@ export function generateReminderEmailHtml(params: ReminderEmailParams): string {
 				<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; width: 100%;">
 					<tr>
 						<td class="email-tint" style="background-color: #eaf4eb; padding: 25px 30px; border-radius: 8px 8px 0 0; text-align: center;">
-							<a href="https://vininfo.cz" style="display: inline-block; text-decoration: none; color: inherit;">
+							<a href="https://www.vininfo.cz" style="display: inline-block; text-decoration: none; color: inherit;">
 								<img src="${EMAIL_LOGO_URL}" alt="" width="44" height="28" style="display: inline-block; vertical-align: middle; margin-right: 10px; border: 0;">
 								<span class="email-text" style="display: inline-block; vertical-align: middle; font-size: 22px; color: #333; font-weight: 600;">VINInfo.cz</span>
 							</a>
@@ -147,7 +147,7 @@ export function generateReminderEmailHtml(params: ReminderEmailParams): string {
 					</tr>
 					<tr>
 						<td class="email-footer email-border email-text-muted" style="background-color: #f8f9fa; padding: 20px; border: 1px solid #e9ecef; border-top: none; border-radius: 0 0 8px 8px; text-align: center; font-size: 12px; color: #888;">
-							<p style="margin: 0 0 10px;">Tento email byl odeslán ze služby <a href="https://vininfo.cz" style="color: #555; text-decoration: none;">VINInfo.cz</a></p>
+							<p style="margin: 0 0 10px;">Tento email byl odeslán ze služby <a href="https://www.vininfo.cz" style="color: #555; text-decoration: none;">VINInfo.cz</a></p>
 							<p style="margin: 0;"><a href="${unsubscribeUrl}" style="color: #888;">Odhlásit se z odběru notifikací</a></p>
 						</td>
 					</tr>
@@ -178,7 +178,7 @@ export function generateReminderEmailText(params: ReminderEmailParams): string {
 		'',
 		`Přejít do Moje VINInfo: ${baseUrl}/klientska-zona`,
 		'',
-		'— VINInfo.cz (https://vininfo.cz)',
+		'— VINInfo.cz (https://www.vininfo.cz)',
 		`Odhlásit se z odběru notifikací: ${unsubscribeUrl}`
 	)
 	return lines.join('\n')

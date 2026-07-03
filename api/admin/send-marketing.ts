@@ -64,7 +64,7 @@ function generateMarketingEmailHtml(
 	</div>
 
 	<div style="background: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px; border: 1px solid #e9ecef; border-top: none; text-align: center; font-size: 12px; color: #888;">
-		<p style="margin: 0 0 10px;">Tento email byl odeslán ze služby <a href="https://vininfo.cz" style="color: #555; text-decoration: none;">VIN Info.cz</a></p>
+		<p style="margin: 0 0 10px;">Tento email byl odeslán ze služby <a href="https://www.vininfo.cz" style="color: #555; text-decoration: none;">VIN Info.cz</a></p>
 		<p style="margin: 0;">
 			<a href="${unsubscribeUrl}" style="color: #888; text-decoration: underline;">Odhlásit se z marketingových emailů</a>
 		</p>
@@ -109,7 +109,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 					content:
 						'<p>Nyní si můžete nastavit upozornění na důležité termíny...</p>',
 					ctaText: 'Vyzkoušet',
-					ctaUrl: 'https://vininfo.cz/klientska-zona',
+					ctaUrl: 'https://www.vininfo.cz/klientska-zona',
 					testEmail: 'optional@test.com'
 				}
 			})

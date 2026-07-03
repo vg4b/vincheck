@@ -1,5 +1,5 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://vininfo.cz/sitemap.xml
+Sitemap: https://www.vininfo.cz/sitemap.xml
 

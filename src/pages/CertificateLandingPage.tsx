@@ -11,7 +11,7 @@ const PRICE_CZK = 99
 
 const PAGE_TITLE = `Certifikát historie vozidla z registru ČR za ${PRICE_CZK} Kč | VIN Info.cz`
 const PAGE_DESCRIPTION = `Přehledný certifikát historie vozidla zpracovaný z dat registru silničních vozidel ČR a STK — vlastníci, STK, stav tachometru, dovoz a stav vozidla. Ihned, v ověřitelném PDF, za ${PRICE_CZK} Kč.`
-const CANONICAL_URL = 'https://vininfo.cz/overeny-vypis-vozidla'
+const CANONICAL_URL = 'https://www.vininfo.cz/overeny-vypis-vozidla'
 
 const CertificateLandingPage: React.FC = () => {
 	const navigate = useNavigate()

@@ -43,7 +43,7 @@ const HomePage: React.FC = () => {
 			name: 'VIN Info.cz - Kontrola vozidel zdarma',
 			description:
 				'Bezplatná kontrola VIN kódu, čísla TP a ORV vozidla v českém registru vozidel. Získejte technické údaje, historii vozidla a další informace. Uložte si vozidla a nastavte upozornění na STK, pojištění a servis.',
-			url: 'https://vininfo.cz',
+			url: 'https://www.vininfo.cz',
 			applicationCategory: 'UtilityApplication',
 			operatingSystem: 'Web',
 			offers: {

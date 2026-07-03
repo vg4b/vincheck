@@ -35,7 +35,7 @@ export function getCertificatePriceCzk(): number {
 
 /** Public site origin for building success/verify/download URLs. No trailing slash. */
 export function getPublicBaseUrl(): string {
-	return (process.env.PUBLIC_BASE_URL ?? 'https://vininfo.cz').replace(/\/$/, '')
+	return (process.env.PUBLIC_BASE_URL ?? 'https://www.vininfo.cz').replace(/\/$/, '')
 }
 
 /** Mask a VIN for public display: keep the first 3 and last 4 chars. */
