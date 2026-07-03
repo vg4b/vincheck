@@ -2,9 +2,15 @@ import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
+import ProductComparison from '../components/ProductComparison'
 import { cebia } from '../config/affiliateCampaigns'
+import { isCertificateEnabled } from '../config/featureFlags'
+
+// Keep in sync with CERTIFICATE_PRICE_CZK (CertificateLandingPage / backend).
+const PRICE_CZK = 99
 
 const KompletniHistorieVozuPage: React.FC = () => {
+	const certEnabled = isCertificateEnabled()
 	useEffect(() => {
 		document.title =
 			'Kompletní historie vozu - Prověření vozidla před koupí | VIN Info.cz'
@@ -181,35 +187,70 @@ const KompletniHistorieVozuPage: React.FC = () => {
 							</div>
 						</div>
 
-						<div className='card mt-4 mb-4'>
-							<div className='card-body'>
-								<h3 className='card-title h5'>
-									Kompletní historie vozu - placená služba
-								</h3>
-								<p className='card-text'>
-									Pro kompletní prověření historie vozidla včetně nehodovosti,
-									počtu majitelů, servisní historie a dalších důležitých
-									informací můžete využít specializované služby, jako je{' '}
+						{certEnabled ? (
+							<div className='mt-4'>
+								<h3 className='h5 mb-3'>Placené prověření: dvě možnosti</h3>
+								<p>
+									Náš <strong>certifikát historie vozidla</strong> zpracuje data
+									z registru silničních vozidel ČR a STK do přehledného PDF
+									(majitelé a provozovatelé, historie STK, oficiální stav
+									tachometru pro odhalení stočení, dovoz). Pro záznamy, které
+									registr nemá — nehody, zástavy a leasing, historie ze
+									zahraničí — využijte kompletní prověření u našeho partnera.
+								</p>
+								<ProductComparison
+									priceCzk={PRICE_CZK}
+									certificateCta={
+										<Link
+											to='/overeny-vypis-vozidla'
+											className='btn btn-primary mt-auto'
+										>
+											Získat certifikát ➜
+										</Link>
+									}
+									cebiaCta={
+										<a
+											href={cebia.getTextLinkUrl('kompletni_historie')}
+											target='_blank'
+											rel='noopener noreferrer'
+											className='btn btn-outline-primary mt-auto'
+										>
+											Prověřit u partnera 🔗
+										</a>
+									}
+								/>
+							</div>
+						) : (
+							<div className='card mt-4 mb-4'>
+								<div className='card-body'>
+									<h3 className='card-title h5'>
+										Kompletní historie vozu - placená služba
+									</h3>
+									<p className='card-text'>
+										Pro kompletní prověření historie vozidla včetně nehodovosti,
+										počtu majitelů, servisní historie a dalších důležitých
+										informací můžete využít specializované služby, jako je{' '}
+										<a
+											href={cebia.getTextLinkUrl('kompletni_historie')}
+											target='_blank'
+											rel='noopener noreferrer'
+										>
+											Cebia.cz
+										</a>
+										. Tyto služby poskytují podrobné informace o historii
+										vozidla za poplatek.
+									</p>
 									<a
 										href={cebia.getTextLinkUrl('kompletni_historie')}
 										target='_blank'
 										rel='noopener noreferrer'
+										className='btn btn-outline-primary'
 									>
-										Cebia.cz
+										Zkontrolovat kompletní historii vozu 🔗
 									</a>
-									. Tyto služby poskytují podrobné informace o historii vozidla
-									za poplatek.
-								</p>
-								<a
-									href={cebia.getTextLinkUrl('kompletni_historie')}
-									target='_blank'
-									rel='noopener noreferrer'
-									className='btn btn-outline-primary'
-								>
-									Zkontrolovat kompletní historii vozu 🔗
-								</a>
+								</div>
 							</div>
-						</div>
+						)}
 					</section>
 
 					<section className='mt-5 mb-5'>
