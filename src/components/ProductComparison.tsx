@@ -65,15 +65,17 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 				registru a STK ČR — ideální podklad při prodeji i koupi nebo pro vlastní
 				evidenci.
 			</p>
-			{certificateCta}
-			<a
-				className='small text-center mt-2'
-				href='/api/certificate/sample'
-				target='_blank'
-				rel='noopener noreferrer'
-			>
-				Prohlédnout ukázku certifikátu (PDF) ↗
-			</a>
+			<div className='mt-auto d-flex flex-column'>
+				<a
+					className='small text-center mb-2'
+					href='/api/certificate/sample'
+					target='_blank'
+					rel='noopener noreferrer'
+				>
+					Prohlédnout ukázku certifikátu (PDF) ↗
+				</a>
+				{certificateCta}
+			</div>
 		</div>
 
 		{/* Affiliate — the data the registry can't provide. */}
