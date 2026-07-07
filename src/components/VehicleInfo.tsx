@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { cebia } from '../config/affiliateCampaigns'
 import { isCertificateEnabled } from '../config/featureFlags'
+import { trackEvent } from '../utils/trackEvent'
 import type { VehicleDataArray, VehicleHistory } from '../types'
 import { formatFuel, fuelBaseLabel } from '../utils/fuelLabels'
 import {
@@ -231,15 +232,42 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	// The two-product comparison replaces the standalone "full history" entry
 	// points (it presents both our certificate and the partner option).
 	const showProductComparison = cleanVin.length === 17 && isCertificateEnabled()
+	// The single most persuasive trigger on the page — a later STK reading lower
+	// than an earlier one. Surfaced up top (not just buried in the mileage panel)
+	// and pointed straight at our certificate, whose data answers it.
+	const rollbackSuspected =
+		isCertificateEnabled() &&
+		Boolean(history?.mileage?.rollbackSuspected) &&
+		(history?.mileage?.count ?? 0) > 0
 	const historyUrl =
 		cleanVin.length === 17
 			? cebia.getTextLinkUrlWithVin(cleanVin, 'vehicle_info_history')
 			: cebia.getTextLinkUrl('vehicle_info_history')
 
+	// Open our certificate checkout, tagging which placement drove it so the funnel
+	// shows the highest-converting entry points.
+	const openCertModal = (placement: string) => {
+		trackEvent('cert_cta_click', { placement })
+		setShowCertModal(true)
+	}
+
 	const handleCebiaClick = () => {
+		trackEvent('partner_click', { src: cebiaSource })
 		if (!onCebiaExternalNavigate) return
 		window.setTimeout(onCebiaExternalNavigate, 0)
 	}
+
+	// One impression per detail view when the certificate is actually offered, so
+	// the CTA clicks below have a denominator to convert against.
+	useEffect(() => {
+		if (showProductComparison) {
+			trackEvent('comparison_view', {
+				placement: rollbackSuspected ? 'rollback' : 'standard'
+			})
+		}
+		// Fire once per looked-up vehicle.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [cleanVin])
 
 	// Imported vehicle: the CZ registry holds no foreign history, so the paid
 	// Cebia report is worth most here — target the upsell accordingly. Distinct
@@ -268,13 +296,33 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 					{heroFlags.map((f) => (
 						<div
 							key={f.label}
-							className={`alert ${f.severe ? 'alert-danger' : 'alert-warning'} d-flex align-items-center gap-2 mb-0`}
+							className={`alert ${f.severe ? 'alert-danger' : 'alert-warning'} mb-0`}
 							role='alert'
 						>
-							<Icon name='alert-triangle' size={18} />
-							<span>{f.label}</span>
+							{f.label}
 						</div>
 					))}
+				</div>
+			)}
+
+			{/* Strongest buyer trigger, promoted above the fold and aimed at our own
+			    certificate — its STK mileage history is exactly what answers it. */}
+			{rollbackSuspected && (
+				<div
+					className='alert alert-danger alert--icon-center d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4'
+					role='alert'
+				>
+					<span>
+						<strong>Podezření na stočení tachometru.</strong> V historii STK je
+						pozdější záznam s nižším stavem než dřívější.
+					</span>
+					<button
+						type='button'
+						className='btn btn-danger text-nowrap'
+						onClick={() => openCertModal('rollback_hero')}
+					>
+						Ověřit stav tachometru — {CERTIFICATE_PRICE_CZK} Kč ➜
+					</button>
 				</div>
 			)}
 
@@ -318,10 +366,19 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 					</div>
 
 					<div className='d-flex flex-column gap-2 vehicle-hero-actions'>
-						{saveAction && (
+						{showProductComparison && (
 							<button
 								type='button'
 								className='btn btn-primary'
+								onClick={() => openCertModal('hero')}
+							>
+								Certifikát vozidla ({CERTIFICATE_PRICE_CZK} Kč)
+							</button>
+						)}
+						{saveAction && (
+							<button
+								type='button'
+								className={`btn ${showProductComparison ? 'btn-outline-primary' : 'btn-primary'}`}
 								onClick={saveAction.onClick}
 								disabled={saveAction.disabled}
 							>
@@ -437,7 +494,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 							<button
 								type='button'
 								className='btn btn-primary mt-auto'
-								onClick={() => setShowCertModal(true)}
+								onClick={() => openCertModal('comparison')}
 							>
 								Získat certifikát ({CERTIFICATE_PRICE_CZK} Kč) ➜
 							</button>
@@ -487,7 +544,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 					vinCode={vinCode}
 					onUnlock={
 						cleanVin.length === 17
-							? () => setShowCertModal(true)
+							? () => openCertModal('mileage_panel')
 							: undefined
 					}
 				/>

@@ -89,7 +89,7 @@ export interface VehicleHistory {
 	mileage: {
 		count: number
 		rollbackSuspected: boolean
-		readingDates: string[]
+		readings: Array<{ date: string; protocol: string | null }>
 	}
 	snapshot: string | null
 }

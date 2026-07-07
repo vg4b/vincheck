@@ -23,6 +23,12 @@ export type EventType =
 	| 'certificate_created'
 	| 'certificate_issued'
 	| 'certificate_error'
+	// Client-fired funnel events (via POST /api/certificate/track) — let us see
+	// the drop between a detail view and a started purchase.
+	| 'comparison_view'
+	| 'cert_cta_click'
+	| 'checkout_modal_open'
+	| 'partner_click'
 
 let eventsTableReady = false
 

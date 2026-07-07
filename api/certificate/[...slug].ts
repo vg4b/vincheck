@@ -14,7 +14,7 @@ import { sql } from '@vercel/postgres'
 import { getUserFromToken } from '../_auth'
 import { ensureTables } from '../_db'
 import { sendCertificateEmail, sendOperatorAlert } from '../_email'
-import { logEvent } from '../_metrics'
+import { logEvent, type EventType } from '../_metrics'
 import { rateLimit } from '../_rateLimit'
 import {
 	createCheckout,
@@ -76,6 +76,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	if (req.method === 'POST' && slug === 'webhook') {
 		return handleWebhook(req, res)
 	}
+	if (req.method === 'POST' && slug === 'track') {
+		return handleTrack(req, res)
+	}
 	if (req.method === 'GET' && slug === 'sample') {
 		return handleSample(req, res)
 	}
@@ -83,6 +86,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 		return handleFetch(req, res, slug)
 	}
 	return res.status(405).json({ error: 'Method not allowed' })
+}
+
+// Client funnel events the browser is allowed to record. Kept as a closed set so
+// a public endpoint can't write arbitrary rows into `events`.
+const CLIENT_EVENTS = new Set<EventType>([
+	'comparison_view',
+	'cert_cta_click',
+	'checkout_modal_open',
+	'partner_click'
+])
+
+/**
+ * POST /api/certificate/track — best-effort client funnel beacon. Records an
+ * allowlisted event (comparison impression, CTA click, modal open, partner click)
+ * so we can see where buyers drop between viewing a vehicle and starting checkout.
+ * Always 204s — tracking must never surface an error to the user.
+ */
+async function handleTrack(req: VercelRequest, res: VercelResponse) {
+	// Generous — one beacon per user interaction, but bounded against abuse.
+	if (!rateLimit(req, res, { limit: 60, windowMs: 60_000 })) {
+		return
+	}
+	try {
+		const raw = await readRawBody(req)
+		const body = raw.length ? JSON.parse(raw.toString('utf8')) : {}
+		const event = String(body.event ?? '') as EventType
+		if (CLIENT_EVENTS.has(event)) {
+			// Only keep a couple of low-cardinality, non-PII fields.
+			const props: Record<string, unknown> = {}
+			if (typeof body.placement === 'string')
+				props.placement = body.placement.slice(0, 40)
+			if (typeof body.src === 'string') props.src = body.src.slice(0, 40)
+			void logEvent(event, props)
+		}
+	} catch {
+		// Malformed beacon — ignore.
+	}
+	return res.status(204).end()
 }
 
 /** GET /api/certificate/sample — public watermarked example PDF (no DB, no token). */

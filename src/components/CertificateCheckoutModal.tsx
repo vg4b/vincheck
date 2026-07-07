@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { ApiError, requestJson } from '../utils/apiClient'
+import { trackEvent } from '../utils/trackEvent'
 
 interface CertificateCheckoutModalProps {
 	vin: string
@@ -25,6 +26,11 @@ const CertificateCheckoutModal: React.FC<CertificateCheckoutModalProps> = ({
 	const [agreed, setAgreed] = useState(false)
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+
+	// Modal impression — the step between a CTA click and a started purchase.
+	useEffect(() => {
+		trackEvent('checkout_modal_open')
+	}, [])
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -136,6 +142,10 @@ const CertificateCheckoutModal: React.FC<CertificateCheckoutModalProps> = ({
 							<p className='text-muted-ink small mt-3 mb-0'>
 								Cena je konečná (nejsme plátci DPH). Výpis vychází z veřejných dat
 								registru a STK a neobsahuje záznamy o nehodách ani zástavy.
+							</p>
+							<p className='text-muted-ink small mt-2 mb-0'>
+								🔒 Zabezpečená platba přes Comgate — certifikát v PDF ihned po
+								zaplacení, s QR ověřením pravosti.
 							</p>
 						</div>
 						<div className='modal-footer'>

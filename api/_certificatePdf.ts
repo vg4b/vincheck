@@ -200,8 +200,10 @@ export async function renderCertificatePdf(
 
 	const qrDataUrl = await QRCode.toDataURL(meta.verifyUrl, { margin: 0 })
 
-	const row = (label: string, value: string) =>
-		e(View, { style: styles.row, key: label }, [
+	// `key` defaults to the label, but callers rendering repeated labels in a loop
+	// (e.g. two deregistrations both "Na žádost vlastníka") must pass a unique key.
+	const row = (label: string, value: string, key: string = label) =>
+		e(View, { style: styles.row, key }, [
 			e(Text, { style: styles.cellLabel, key: 'l' }, label),
 			e(Text, { style: styles.cellValue, key: 'v' }, value)
 		])
@@ -426,7 +428,8 @@ export async function renderCertificatePdf(
 				m.readings.map((r, i) =>
 					e(View, { style: styles.tlRow, key: `mil-${i}` }, [
 						e(Text, { style: styles.tlDate, key: 'd' }, fmtDate(r.date)),
-						e(Text, { style: styles.tlMain, key: 'm' }, `${fmtKm(r.km)} km`)
+						e(Text, { style: styles.tlMain, key: 'm' }, `${fmtKm(r.km)} km`),
+						e(Text, { style: styles.tlTag, key: 'p' }, r.protocol ?? '')
 					])
 				)
 			)
@@ -477,8 +480,12 @@ export async function renderCertificatePdf(
 			e(
 				View,
 				{ key: 'dereg' },
-				history.deregistrations.map((d) =>
-					row(d.reason ?? 'neuvedeno', d.from ? fmtDate(d.from) : '—')
+				history.deregistrations.map((d, i) =>
+					row(
+						d.reason ?? 'neuvedeno',
+						d.from ? fmtDate(d.from) : '—',
+						`dereg-${i}`
+					)
 				)
 			)
 		)

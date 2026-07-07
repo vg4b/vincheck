@@ -119,7 +119,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 				mileage: {
 					count: mileage.readings.length,
 					rollbackSuspected: mileage.rollbackSuspected,
-					readingDates: mileage.readings.map((r) => r.date)
+					// Dates + official protocol numbers are already public (STK/ISTP);
+					// only the km values stay behind the paywall.
+					readings: mileage.readings.map((r) => ({
+						date: r.date,
+						protocol: r.protocol
+					}))
 				}
 			}
 			return res

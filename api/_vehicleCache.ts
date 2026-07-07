@@ -294,7 +294,7 @@ export type VehicleHistory = {
 	 *  VIN. `rollbackSuspected` flags a later reading lower than an earlier one. */
 	mileage: {
 		latestKm: number | null
-		readings: Array<{ date: string; km: number }>
+		readings: Array<{ date: string; km: number; protocol: string | null }>
 		rollbackSuspected: boolean
 		avgKmPerYear: number | null
 	}
@@ -330,17 +330,20 @@ const ROLLBACK_TOLERANCE_KM = 1_000
  *   - estimate average km/year over the observed span.
  */
 function computeMileage(
-	rows: Array<{ d: string; km: unknown }>
+	rows: Array<{ d: string; km: unknown; protocol?: unknown }>
 ): VehicleHistory['mileage'] {
-	const byDate = new Map<string, number>()
+	const byDate = new Map<string, { km: number; protocol: string | null }>()
 	for (const r of rows) {
 		const km = Number(r.km)
 		if (!Number.isFinite(km) || km <= 0 || km > MAX_PLAUSIBLE_KM) continue
+		const protocol =
+			typeof r.protocol === 'string' && r.protocol ? r.protocol : null
 		const prev = byDate.get(r.d)
-		if (prev === undefined || km > prev) byDate.set(r.d, km)
+		// Same-day readings collapse to the highest km; keep that reading's protocol.
+		if (prev === undefined || km > prev.km) byDate.set(r.d, { km, protocol })
 	}
 	const readings = [...byDate.entries()]
-		.map(([date, km]) => ({ date, km }))
+		.map(([date, { km, protocol }]) => ({ date, km, protocol }))
 		.sort((a, b) => a.date.localeCompare(b.date))
 
 	if (readings.length === 0) {
@@ -509,7 +512,7 @@ export async function lookupVehicleFromCache(
 					// Odometer history by VIN (ISTP open data). Same fault-tolerance as
 					// imports: degrade to "no readings" if the table isn't migrated yet
 					// (42P01) or the read-only user lacks the grant (42501).
-					`SELECT inspection_date::text AS d, odometer_km AS km
+					`SELECT inspection_date::text AS d, odometer_km AS km, cislo_protokolu AS protocol
        FROM vehicle_inspection_odometer
        WHERE vin = $1 AND odometer_km IS NOT NULL
        ORDER BY inspection_date ASC`,
@@ -624,10 +627,22 @@ export async function lookupVehicleFromCache(
 		flags: {
 			stolen: deregReasons.includes('Odcizeno'),
 			exported: status === 'VÝVOZ',
+			// Only a *current* deregistration warrants the hero flag. A historical
+			// one that was later reversed (the vehicle is registered again, e.g.
+			// status PROVOZOVANÉ) has its datum_do set — those must not flag. Stolen
+			// and lapsed-insurance deregistrations carry their own flags, so they're
+			// excluded here to avoid a duplicate warning.
 			deregistered:
 				status === 'ZÁNIK' ||
 				status === 'VYŘAZENO Z PROVOZU' ||
-				deregRows.length > 0,
+				deregRows.some((r) => {
+					const reason = nullIfEmpty(r.duvod)
+					return (
+						nullIfEmpty(r.datum_do) === null &&
+						reason !== 'Odcizeno' &&
+						reason !== 'Zánik pojištění'
+					)
+				}),
 			insuranceLapsed: deregReasons.includes('Zánik pojištění'),
 			statusLabel: status
 		},
@@ -638,7 +653,7 @@ export async function lookupVehicleFromCache(
 		})),
 		imports: importsList,
 		mileage: computeMileage(
-			mileageRows.rows as Array<{ d: string; km: unknown }>
+			mileageRows.rows as Array<{ d: string; km: unknown; protocol: unknown }>
 		),
 		snapshot
 	}

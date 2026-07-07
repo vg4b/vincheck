@@ -66,6 +66,14 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 				evidenci.
 			</p>
 			{certificateCta}
+			<a
+				className='small text-center mt-2'
+				href='/api/certificate/sample'
+				target='_blank'
+				rel='noopener noreferrer'
+			>
+				Prohlédnout ukázku certifikátu (PDF) ↗
+			</a>
 		</div>
 
 		{/* Affiliate — the data the registry can't provide. */}

@@ -148,11 +148,11 @@ export function buildSampleSnapshot(): VehicleCacheResult {
 			mileage: {
 				latestKm: 142500,
 				readings: [
-					{ date: '2018-04-12', km: 5 },
-					{ date: '2020-04-20', km: 41200 },
-					{ date: '2022-05-01', km: 88300 },
-					{ date: '2024-05-01', km: 121900 },
-					{ date: '2026-04-28', km: 142500 }
+					{ date: '2018-04-12', km: 5, protocol: 'CZ-3213-18-04-0001' },
+					{ date: '2020-04-20', km: 41200, protocol: 'CZ-3213-20-04-0042' },
+					{ date: '2022-05-01', km: 88300, protocol: 'CZ-3227-22-05-0117' },
+					{ date: '2024-05-01', km: 121900, protocol: 'CZ-3126-24-05-0079' },
+					{ date: '2026-04-28', km: 142500, protocol: 'CZ-3626-26-04-0500' }
 				],
 				rollbackSuspected: false,
 				avgKmPerYear: 17800

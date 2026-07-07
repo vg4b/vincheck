@@ -454,6 +454,13 @@ img {
 	mask-size: 22px 22px;
 }
 
+/* For flex alerts whose content is taller than one line (e.g. an alert with a
+   right-aligned button), vertically center the icon instead of top-anchoring it. */
+.alert--icon-center::before {
+	top: 50%;
+	transform: translateY(-50%);
+}
+
 .alert .alert-heading,
 .alert h1,
 .alert h2,

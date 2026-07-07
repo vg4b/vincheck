@@ -330,8 +330,7 @@ const VehicleHistoryPanel: FC<{
 					</summary>
 					<div className='spec-body'>
 						{mileage.rollbackSuspected && (
-							<div className='alert alert-danger py-2 px-3 small mb-3'>
-								<Icon name='alert-triangle' size={14} />{' '}
+							<div className='alert alert-danger small mb-3'>
 								<strong>Podezření na stočení tachometru.</strong> Nalezli jsme
 								pozdější záznam s nižším stavem než dřívější. Přesné hodnoty
 								najdete v certifikátu.
@@ -342,24 +341,26 @@ const VehicleHistoryPanel: FC<{
 							{czPlural(mileage.count, 'záznam', 'záznamy', 'záznamů')} stavu
 							tachometru z prohlídek
 							{mileage.count > 1 &&
-								` (${yearOf(mileage.readingDates[0])}–${yearOf(
-									mileage.readingDates[mileage.readingDates.length - 1]
+								` (${yearOf(mileage.readings[0].date)}–${yearOf(
+									mileage.readings[mileage.readings.length - 1].date
 								)})`}
 							.
 						</div>
 
 						<ul className='list-unstyled mb-0 small'>
-							{/* Oldest → newest, so a rollback shows as a visible dip. */}
-							{mileage.readingDates.map((date) => (
+							{/* Oldest → newest, so a rollback shows as a visible dip. Each
+							    reading cites its official STK/ISTP protocol number so buyers
+							    can trace any anomaly back to a concrete inspection record. */}
+							{mileage.readings.map((r) => (
 								<li
-									key={date}
+									key={r.protocol ?? r.date}
 									className='d-flex gap-2 align-items-center mb-1'
 								>
 									<span
 										className='text-muted-ink text-nowrap'
 										style={{ minWidth: '6.5rem' }}
 									>
-										{fmtDate(date)}
+										{fmtDate(r.date)}
 									</span>
 									<span
 										className='text-muted-ink'
@@ -368,6 +369,14 @@ const VehicleHistoryPanel: FC<{
 										•••••• km
 									</span>
 									<Icon name='lock' size={12} className='text-muted-ink' />
+									{r.protocol && (
+										<span
+											className='text-muted-ink text-nowrap ms-auto'
+											style={{ fontSize: '0.7rem' }}
+										>
+											{r.protocol}
+										</span>
+									)}
 								</li>
 							))}
 						</ul>
