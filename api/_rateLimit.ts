@@ -14,9 +14,29 @@ const buckets = new Map<string, Timestamps>()
 let lastSweep = 0
 
 function clientIp(req: VercelRequest): string {
-	const xff = req.headers['x-forwarded-for']
-	const raw = Array.isArray(xff) ? xff[0] : xff
-	return raw?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+	// Prefer the IP headers Vercel sets itself — a client can't spoof these.
+	// `x-real-ip` / `x-vercel-forwarded-for` carry the true client IP. Only fall
+	// back to `x-forwarded-for`, and then to its *rightmost* hop (the one added by
+	// the trusted edge) — never the leftmost value, which the client controls and
+	// could rotate per request to sidestep the limit.
+	const header = (name: string): string | undefined => {
+		const v = req.headers[name]
+		const s = Array.isArray(v) ? v[0] : v
+		return s?.trim() || undefined
+	}
+	const realIp = header('x-real-ip')
+	if (realIp) return realIp
+	const vercelFwd = header('x-vercel-forwarded-for')
+	if (vercelFwd) return vercelFwd.split(',').pop()!.trim()
+	const xff = header('x-forwarded-for')
+	if (xff) {
+		const hops = xff
+			.split(',')
+			.map((s) => s.trim())
+			.filter(Boolean)
+		if (hops.length) return hops[hops.length - 1]
+	}
+	return req.socket?.remoteAddress || 'unknown'
 }
 
 /**

@@ -12,6 +12,7 @@ import {
 } from '../_auth'
 import { ensureTables } from '../_db'
 import { sendVerificationEmail } from '../_email'
+import { rateLimit } from '../_rateLimit'
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase()
 
@@ -19,6 +20,10 @@ const normalizeEmail = (email: string) => email.trim().toLowerCase()
 async function handleLogin(req: VercelRequest, res: VercelResponse) {
 	if (req.method !== 'POST') {
 		return res.status(405).json({ error: 'Method not allowed' })
+	}
+	// Throttle credential-stuffing / password brute-force.
+	if (!rateLimit(req, res, { limit: 10, windowMs: 60_000 })) {
+		return
 	}
 
 	try {
@@ -78,6 +83,10 @@ async function handleLogout(req: VercelRequest, res: VercelResponse) {
 async function handleRegister(req: VercelRequest, res: VercelResponse) {
 	if (req.method !== 'POST') {
 		return res.status(405).json({ error: 'Method not allowed' })
+	}
+	// Throttle mass sign-ups / verification-email bombing (each register emails).
+	if (!rateLimit(req, res, { limit: 5, windowMs: 60_000 })) {
+		return
 	}
 
 	try {
@@ -193,6 +202,10 @@ async function handleVerifyEmail(req: VercelRequest, res: VercelResponse) {
 	if (req.method !== 'POST') {
 		return res.status(405).json({ error: 'Method not allowed' })
 	}
+	// Throttle verification-code guessing.
+	if (!rateLimit(req, res, { limit: 10, windowMs: 60_000 })) {
+		return
+	}
 
 	try {
 		await ensureTables()
@@ -254,6 +267,10 @@ async function handleVerifyEmail(req: VercelRequest, res: VercelResponse) {
 async function handleResendVerification(req: VercelRequest, res: VercelResponse) {
 	if (req.method !== 'POST') {
 		return res.status(405).json({ error: 'Method not allowed' })
+	}
+	// Throttle resend abuse (on top of the per-user 60s cooldown below).
+	if (!rateLimit(req, res, { limit: 5, windowMs: 60_000 })) {
+		return
 	}
 
 	try {

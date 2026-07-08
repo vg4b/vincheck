@@ -24,13 +24,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 		return res.status(405).json({ error: 'Method not allowed' })
 	}
 
-	// Verify cron secret if set
+	// Fail-closed: refuse to run without a configured secret so this mailout can
+	// never be triggered by an anonymous request. Vercel Cron sends the secret as
+	// `Authorization: Bearer <CRON_SECRET>` automatically when the env var is set.
 	const cronSecret = process.env.CRON_SECRET
-	if (cronSecret) {
-		const authHeader = req.headers.authorization
-		if (authHeader !== `Bearer ${cronSecret}`) {
-			return res.status(401).json({ error: 'Unauthorized' })
-		}
+	if (!cronSecret) {
+		console.error('CRON_SECRET is not configured — refusing to run send-reminders.')
+		return res.status(500).json({ error: 'Server misconfigured' })
+	}
+	if (req.headers.authorization !== `Bearer ${cronSecret}`) {
+		return res.status(401).json({ error: 'Unauthorized' })
 	}
 
 	try {
