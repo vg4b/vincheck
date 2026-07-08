@@ -64,6 +64,11 @@ const CertificateLandingPage: React.FC = () => {
 			'@context': 'https://schema.org',
 			'@type': 'Product',
 			name: 'Certifikát historie vozidla',
+			// Required by Google for product/merchant rich results. A clean preview
+			// of page 1 of the sample certificate (regenerate via
+			// `pnpm tsx scripts/render-sample-cert.ts out.pdf --no-watermark` +
+			// qlmanage). Absolute URL on the canonical host so it's crawlable.
+			image: 'https://www.vininfo.cz/certificate-preview.png',
 			description: PAGE_DESCRIPTION,
 			brand: { '@type': 'Brand', name: 'VINInfo.cz' },
 			offers: {
