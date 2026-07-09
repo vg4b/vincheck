@@ -318,7 +318,7 @@ const HomePage: React.FC = () => {
 				<header className='text-center mx-auto' style={{ maxWidth: '780px' }}>
 					<span className='eyebrow'>Kontrola vozidla zdarma</span>
 					<h1 className='display-tight mb-3'>
-						Prověřte vozidlo v registru ČR za minutu
+						Prověřte vozidlo v registru ČR ihned
 					</h1>
 					<p className='lead-tight mx-auto'>
 						Zadejte VIN, číslo TP nebo ORV a získejte okamžitý přístup k
