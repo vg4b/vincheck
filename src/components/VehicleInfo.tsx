@@ -18,6 +18,7 @@ import {
 import CertificateCheckoutModal from './CertificateCheckoutModal'
 import Icon, { type IconName } from './Icon'
 import ProductComparison from './ProductComparison'
+import VehicleShareBar from './VehicleShareBar'
 import VehicleHistoryPanel from './VehicleHistoryPanel'
 
 // Display price of our own certificate (final price; we are a neplátce, no VAT).
@@ -478,6 +479,13 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 					</div>
 				</div>
 			</div>
+
+			{/* Public share — create a short /s/<token> link + social buttons. */}
+			<VehicleShareBar
+				vin={cleanVin.length === 17 ? cleanVin : undefined}
+				tp={getDataValue(data, 'CisloTp', '') || undefined}
+				orv={getDataValue(data, 'CisloOrv', '') || undefined}
+			/>
 
 			{/* Two distinct products, side by side — they do different jobs, so the
 			    user self-selects by need rather than choosing between buttons:

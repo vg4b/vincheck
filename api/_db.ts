@@ -70,6 +70,24 @@ export async function ensureTables() {
 		WHERE vin IS NOT NULL;
 	`
 
+	// Public read-only share links, keyed by identifier so each VIN (or TP/ORV)
+	// has a single permanent token. Not tied to a user — created on demand from
+	// any public detail page. See api/vehicle.ts (POST create / GET ?share=).
+	await sql`
+		CREATE TABLE IF NOT EXISTS vehicle_shares (
+			token text PRIMARY KEY,
+			vin text,
+			tp text,
+			orv text,
+			created_at timestamptz NOT NULL DEFAULT now()
+		);
+	`
+	// Plain unique indexes: Postgres treats NULLs as distinct, so a VIN share
+	// (tp/orv NULL) never collides with another on the NULL columns.
+	await sql`CREATE UNIQUE INDEX IF NOT EXISTS vehicle_shares_vin_unique ON vehicle_shares(vin);`
+	await sql`CREATE UNIQUE INDEX IF NOT EXISTS vehicle_shares_tp_unique ON vehicle_shares(tp);`
+	await sql`CREATE UNIQUE INDEX IF NOT EXISTS vehicle_shares_orv_unique ON vehicle_shares(orv);`
+
 	await sql`
 		CREATE TABLE IF NOT EXISTS reminders (
 			id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

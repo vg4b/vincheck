@@ -12,6 +12,9 @@
  * VIN are served from Vercel's CDN — caps DB/upstream load and cost under bursts.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { sql } from '@vercel/postgres'
+import crypto from 'crypto'
+import { ensureTables } from './_db'
 import { logEvent } from './_metrics'
 import { rateLimit } from './_rateLimit'
 import {
@@ -67,22 +70,143 @@ function setEdgeCacheHeaders(res: VercelResponse) {
 	res.setHeader('Vary', 'Origin')
 }
 
+// 7-char base58 token (URL-friendly, unambiguous — no 0/O/I/l). Short because the
+// shared data is public anyway; the rare collision is retried against the PK.
+const SHARE_ALPHABET =
+	'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+function shortToken(): string {
+	let s = ''
+	for (let i = 0; i < 7; i++) {
+		s += SHARE_ALPHABET[crypto.randomInt(SHARE_ALPHABET.length)]
+	}
+	return s
+}
+
+// Column is from a fixed set (never user input) so switching keeps sql tagged.
+function existingShare(col: 'vin' | 'tp' | 'orv', val: string) {
+	if (col === 'vin')
+		return sql`SELECT token FROM vehicle_shares WHERE vin = ${val} LIMIT 1;`
+	if (col === 'tp')
+		return sql`SELECT token FROM vehicle_shares WHERE tp = ${val} LIMIT 1;`
+	return sql`SELECT token FROM vehicle_shares WHERE orv = ${val} LIMIT 1;`
+}
+function insertShare(col: 'vin' | 'tp' | 'orv', val: string, token: string) {
+	if (col === 'vin')
+		return sql`INSERT INTO vehicle_shares (token, vin) VALUES (${token}, ${val});`
+	if (col === 'tp')
+		return sql`INSERT INTO vehicle_shares (token, tp) VALUES (${token}, ${val});`
+	return sql`INSERT INTO vehicle_shares (token, orv) VALUES (${token}, ${val});`
+}
+
+/** One permanent token per identifier: reuse if present, else insert, retrying
+ *  on the rare token-PK collision or a concurrent create. */
+async function createOrGetShare(
+	col: 'vin' | 'tp' | 'orv',
+	val: string
+): Promise<string> {
+	const found = await existingShare(col, val)
+	if (found.rows[0]) return found.rows[0].token as string
+	for (let i = 0; i < 6; i++) {
+		const token = shortToken()
+		try {
+			await insertShare(col, val, token)
+			return token
+		} catch (error) {
+			if ((error as { code?: string })?.code === '23505') {
+				const again = await existingShare(col, val)
+				if (again.rows[0]) return again.rows[0].token as string
+				continue // token collision → try a new token
+			}
+			throw error
+		}
+	}
+	throw new Error('could not allocate share token')
+}
+
+async function handleCreateShare(req: VercelRequest, res: VercelResponse) {
+	const body = (req.body ?? {}) as { vin?: unknown; tp?: unknown; orv?: unknown }
+	const vin =
+		typeof body.vin === 'string'
+			? body.vin.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+			: ''
+	const tp = typeof body.tp === 'string' ? body.tp.trim() : ''
+	const orv = typeof body.orv === 'string' ? body.orv.trim() : ''
+	// Only accept a plausibly-shaped identifier to bound abuse of a public write.
+	const id: { col: 'vin' | 'tp' | 'orv'; val: string } | null =
+		vin.length === 17
+			? { col: 'vin', val: vin }
+			: tp.length >= 6 && tp.length <= 10
+				? { col: 'tp', val: tp }
+				: orv.length >= 5 && orv.length <= 9
+					? { col: 'orv', val: orv }
+					: null
+	if (!id) {
+		return res.status(400).json({ error: 'Neplatný identifikátor vozidla.' })
+	}
+	// The bar creates a share on every detail view, so keep the hot path cheap:
+	// skip ensureTables() and only run it (once) if the table isn't there yet.
+	try {
+		const token = await createOrGetShare(id.col, id.val)
+		return res.status(200).json({ shareToken: token })
+	} catch (error) {
+		if ((error as { code?: string })?.code === '42P01') {
+			try {
+				await ensureTables()
+				const token = await createOrGetShare(id.col, id.val)
+				return res.status(200).json({ shareToken: token })
+			} catch (retryError) {
+				console.error('Share creation failed after migrate:', retryError)
+				return res.status(500).json({ error: 'Server error' })
+			}
+		}
+		console.error('Share creation failed:', error)
+		return res.status(500).json({ error: 'Server error' })
+	}
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
 	setCorsHeaders(req, res)
 
 	if (req.method === 'OPTIONS') {
 		return res.status(200).end()
 	}
-	if (req.method !== 'GET') {
+	if (req.method !== 'GET' && req.method !== 'POST') {
 		return res.status(405).json({ error: 'Method not allowed' })
 	}
 	if (!rateLimit(req, res, { limit: 60, windowMs: 60_000 })) {
 		return
 	}
 
-	const vin = first(req.query.vin)
-	const tp = first(req.query.tp)
-	const orv = first(req.query.orv)
+	// POST → create (or return the existing) permanent public share link for a
+	// vehicle identifier. One token per VIN/TP/ORV; the data itself is public.
+	if (req.method === 'POST') {
+		return handleCreateShare(req, res)
+	}
+
+	let vin = first(req.query.vin)
+	let tp = first(req.query.tp)
+	let orv = first(req.query.orv)
+
+	// Public vehicle-share link: resolve the token to the vehicle's identifiers,
+	// then fall through to the normal cache lookup. Only the public registry
+	// snapshot + free history is returned — no owner/private data.
+	const share = first(req.query.share)
+	if (share) {
+		try {
+			const { rows } = await sql`
+				SELECT vin, tp, orv FROM vehicle_shares WHERE token = ${share} LIMIT 1;
+			`
+			if (!rows[0]) {
+				return res.status(404).json({ error: 'Sdílené vozidlo nenalezeno.' })
+			}
+			vin = (rows[0].vin as string | null) ?? undefined
+			tp = (rows[0].tp as string | null) ?? undefined
+			orv = (rows[0].orv as string | null) ?? undefined
+		} catch (error) {
+			console.error('Share token resolution failed:', error)
+			return res.status(500).json({ error: 'Server error' })
+		}
+	}
 
 	if (!vin && !tp && !orv) {
 		return res

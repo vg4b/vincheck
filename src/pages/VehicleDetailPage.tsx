@@ -11,13 +11,14 @@ import { ApiError } from '../utils/apiClient'
 import { addVehicle, fetchVehicles } from '../utils/clientZoneApi'
 import {
 	cleanModelName,
+	fetchSharedVehicleInfo,
 	fetchVehicleInfoWithHistory,
 	getDataValue,
 	VehicleLookupError
 } from '../utils/vehicleApi'
 
 interface VehicleDetailPageProps {
-	type?: 'vin' | 'tp' | 'orv'
+	type?: 'vin' | 'tp' | 'orv' | 'share'
 }
 
 const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
@@ -63,6 +64,40 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 
 			if (!code) {
 				navigate('/')
+				return
+			}
+
+			// Short share link (/s/:token) — resolve the token to its vehicle and
+			// reuse the whole detail view. The token isn't a VIN, so skip the
+			// identifier validation below.
+			if (type === 'share') {
+				setLoading(true)
+				setError('')
+				setWillRedirectHome(false)
+				setSaveMessage('')
+				try {
+					const { fields: data, history } = await fetchSharedVehicleInfo(code, {
+						signal
+					})
+					setVehicleData(data)
+					setVehicleHistory(history)
+					const vinCode = getDataValue(data, 'VIN', '')
+					const brand = getDataValue(data, 'TovarniZnacka', '')
+					const model =
+						cleanModelName(brand, getDataValue(data, 'ObchodniOznaceni', '')) ||
+						cleanModelName(brand, getDataValue(data, 'Typ', ''))
+					document.title = `${brand} ${model} - ${vinCode} | VIN Info.cz`
+				} catch (err) {
+					if (err instanceof DOMException && err.name === 'AbortError') {
+						return
+					}
+					setWillRedirectHome(false)
+					setError('Sdílené vozidlo nebylo nalezeno nebo odkaz vypršel.')
+				} finally {
+					if (!signal.aborted) {
+						setLoading(false)
+					}
+				}
 				return
 			}
 

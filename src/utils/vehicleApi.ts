@@ -372,25 +372,13 @@ export type FetchVehicleInfoResult = {
 
 // Fetch vehicle info plus the additive `History` block (present only when the
 // response was served from our registry cache — a live-API fallback omits it).
-export async function fetchVehicleInfoWithHistory(
-	vin?: string,
-	tp?: string,
-	orv?: string,
+// Shared fetch + parse for /api/vehicle. `query` is the querystring after `?`
+// (e.g. `vin=...` or `share=...`).
+async function requestVehicle(
+	query: string,
 	options?: FetchVehicleInfoOptions
 ): Promise<FetchVehicleInfoResult> {
-	// Get the API URL at runtime
-	const apiUrl = getProxyApiUrl()
-	// Build proxy URL with query parameters
-	let proxyUrl = `${apiUrl}?`
-	if (vin) {
-		proxyUrl += `vin=${encodeURIComponent(vin)}`
-	} else if (tp) {
-		proxyUrl += `tp=${encodeURIComponent(tp)}`
-	} else if (orv) {
-		proxyUrl += `orv=${encodeURIComponent(orv)}`
-	} else {
-		throw new VehicleLookupError('unknown', 'Je nutné zadat VIN, TP nebo ORV.')
-	}
+	const proxyUrl = `${getProxyApiUrl()}?${query}`
 
 	let response: Response
 	try {
@@ -443,6 +431,60 @@ export async function fetchVehicleInfoWithHistory(
 			: null
 
 	return { fields, history }
+}
+
+export async function fetchVehicleInfoWithHistory(
+	vin?: string,
+	tp?: string,
+	orv?: string,
+	options?: FetchVehicleInfoOptions
+): Promise<FetchVehicleInfoResult> {
+	let query: string
+	if (vin) {
+		query = `vin=${encodeURIComponent(vin)}`
+	} else if (tp) {
+		query = `tp=${encodeURIComponent(tp)}`
+	} else if (orv) {
+		query = `orv=${encodeURIComponent(orv)}`
+	} else {
+		throw new VehicleLookupError('unknown', 'Je nutné zadat VIN, TP nebo ORV.')
+	}
+	return requestVehicle(query, options)
+}
+
+// Resolve a public share token to its vehicle (registry snapshot + free history).
+export async function fetchSharedVehicleInfo(
+	shareToken: string,
+	options?: FetchVehicleInfoOptions
+): Promise<FetchVehicleInfoResult> {
+	return requestVehicle(
+		`share=${encodeURIComponent(shareToken)}`,
+		options
+	)
+}
+
+// Create (or fetch the existing) permanent public share token for a vehicle.
+// One token per VIN/TP/ORV; returns the short token for a /s/<token> link.
+export async function createVehicleShare(params: {
+	vin?: string
+	tp?: string
+	orv?: string
+}): Promise<string> {
+	const response = await fetch(getProxyApiUrl(), {
+		method: 'POST',
+		mode: 'cors',
+		credentials: 'omit',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(params)
+	})
+	if (!response.ok) {
+		throw new Error('share_failed')
+	}
+	const data = (await response.json()) as { shareToken?: string }
+	if (!data.shareToken) {
+		throw new Error('share_failed')
+	}
+	return data.shareToken
 }
 
 // Backward-compatible wrapper for callers that only need the field array.

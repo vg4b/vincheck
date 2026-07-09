@@ -53,6 +53,7 @@ function App() {
 				<Route path='/vin/:code' element={<VehicleDetailPage type='vin' />} />
 				<Route path='/tp/:code' element={<VehicleDetailPage type='tp' />} />
 				<Route path='/orv/:code' element={<VehicleDetailPage type='orv' />} />
+				<Route path='/s/:code' element={<VehicleDetailPage type='share' />} />
 				<Route path='/firma' element={<FleetSearchPage />} />
 				<Route path='/firma/:ico' element={<FleetPage />} />
 				<Route
