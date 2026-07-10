@@ -124,8 +124,7 @@ const VehicleHistoryPanel: FC<{
 						</div>
 					)}
 
-					<div className='d-flex align-items-center gap-2 mb-1'>
-						<Icon name='car' size={16} className='text-muted-ink' />
+					<div className='mb-1'>
 						<strong>Majitelé a provozovatelé</strong>
 					</div>
 					<div className='small'>
@@ -145,16 +144,21 @@ const VehicleHistoryPanel: FC<{
 							<div className='fw-semibold mb-1'>
 								Časová osa vlastníků a provozovatelů
 							</div>
-							<ul className='list-unstyled mb-0'>
+							<ul
+								className='list-unstyled mb-0'
+								style={{
+									display: 'grid',
+									gridTemplateColumns: 'max-content 1fr',
+									columnGap: '0.5rem',
+									rowGap: '0.25rem'
+								}}
+							>
 								{timeline.map((c, i) => (
 									<li
 										key={`${c.subjectType}-${c.ico ?? 'x'}-${c.relation}-${c.from ?? i}`}
-										className='d-flex gap-2 mb-1'
+										style={{ display: 'contents' }}
 									>
-										<span
-											className='text-muted-ink text-nowrap'
-											style={{ minWidth: '9rem' }}
-										>
+										<span className='text-muted-ink text-nowrap'>
 											{fmtDate(c.from)} – {c.current ? 'dosud' : fmtDate(c.to)}
 										</span>
 										<span>
@@ -265,50 +269,53 @@ const VehicleHistoryPanel: FC<{
 								{inspections.distinctStations === 1 ? 'stanici' : 'stanicích'}
 							</div>
 
-							<ul className='list-unstyled mb-0 small'>
+							<ul className='list-unstyled mb-0 small stk-list'>
 								{/* Oldest → newest, consistent with the owner timeline and
 								    mileage list below. */}
 								{[...inspections.history].reverse().map((h, i) => (
-									<li
-										key={`${h.date ?? 'd'}-${i}`}
-										className='d-flex gap-2 align-items-center mb-1'
-									>
-										<span
-											className='text-muted-ink text-nowrap'
-											style={{ minWidth: '6.5rem' }}
-										>
-											{fmtDate(h.date)}
-										</span>
-										{h.administrative ? (
-											<span className='badge text-bg-light border text-nowrap'>
-												nové vozidlo
+									<li key={`${h.date ?? 'd'}-${i}`} className='stk-entry mb-2'>
+										<div className='stk-entry-head d-flex gap-2 align-items-center flex-wrap'>
+											<span
+												className='text-muted-ink text-nowrap'
+												style={{ minWidth: '6.5rem' }}
+											>
+												{fmtDate(h.date)}
 											</span>
-										) : (
-											<>
-												<span
-													className='badge rounded-pill'
-													style={{
-														backgroundColor: STK_COLOR[h.result],
-														color: '#fff'
-													}}
-												>
-													{STK_LABEL[h.result]}
+											{h.administrative ? (
+												<span className='badge text-bg-light border text-nowrap'>
+													nové vozidlo
 												</span>
-												{inspTypeLabel(h.typ) && (
-													<span className='badge text-bg-light border'>
-														{inspTypeLabel(h.typ)}
+											) : (
+												<>
+													<span
+														className='badge rounded-pill'
+														style={{
+															backgroundColor: STK_COLOR[h.result],
+															color: '#fff'
+														}}
+													>
+														{STK_LABEL[h.result]}
 													</span>
-												)}
-											</>
-										)}
+													{inspTypeLabel(h.typ) && (
+														<span className='badge text-bg-light border'>
+															{inspTypeLabel(h.typ)}
+														</span>
+													)}
+												</>
+											)}
+										</div>
 										{h.nazevStk && (
-											<span className='text-muted-ink text-truncate'>
+											<div className='stk-station text-muted-ink'>
 												{h.nazevStk}
-											</span>
+											</div>
 										)}
 									</li>
 								))}
 							</ul>
+							<div className='text-muted-ink mt-2' style={{ fontSize: '0.8rem' }}>
+								Záznamy STK a stavu tachometru jsou dostupné zhruba od roku 2009;
+								starší prohlídky nemusí být evidovány.
+							</div>
 						</>
 					) : (
 						<div className='small text-muted-ink'>
@@ -347,36 +354,59 @@ const VehicleHistoryPanel: FC<{
 							.
 						</div>
 
-						<ul className='list-unstyled mb-0 small'>
+						{mileage.hasPrediction && (
+							<div
+								className='small mb-3 p-2 rounded'
+								style={{
+									background: 'var(--brand-50)',
+									border: '1px solid rgba(0, 0, 0, 0.06)'
+								}}
+							>
+								<Icon name='lock' size={12} className='text-muted-ink' />{' '}
+								<strong>Předpokládaný současný stav tachometru:</strong>{' '}
+								<span style={{ fontWeight: 600, letterSpacing: '0.1em' }}>
+									•••••• km
+								</span>
+								<span
+									className='d-block text-muted-ink'
+									style={{ fontSize: '0.75rem' }}
+								>
+									Odhad podle ověřené historie nájezdu — orientační číslo
+									najdete v certifikátu.
+								</span>
+							</div>
+						)}
+
+						<ul
+							className='list-unstyled mb-0 small'
+							style={{
+								display: 'grid',
+								gridTemplateColumns: 'max-content max-content 1fr',
+								columnGap: '0.5rem',
+								rowGap: '0.25rem',
+								alignItems: 'center'
+							}}
+						>
 							{/* Oldest → newest, so a rollback shows as a visible dip. Each
 							    reading cites its official STK/ISTP protocol number so buyers
 							    can trace any anomaly back to a concrete inspection record. */}
 							{mileage.readings.map((r) => (
-								<li
-									key={r.protocol ?? r.date}
-									className='d-flex gap-2 align-items-center mb-1'
-								>
-									<span
-										className='text-muted-ink text-nowrap'
-										style={{ minWidth: '6.5rem' }}
-									>
+								<li key={r.protocol ?? r.date} style={{ display: 'contents' }}>
+									<span className='text-muted-ink text-nowrap'>
 										{fmtDate(r.date)}
 									</span>
-									<span
-										className='text-muted-ink'
-										style={{ fontWeight: 600, letterSpacing: '0.1em' }}
-									>
-										•••••• km
-									</span>
-									<Icon name='lock' size={12} className='text-muted-ink' />
-									{r.protocol && (
-										<span
-											className='text-muted-ink text-nowrap ms-auto'
-											style={{ fontSize: '0.7rem' }}
-										>
-											{r.protocol}
+									<span className='text-muted-ink text-nowrap d-inline-flex align-items-center gap-1'>
+										<span style={{ fontWeight: 600, letterSpacing: '0.1em' }}>
+											•••••• km
 										</span>
-									)}
+										<Icon name='lock' size={12} className='text-muted-ink' />
+									</span>
+									<span
+										className='text-muted-ink text-truncate text-end'
+										style={{ fontSize: '0.7rem', minWidth: 0 }}
+									>
+										{r.protocol ?? ''}
+									</span>
 								</li>
 							))}
 						</ul>

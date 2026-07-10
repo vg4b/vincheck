@@ -248,7 +248,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 					readings: mileage.readings.map((r) => ({
 						date: r.date,
 						protocol: r.protocol
-					}))
+					})),
+					// Whether an "expected mileage now" estimate is available — a
+					// boolean teaser only; the figures themselves stay paid.
+					hasPrediction: mileage.prediction != null
 				}
 			}
 			return res

@@ -15,7 +15,7 @@ import path from 'node:path'
 import { createElement as e, type ReactNode } from 'react'
 import QRCode from 'qrcode'
 import type { VehicleCacheResult } from './_vehicleCache'
-import { buildTechnicalGroups } from './_vehicleFieldLabels'
+import { buildTechnicalGroups, resolveBrandModel } from './_vehicleFieldLabels'
 
 /** Everything the PDF needs that isn't derivable from the snapshot itself. */
 export interface CertificateMeta {
@@ -41,7 +41,7 @@ let fontsRegistered = false
 const styles = {
 	page: {
 		paddingTop: 40,
-		paddingBottom: 56,
+		paddingBottom: 72,
 		paddingHorizontal: 44,
 		fontSize: 10,
 		color: INK,
@@ -107,6 +107,7 @@ const styles = {
 	tlDate: { width: '34%', color: MUTED },
 	tlMain: { width: '46%' },
 	tlTag: { width: '20%', textAlign: 'right', color: MUTED },
+	tlRowZebra: { backgroundColor: '#f8fafc' },
 	flag: {
 		padding: 6,
 		marginBottom: 4,
@@ -116,17 +117,81 @@ const styles = {
 		fontWeight: 700
 	},
 	muted: { color: MUTED },
+	// Explanatory note under a table/list — needs breathing room above and below.
+	note: {
+		fontSize: 8.5,
+		color: MUTED,
+		marginTop: 7,
+		marginBottom: 2,
+		lineHeight: 1.4
+	},
+	// Prediction callout — visually separated from the confirmed readings.
+	predictionBox: {
+		marginTop: 12,
+		marginBottom: 4,
+		padding: 10,
+		borderRadius: 5,
+		backgroundColor: '#eff5ff',
+		borderLeftWidth: 3,
+		borderLeftColor: BRAND
+	},
+	predictionLabel: { fontSize: 8.5, color: MUTED, marginBottom: 3 },
+	predictionValue: { fontSize: 14, fontWeight: 700, color: INK },
+	predictionNote: { fontSize: 8, color: MUTED, marginTop: 5, lineHeight: 1.4 },
+	// Long free-text registry dump (e.g. "Další záznamy") — a raw appendix string,
+	// not a headline value. Stacked full-width in small regular weight so it reads
+	// as fine print instead of a wall of bold data.
+	appendixRow: {
+		borderBottomWidth: 1,
+		borderBottomColor: BORDER,
+		paddingVertical: 4
+	},
+	appendixLabel: { color: MUTED, marginBottom: 2 },
+	appendixValue: {
+		fontSize: 8,
+		color: '#4b5563',
+		lineHeight: 1.35,
+		marginBottom: 1.5
+	},
+	// Compact "at a glance" status band under the header — quick-read chips.
+	glance: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		marginBottom: 10,
+		gap: 5
+	},
+	chip: {
+		fontSize: 8,
+		paddingVertical: 3,
+		paddingHorizontal: 7,
+		borderRadius: 10,
+		backgroundColor: '#eef2f7',
+		color: '#374151'
+	},
+	chipGood: { backgroundColor: '#ecfdf3', color: '#067647' },
+	chipWarn: { backgroundColor: '#fef2f2', color: '#b91c1c' },
+	// Full-bleed shaded bar pinned to the bottom edge — the disclaimer reads as
+	// chrome, distinct from content, and carries the page number on its right.
 	footer: {
 		position: 'absolute',
-		bottom: 28,
-		left: 44,
-		right: 44,
+		bottom: 0,
+		left: 0,
+		right: 0,
+		backgroundColor: '#f1f4f8',
+		paddingVertical: 8,
+		paddingHorizontal: 30,
+		flexDirection: 'row',
+		alignItems: 'flex-end'
+	},
+	footerText: {
+		flexGrow: 1,
+		flexShrink: 1,
+		paddingRight: 12,
 		fontSize: 7.5,
 		color: MUTED,
-		borderTopWidth: 1,
-		borderTopColor: BORDER,
-		paddingTop: 6
-	}
+		lineHeight: 1.4
+	},
+	footerPage: { flexShrink: 0, fontSize: 7.5, color: MUTED }
 } as const
 
 // Lowercase to match the web (VehicleHistoryPanel RELATION_LABEL).
@@ -156,6 +221,13 @@ function fmtKm(n: number): string {
 	return Math.round(n)
 		.toString()
 		.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+}
+
+// Czech plural picker: 1 / 2–4 / 5+ (mirrors czPlural on the web).
+function czPlural(n: number, one: string, few: string, many: string): string {
+	if (n === 1) return one
+	if (n >= 2 && n <= 4) return few
+	return many
 }
 
 function dataValue(
@@ -194,19 +266,28 @@ export async function renderCertificatePdf(
 	const data = snapshot.response.Data ?? {}
 	const history = snapshot.history
 	const vin = dataValue(data, 'VIN')
-	const brand = dataValue(data, 'TovarniZnacka')
-	const model = dataValue(data, 'ObchodniOznaceni', dataValue(data, 'Typ'))
+	// Junk-tolerant make/model — registry placeholders ("." on old records) are
+	// resolved to a real brand from the type string. See resolveBrandModel.
+	const { brand, model } = resolveBrandModel(data)
 	const snapshotDate = history.snapshot
 
 	const qrDataUrl = await QRCode.toDataURL(meta.verifyUrl, { margin: 0 })
 
 	// `key` defaults to the label, but callers rendering repeated labels in a loop
 	// (e.g. two deregistrations both "Na žádost vlastníka") must pass a unique key.
+	// `wrap: false` keeps a label/value pair intact across a page break.
 	const row = (label: string, value: string, key: string = label) =>
-		e(View, { style: styles.row, key }, [
+		e(View, { style: styles.row, key, wrap: false }, [
 			e(Text, { style: styles.cellLabel, key: 'l' }, label),
 			e(Text, { style: styles.cellValue, key: 'v' }, value)
 		])
+
+	// Section / group headings reserve space ahead so they never orphan at the
+	// very bottom of a page with their content pushed to the next one.
+	const secTitle = (text: string, key: string) =>
+		e(Text, { style: styles.sectionTitle, key, minPresenceAhead: 72 }, text)
+	const grpTitle = (text: string, key: string) =>
+		e(Text, { style: styles.groupTitle, key, minPresenceAhead: 48 }, text)
 
 	const children: ReactNode[] = []
 
@@ -273,10 +354,67 @@ export async function renderCertificatePdf(
 		)
 	}
 
-	// Vehicle identity.
-	children.push(
-		e(Text, { style: styles.sectionTitle, key: 'id-t' }, 'Identifikace vozidla')
+	// "At a glance" chips — the buyer's first questions answered in one strip:
+	// status, owner count, STK outcome, rollback verdict. Colour cues (green =
+	// clean, red = attention) without repeating the prominent red flags above.
+	const chips: ReactNode[] = []
+	const chip = (text: string, tone: 'neutral' | 'good' | 'warn', key: string) =>
+		e(
+			Text,
+			{
+				key,
+				style:
+					tone === 'good'
+						? [styles.chip, styles.chipGood]
+						: tone === 'warn'
+							? [styles.chip, styles.chipWarn]
+							: styles.chip
+			},
+			text
+		)
+	if (history.flags.statusLabel)
+		chips.push(chip(history.flags.statusLabel, 'neutral', 'g-status'))
+	chips.push(
+		chip(
+			`${history.owners.total} ${czPlural(history.owners.total, 'vlastník', 'vlastníci', 'vlastníků')}`,
+			'neutral',
+			'g-own'
+		)
 	)
+	if (history.owners.operators > 0)
+		chips.push(
+			chip(
+				`${history.owners.operators} ${czPlural(history.owners.operators, 'provozovatel', 'provozovatelé', 'provozovatelů')}`,
+				'neutral',
+				'g-oper'
+			)
+		)
+	if (history.inspections.total > 0)
+		chips.push(
+			chip(
+				history.inspections.failed > 0
+					? `STK: ${history.inspections.failed}× neúspěšná`
+					: `STK: ${history.inspections.total}× bez závady`,
+				history.inspections.failed > 0 ? 'warn' : 'good',
+				'g-stk'
+			)
+		)
+	if (history.mileage.readings.length > 0)
+		chips.push(
+			chip(
+				history.mileage.rollbackSuspected
+					? 'Podezření na stočení'
+					: 'Tachometr bez podezření',
+				history.mileage.rollbackSuspected ? 'warn' : 'good',
+				'g-tacho'
+			)
+		)
+	if (history.imports.length > 0)
+		chips.push(chip('Dovoz', 'neutral', 'g-import'))
+	children.push(e(View, { key: 'glance', style: styles.glance }, chips))
+
+	// Vehicle identity.
+	children.push(secTitle('Identifikace vozidla', 'id-t'))
 	children.push(
 		e(View, { key: 'id' }, [
 			row('VIN', vin),
@@ -291,13 +429,7 @@ export async function renderCertificatePdf(
 	)
 
 	// Owners / operators summary + timeline.
-	children.push(
-		e(
-			Text,
-			{ style: styles.sectionTitle, key: 'own-t' },
-			'Majitelé a provozovatelé'
-		)
-	)
+	children.push(secTitle('Majitelé a provozovatelé', 'own-t'))
 	children.push(
 		e(View, { key: 'own' }, [
 			row('Počet vlastníků', String(history.owners.total)),
@@ -305,13 +437,7 @@ export async function renderCertificatePdf(
 		])
 	)
 	if (history.owners.timeline.length > 0) {
-		children.push(
-			e(
-				Text,
-				{ style: styles.groupTitle, key: 'tl-t' },
-				'Časová osa vlastníků a provozovatelů'
-			)
-		)
+		children.push(grpTitle('Časová osa vlastníků a provozovatelů', 'tl-t'))
 	}
 	if (history.owners.timeline.length > 0) {
 		children.push(
@@ -319,38 +445,44 @@ export async function renderCertificatePdf(
 				View,
 				{ key: 'tl', style: { marginTop: 4 } },
 				history.owners.timeline.map((t, i) =>
-					e(View, { style: styles.tlRow, key: `tl-${i}` }, [
-						e(
-							Text,
-							{ style: styles.tlDate, key: 'd' },
-							`${fmtDate(t.from)} – ${t.current ? 'dosud' : fmtDate(t.to)}`
-						),
-						e(
-							Text,
-							{ style: styles.tlMain, key: 'm' },
-							t.subjectType === 'company'
-								? t.ico
-									? `${t.nazev ?? `IČO ${t.ico}`} · IČO ${t.ico}`
-									: (t.nazev ?? 'Firma')
-								: t.subjectType === 'private'
-									? 'Soukromá osoba'
-									: 'Neuvedeno'
-						),
-						e(
-							Text,
-							{ style: styles.tlTag, key: 't' },
-							RELATION_LABEL[t.relation] ?? t.relation
-						)
-					])
+					e(
+						View,
+						{
+							style: i % 2 ? [styles.tlRow, styles.tlRowZebra] : styles.tlRow,
+							key: `tl-${i}`,
+							wrap: false
+						},
+						[
+							e(
+								Text,
+								{ style: styles.tlDate, key: 'd' },
+								`${fmtDate(t.from)} – ${t.current ? 'dosud' : fmtDate(t.to)}`
+							),
+							e(
+								Text,
+								{ style: styles.tlMain, key: 'm' },
+								t.subjectType === 'company'
+									? t.ico
+										? `${t.nazev ?? `IČO ${t.ico}`} · IČO ${t.ico}`
+										: (t.nazev ?? 'Firma')
+									: t.subjectType === 'private'
+										? 'Soukromá osoba'
+										: 'Neuvedeno'
+							),
+							e(
+								Text,
+								{ style: styles.tlTag, key: 't' },
+								RELATION_LABEL[t.relation] ?? t.relation
+							)
+						]
+					)
 				)
 			)
 		)
 	}
 
 	// STK inspection history.
-	children.push(
-		e(Text, { style: styles.sectionTitle, key: 'stk-t' }, 'Historie STK')
-	)
+	children.push(secTitle('Historie STK', 'stk-t'))
 	if (history.inspections.total > 0) {
 		children.push(
 			e(View, { key: 'stk-s' }, [
@@ -368,17 +500,25 @@ export async function renderCertificatePdf(
 				{ key: 'stk-h', style: { marginTop: 4 } },
 				// Oldest → newest, consistent with the owner timeline and mileage list.
 				[...history.inspections.history].reverse().map((h, i) =>
-					e(View, { style: styles.tlRow, key: `stk-${i}` }, [
-						e(Text, { style: styles.tlDate, key: 'd' }, fmtDate(h.date)),
-						e(
-							Text,
-							{ style: styles.tlMain, key: 'm' },
-							h.administrative
-								? 'nové vozidlo'
-								: (STK_LABEL[h.result] ?? h.result)
-						),
-						e(Text, { style: styles.tlTag, key: 's' }, h.nazevStk ?? '')
-					])
+					e(
+						View,
+						{
+							style: i % 2 ? [styles.tlRow, styles.tlRowZebra] : styles.tlRow,
+							key: `stk-${i}`,
+							wrap: false
+						},
+						[
+							e(Text, { style: styles.tlDate, key: 'd' }, fmtDate(h.date)),
+							e(
+								Text,
+								{ style: styles.tlMain, key: 'm' },
+								h.administrative
+									? 'nové vozidlo'
+									: (STK_LABEL[h.result] ?? h.result)
+							),
+							e(Text, { style: styles.tlTag, key: 's' }, h.nazevStk ?? '')
+						]
+					)
 				)
 			)
 		)
@@ -392,13 +532,7 @@ export async function renderCertificatePdf(
 	// (the free web view only teases it, blurred). From STK/emission inspections.
 	if (history.mileage.readings.length > 0) {
 		const m = history.mileage
-		children.push(
-			e(
-				Text,
-				{ style: styles.sectionTitle, key: 'mil-t' },
-				'Historie stavu tachometru'
-			)
-		)
+		children.push(secTitle('Historie stavu tachometru', 'mil-t'))
 		if (m.rollbackSuspected) {
 			children.push(
 				e(
@@ -408,6 +542,7 @@ export async function renderCertificatePdf(
 				)
 			)
 		}
+		// Confirmed readings only — the prediction lives in its own callout below.
 		children.push(
 			e(View, { key: 'mil-s' }, [
 				row(
@@ -423,33 +558,63 @@ export async function renderCertificatePdf(
 		children.push(
 			e(
 				View,
-				{ key: 'mil-h', style: { marginTop: 4 } },
+				{ key: 'mil-h', style: { marginTop: 6 } },
 				// Oldest → newest, so a rollback shows as a visible dip.
 				m.readings.map((r, i) =>
-					e(View, { style: styles.tlRow, key: `mil-${i}` }, [
-						e(Text, { style: styles.tlDate, key: 'd' }, fmtDate(r.date)),
-						e(Text, { style: styles.tlMain, key: 'm' }, `${fmtKm(r.km)} km`),
-						e(Text, { style: styles.tlTag, key: 'p' }, r.protocol ?? '')
-					])
+					e(
+						View,
+						{
+							style: i % 2 ? [styles.tlRow, styles.tlRowZebra] : styles.tlRow,
+							key: `mil-${i}`,
+							wrap: false
+						},
+						[
+							e(Text, { style: styles.tlDate, key: 'd' }, fmtDate(r.date)),
+							e(Text, { style: styles.tlMain, key: 'm' }, `${fmtKm(r.km)} km`),
+							e(Text, { style: styles.tlTag, key: 'p' }, r.protocol ?? '')
+						]
+					)
 				)
 			)
 		)
 		children.push(
 			e(
 				Text,
-				{ style: styles.muted, key: 'mil-note' },
+				{ style: styles.note, key: 'mil-note' },
 				m.avgKmPerYear != null
 					? 'Stav tachometru ze záznamů technických a emisních prohlídek (STK/ME). Průměrný roční nájezd je vypočten z rozsahu záznamů v registru ČR.'
 					: 'Stav tachometru ze záznamů technických a emisních prohlídek (STK/ME).'
 			)
 		)
+
+		// Prediction — a separate, clearly-labelled estimate. Never mixed with the
+		// verified readings above.
+		if (m.prediction) {
+			children.push(
+				e(View, { key: 'mil-pred', style: styles.predictionBox, wrap: false }, [
+					e(
+						Text,
+						{ style: styles.predictionLabel, key: 'l' },
+						'Předpokládaný současný stav tachometru (odhad)'
+					),
+					e(
+						Text,
+						{ style: styles.predictionValue, key: 'v' },
+						`${fmtKm(m.prediction.lowKm)} – ${fmtKm(m.prediction.highKm)} km`
+					),
+					e(
+						Text,
+						{ style: styles.predictionNote, key: 'n' },
+						`Odhad z tempa ~${fmtKm(m.prediction.perYearKm)} km/rok (${m.prediction.fromYear}–${m.prediction.toYear}). Jde o odhad, ne ověřený údaj — skutečný nájezd se může lišit, vozidlo nemusí jezdit rovnoměrně.`
+					)
+				])
+			)
+		}
 	}
 
 	// Imports — labelled as on the web ("Dovezené vozidlo").
 	if (history.imports.length > 0) {
-		children.push(
-			e(Text, { style: styles.sectionTitle, key: 'imp-t' }, 'Dovezené vozidlo')
-		)
+		children.push(secTitle('Dovezené vozidlo', 'imp-t'))
 		children.push(
 			e(
 				View,
@@ -465,7 +630,7 @@ export async function renderCertificatePdf(
 		children.push(
 			e(
 				Text,
-				{ style: styles.muted, key: 'imp-note' },
+				{ style: styles.note, key: 'imp-note' },
 				'Český registr neobsahuje historii ze země původu.'
 			)
 		)
@@ -473,20 +638,22 @@ export async function renderCertificatePdf(
 
 	// Deregistrations — shown on the web ("Vyřazení z provozu").
 	if (history.deregistrations.length > 0) {
-		children.push(
-			e(Text, { style: styles.sectionTitle, key: 'dereg-t' }, 'Vyřazení z provozu')
-		)
+		children.push(secTitle('Vyřazení z provozu', 'dereg-t'))
 		children.push(
 			e(
 				View,
 				{ key: 'dereg' },
-				history.deregistrations.map((d, i) =>
-					row(
-						d.reason ?? 'neuvedeno',
-						d.from ? fmtDate(d.from) : '—',
-						`dereg-${i}`
+				// Oldest → newest, consistent with the STK and mileage lists (the DB
+				// returns deregistrations newest-first).
+				[...history.deregistrations]
+					.sort((a, b) => (a.from ?? '').localeCompare(b.from ?? ''))
+					.map((d, i) =>
+						row(
+							d.reason ?? 'neuvedeno',
+							d.from ? fmtDate(d.from) : '—',
+							`dereg-${i}`
+						)
 					)
-				)
 			)
 		)
 	}
@@ -494,28 +661,36 @@ export async function renderCertificatePdf(
 	// Technical data — grouped into the same labeled sections as the detail page.
 	const techGroups = buildTechnicalGroups(data)
 	if (techGroups.length > 0) {
-		children.push(
-			e(Text, { style: styles.sectionTitle, key: 'tech-t' }, 'Technické údaje')
-		)
+		children.push(secTitle('Technické údaje', 'tech-t'))
 		for (const group of techGroups) {
 			children.push(
-				e(
-					View,
-					{ key: `techg-${group.label}`, wrap: false },
-					[
-						e(
-							Text,
-							{ style: styles.groupTitle, key: 'gt' },
-							group.label
-						),
-						...group.fields.map((f, i) =>
-							e(View, { style: styles.row, key: `f-${i}` }, [
-								e(Text, { style: styles.cellLabel, key: 'l' }, f.label),
-								e(Text, { style: styles.cellValue, key: 'v' }, f.value)
-							])
-						)
-					]
-				)
+				e(View, { key: `techg-${group.label}`, wrap: false }, [
+					grpTitle(group.label, 'gt'),
+					...group.fields.map((f, i) =>
+						// A long free-text registry dump reads as fine print, stacked
+						// full-width; normal fields keep the two-column label/value row.
+						f.value.length > 80
+							? e(View, { style: styles.appendixRow, key: `f-${i}` }, [
+									e(Text, { style: styles.appendixLabel, key: 'l' }, f.label),
+									// One entry per line (matches the web). formatValue joins the
+									// registry's pipe-delimited parts with ", "; split them back so
+									// the raw dump reads as a list instead of a run-on sentence.
+									...f.value
+										.split(', ')
+										.map((seg, j) =>
+											e(
+												Text,
+												{ style: styles.appendixValue, key: `v-${j}` },
+												seg
+											)
+										)
+								])
+							: e(View, { style: styles.row, key: `f-${i}` }, [
+									e(Text, { style: styles.cellLabel, key: 'l' }, f.label),
+									e(Text, { style: styles.cellValue, key: 'v' }, f.value)
+								])
+					)
+				])
 			)
 		}
 	}
@@ -527,13 +702,28 @@ export async function renderCertificatePdf(
 		history.mileage.readings.length > 0
 			? 'záznamy o nehodách ani zástavy/leasing'
 			: 'stav tachometru, záznamy o nehodách ani zástavy/leasing'
-	const footer = e(
-		Text,
-		{ style: styles.footer, fixed: true, key: 'footer' },
-		`Údaje pocházejí z veřejného registru silničních vozidel ČR (otevřená data)${
-			snapshotDate ? `, stav k ${fmtDate(snapshotDate)}` : ''
-		}. Tento přehled zpracoval VINInfo.cz z veřejných dat registru a není úředním dokumentem. Neobsahuje ${excludes}. Pravost ověříte na ${meta.verifyUrl}`
-	)
+	// Full-bleed footer bar on every page: disclaimer on the left, page number on
+	// the right, both baseline-aligned to the bottom of the bar.
+	const footer = e(View, { style: styles.footer, fixed: true, key: 'footer' }, [
+		e(
+			Text,
+			{ style: styles.footerText, key: 'text' },
+			`Údaje pocházejí z veřejného registru silničních vozidel ČR (otevřená data)${
+				snapshotDate ? `, stav k ${fmtDate(snapshotDate)}` : ''
+			}. Záznamy STK a stavu tachometru jsou dostupné zhruba od roku 2009; starší prohlídky nemusí být evidovány. Tento přehled zpracoval VINInfo.cz z veřejných dat registru a není úředním dokumentem. Neobsahuje ${excludes}. Pravost ověříte na ${meta.verifyUrl}`
+		),
+		e(Text, {
+			style: styles.footerPage,
+			key: 'page',
+			render: ({
+				pageNumber,
+				totalPages
+			}: {
+				pageNumber: number
+				totalPages: number
+			}) => `${pageNumber} / ${totalPages}`
+		})
+	])
 
 	// Diagonal watermark on every page (sample/preview PDFs only).
 	const watermark = meta.watermark

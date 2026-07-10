@@ -146,9 +146,69 @@ function formatValue(value: unknown): string {
 	return s.split('|').map((p) => p.trim()).filter(Boolean).join(', ')
 }
 
-/** True when a value carries no real data (empty or only slash separators). */
+/** True when a value carries no real data. Besides empty/slash-only, older
+ *  registry records store punctuation placeholders ("." for an unknown make,
+ *  "-", ". / .") where newer ones leave the field empty — treat those as blank. */
 function isBlank(value: unknown): boolean {
-	return value == null || String(value).replace(/[/\s]/g, '') === ''
+	return value == null || String(value).replace(/[.,;|\-/\s]/g, '') === ''
+}
+
+/**
+ * Clean a registry `Typ`/`ObchodniOznaceni` value for display as a model name.
+ * Mirrors cleanModelName() on the web: drop a leading brand prefix and take the
+ * first non-empty "A / B" slash segment ("RENAULT 19 1.8 TSE" → "19 1.8 TSE").
+ */
+function cleanModel(brand: string, typ: string): string {
+	let m = (typ ?? '').trim()
+	const b = (brand ?? '').trim()
+	if (b && m.toUpperCase().startsWith(b.toUpperCase())) {
+		m = m.slice(b.length).trim()
+	}
+	const segments = m
+		.split('/')
+		.map((s) => s.trim())
+		.filter(Boolean)
+	return segments[0] ?? m
+}
+
+/**
+ * Resolve a clean brand + model for the certificate header. Registry junk
+ * placeholders ("." for make on pre-2000 records) are treated as absent; when
+ * the make is missing but the type string leads with a plain alphabetic token
+ * (e.g. "RENAULT 19 1.8 TSE"), promote that word to the brand so the certificate
+ * shows "RENAULT / 19 1.8 TSE" instead of "." / ".".
+ */
+export function resolveBrandModel(data: Record<string, unknown>): {
+	brand: string
+	model: string
+} {
+	const clean = (key: string): string => {
+		const v = data[key]
+		return v == null || isBlank(v) ? '' : String(v).trim()
+	}
+	let brand = clean('TovarniZnacka')
+	const oznaceni = clean('ObchodniOznaceni')
+	const typ = clean('Typ')
+	if (!brand) {
+		const firstWord = (oznaceni || typ).split(/\s+/)[0] ?? ''
+		if (/^[A-Za-zÀ-ž-]{2,}$/.test(firstWord)) brand = firstWord.toUpperCase()
+	}
+	let model = cleanModel(brand, oznaceni) || cleanModel(brand, typ)
+	// Old records sometimes glue a VIN fragment onto the type string
+	// ("19 1.8 TSE VF1B53B05") — drop trailing tokens that are a VIN prefix.
+	const vin = clean('VIN').toUpperCase()
+	if (vin) {
+		const words = model.split(/\s+/)
+		while (
+			words.length > 1 &&
+			words[words.length - 1].length >= 4 &&
+			vin.startsWith(words[words.length - 1].toUpperCase())
+		) {
+			words.pop()
+		}
+		model = words.join(' ')
+	}
+	return { brand: brand || '—', model: model || '—' }
 }
 
 // --- Category grouping (mirrors src/utils/vehicleFieldCategories.ts) so the PDF
