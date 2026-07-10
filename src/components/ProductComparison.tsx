@@ -14,6 +14,13 @@ interface ProductComparisonProps {
 	 * landing page, where the feature is described in general terms.
 	 */
 	mileageAvailable?: boolean
+	/**
+	 * Whether an "expected mileage now" estimate is available for this vehicle.
+	 * Pass `false` on the detail page when the prediction is gated (too few
+	 * readings, rollback, stale data) so we don't promise an estimate the
+	 * certificate won't contain. Omit (undefined) on the generic landing page.
+	 */
+	hasPrediction?: boolean
 }
 
 /**
@@ -30,7 +37,8 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 	priceCzk,
 	certificateCta,
 	cebiaCta,
-	mileageAvailable
+	mileageAvailable,
+	hasPrediction
 }) => (
 	<div className='product-choice'>
 		{/* Our product — official registry data. */}
@@ -51,6 +59,12 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 					<li>
 						<Icon name='check' size={15} /> Historie stavu tachometru (může
 						odhalit stočení)
+					</li>
+				)}
+				{mileageAvailable !== false && hasPrediction !== false && (
+					<li>
+						<Icon name='check' size={15} /> Očekávaný aktuální nájezd (odhad z
+						historie)
 					</li>
 				)}
 				<li>

@@ -287,6 +287,53 @@ export function cleanModelName(brand: string, typ: string): string {
 	return segments[0] ?? m
 }
 
+/** True when a value is only punctuation placeholders ("." for an unknown make
+ *  on old registry records, "-", "/") and carries no real data. */
+function isPlaceholder(value: string): boolean {
+	return value.replace(/[.,;|\-/\s]/g, '') === ''
+}
+
+/**
+ * Resolve a clean brand + model for the hero title and page/meta titles. Mirrors
+ * api/_vehicleFieldLabels.resolveBrandModel so the web and the certificate agree:
+ * registry junk ("." for make) is treated as absent; when the make is missing but
+ * the type string leads with a plain alphabetic word ("RENAULT 19 1.8 TSE"),
+ * promote it to the brand and strip a trailing VIN fragment the registry appends.
+ */
+export function resolveVehicleTitle(data: VehicleDataArray): {
+	brand: string
+	model: string
+} {
+	const raw = (name: string): string => {
+		const v = getDataValue(data, name, '')
+		return isPlaceholder(v) ? '' : v.trim()
+	}
+	let brand = raw('TovarniZnacka')
+	const oznaceni = raw('ObchodniOznaceni')
+	const typ = raw('Typ')
+	if (!brand) {
+		const firstWord = (oznaceni || typ).split(/\s+/)[0] ?? ''
+		if (/^[A-Za-zÀ-ž-]{2,}$/.test(firstWord)) brand = firstWord.toUpperCase()
+	}
+	let model = cleanModelName(brand, oznaceni) || cleanModelName(brand, typ)
+	const vin = raw('VIN').toUpperCase()
+	if (vin) {
+		const words = model.split(/\s+/)
+		while (
+			words.length > 1 &&
+			words[words.length - 1].length >= 4 &&
+			vin.startsWith(words[words.length - 1].toUpperCase())
+		) {
+			words.pop()
+		}
+		model = words.join(' ')
+	}
+	return {
+		brand: brand || 'Neznámá značka',
+		model: model || 'Neznámý model'
+	}
+}
+
 // Resolve a brand-specific logo, or null if we don't ship one for this brand.
 // Registry brand strings vary in separators ("LAND ROVER" vs "LAND-ROVER"), so
 // try the raw key, a hyphenated form, then a separator-insensitive match.

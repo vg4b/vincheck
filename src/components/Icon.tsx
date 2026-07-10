@@ -196,7 +196,10 @@ const Icon: React.FC<IconProps> = ({
 			strokeLinecap='round'
 			strokeLinejoin='round'
 			className={className}
-			style={style}
+			// Never let a flex parent squeeze the icon to nothing — a long
+			// non-wrapping sibling (e.g. the "PROVOZOVATELÉ" tile label) would
+			// otherwise shrink it to ~0 width. Callers can still override via style.
+			style={{ flexShrink: 0, ...style }}
 			aria-hidden={ariaLabel ? undefined : true}
 			aria-label={ariaLabel}
 			role={ariaLabel ? 'img' : undefined}

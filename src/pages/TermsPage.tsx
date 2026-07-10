@@ -151,9 +151,13 @@ const TermsPage: React.FC = () => {
 								<strong>není úředním dokumentem</strong> a neobsahuje záznamy o
 								nehodách ani zástavy/leasing. Stav tachometru vychází ze záznamů
 								technických a emisních prohlídek; není-li pro dané vozidlo k
-								dispozici, certifikát jej neobsahuje. Provozovatel neručí za
-								úplnost ani aktuálnost dat poskytovaných registrem a stanicemi
-								technické kontroly.
+								dispozici, certifikát jej neobsahuje. Záznamy o technických
+								prohlídkách (STK/ME) a stavu tachometru jsou v centrální evidenci
+								dostupné přibližně od roku 2009 (od zavedení centrálního
+								informačního systému technických prohlídek – ISTP); starší
+								prohlídky nemusí být evidovány. Provozovatel neručí za úplnost ani
+								aktuálnost dat poskytovaných registrem a stanicemi technické
+								kontroly.
 							</li>
 							<li>
 								<strong>Reklamace.</strong> Nebude-li certifikát doručen nebo

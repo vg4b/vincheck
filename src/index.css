@@ -1002,8 +1002,13 @@ img {
 }
 
 .vehicle-hero-logo {
-	max-height: 72px;
+	/* Explicit height (not max-height) so the aspect-derived width is definite —
+	   otherwise the `auto` logo grid-column collapses to 0 on desktop and the logo
+	   vanishes. width:auto keeps each brand's aspect ratio; max-width caps wide
+	   wordmark logos so they don't crowd the title. */
+	height: 72px;
 	width: auto;
+	max-width: 120px;
 	object-fit: contain;
 }
 
@@ -1069,6 +1074,9 @@ img {
 	flex-direction: column;
 	gap: 2px;
 	min-width: 0;
+	/* Query container so a long status value can shrink to fit THIS tile's width
+	   (not the viewport) — full size when the tile is wide enough. */
+	container-type: inline-size;
 }
 .stat-tile-label {
 	font-size: 0.72rem;
@@ -1084,6 +1092,48 @@ img {
 	font-weight: 700;
 	color: var(--ink-900);
 	line-height: 1.2;
+}
+/* Status text (e.g. "PROVOZOVANÉ") is a long non-wrapping word. Keep it at full
+   size, and only shrink it when the tile itself is too narrow to fit it. */
+.stat-tile-value--status {
+	font-size: 1rem;
+	white-space: nowrap;
+}
+@container (max-width: 150px) {
+	.stat-tile-value--status {
+		font-size: 0.8rem;
+	}
+}
+
+/* STK inspection list: the station address stacks under the date/badges on a
+   narrow card (fully readable), but sits inline (truncated) once the card is
+   wide enough to fit it on one line. */
+.stk-list {
+	container-type: inline-size;
+}
+.stk-station {
+	font-size: 0.8rem;
+	margin-top: 0.1rem;
+}
+@container (min-width: 440px) {
+	.stk-entry {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+	.stk-entry-head {
+		flex: 0 0 auto;
+	}
+	.stk-station {
+		margin-top: 0;
+		font-size: inherit;
+		min-width: 0;
+		flex: 1 1 auto;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
 }
 .stat-tile-value a {
 	color: inherit;

@@ -9,7 +9,8 @@ import {
 	cleanModelName,
 	getDataValue,
 	getLogoSrc,
-	hasBrandLogo
+	hasBrandLogo,
+	resolveVehicleTitle
 } from '../utils/vehicleApi'
 import {
 	groupVehicleFieldsByCategory,
@@ -111,18 +112,15 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	promoSection,
 	onCebiaExternalNavigate
 }) => {
-	const brand = getDataValue(data, 'TovarniZnacka', 'Neznámá značka')
+	// Junk-tolerant make/model (registry stores "." for an unknown make on old
+	// records; resolveVehicleTitle promotes the real make from the type string and
+	// strips a trailing VIN fragment). Shared with the certificate + page title.
+	const { brand, model } = resolveVehicleTitle(data)
 	const showLogo = hasBrandLogo(brand)
 	const brandLogoSrc = getLogoSrc(brand)
-	// Both ObchodniOznaceni and Typ can repeat the brand ("POLESTAR 2") and use an
-	// "A / B" slash form, so clean both. Title prefers the human model name
-	// (GOLF, 207, "2"); the type code (1K, 207 W, V) is the fallback / secondary.
-	const humanModel = cleanModelName(
-		brand,
-		getDataValue(data, 'ObchodniOznaceni', '')
-	)
+	// Secondary type code for the subtitle ("Typ: 1K"); hidden when it merely
+	// repeats the model (incl. the raw type string that still carries a VIN tail).
 	const typCode = cleanModelName(brand, getDataValue(data, 'Typ', ''))
-	const model = humanModel || typCode || 'Neznámý model'
 	const rokVyroby = getDataValue(data, 'RokVyroby', '')
 	const palivo = getDataValue(data, 'Palivo', '')
 	const statusLabel =
@@ -182,7 +180,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	// Labelled subtitle bits so cryptic codes are legible ("Typ V" not bare "V").
 	// The type code is shown only when it isn't already the title.
 	const subtitleParts = [
-		model === typCode || !typCode ? '' : `Typ: ${typCode}`,
+		model === typCode || !typCode || typCode.startsWith(model) ? '' : `Typ: ${typCode}`,
 		rokVyroby ? `Rok: ${rokVyroby}` : '',
 		fuelLabel ? `Palivo: ${fuelLabel}` : ''
 	].filter(Boolean)
@@ -360,8 +358,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 							<span className='text-muted-ink small'>VIN</span>
 							<VinPill vin={vinCode} />
 						</div>
-						<div className='text-muted-ink small mt-2 d-flex align-items-center gap-2'>
-							<Icon name='calendar' size={14} />
+						<div className='text-muted-ink small mt-2'>
 							První registrace: {firstRegistration}
 						</div>
 					</div>
@@ -414,10 +411,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 				{/* At-a-glance stat tiles */}
 				<div className='vehicle-stats mt-4'>
 					<div className='stat-tile'>
-						<span className='stat-tile-label'>
-							<Icon name='shield-check' size={13} />
-							Platnost STK
-						</span>
+						<span className='stat-tile-label'>Platnost STK</span>
 						<span className='stat-tile-value' style={{ color: stkColor }}>
 							{history && history.inspections.total > 0 ? (
 								<a href='#stk-historie'>{techInspection}</a>
@@ -427,25 +421,16 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 						</span>
 					</div>
 					<div className='stat-tile'>
-						<span className='stat-tile-label'>
-							<Icon name='car' size={13} />
-							Majitelé
-						</span>
+						<span className='stat-tile-label'>Majitelé</span>
 						<span className='stat-tile-value'>{ownersTotal ?? '—'}</span>
 					</div>
 					<div className='stat-tile'>
-						<span className='stat-tile-label'>
-							<Icon name='file-text' size={13} />
-							Provozovatelé
-						</span>
+						<span className='stat-tile-label'>Provozovatelé</span>
 						<span className='stat-tile-value'>{operatorsTotal ?? '—'}</span>
 					</div>
 					<div className='stat-tile'>
-						<span className='stat-tile-label'>
-							<Icon name='info' size={13} />
-							Stav vozidla
-						</span>
-						<span className='stat-tile-value' style={{ fontSize: '1rem' }}>
+						<span className='stat-tile-label'>Stav vozidla</span>
+						<span className='stat-tile-value stat-tile-value--status'>
 							{statusLabel || '—'}
 						</span>
 					</div>
@@ -498,6 +483,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 					<ProductComparison
 						priceCzk={CERTIFICATE_PRICE_CZK}
 						mileageAvailable={(history?.mileage?.count ?? 0) > 0}
+						hasPrediction={history?.mileage?.hasPrediction ?? false}
 						certificateCta={
 							<button
 								type='button'

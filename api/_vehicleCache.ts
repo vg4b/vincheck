@@ -297,6 +297,18 @@ export type VehicleHistory = {
 		readings: Array<{ date: string; km: number; protocol: string | null }>
 		rollbackSuspected: boolean
 		avgKmPerYear: number | null
+		/** "Expected mileage now" — the latest verified reading projected by the
+		 *  observed pace, as a conservative rounded RANGE (never a point claim).
+		 *  Null when the trend isn't trustworthy: rollback suspected, too few
+		 *  readings, or the last reading is stale. */
+		prediction: {
+			expectedKm: number
+			lowKm: number
+			highKm: number
+			perYearKm: number
+			fromYear: number
+			toYear: number
+		} | null
 	}
 	snapshot: string | null
 }
@@ -320,6 +332,48 @@ const LOOKUP_COLUMNS: Record<keyof LookupParams, string> = {
 // dropped. The rollback tolerance avoids flagging tiny dips from rounding/typos.
 const MAX_PLAUSIBLE_KM = 3_000_000
 const ROLLBACK_TOLERANCE_KM = 1_000
+// Beyond this gap since the last verified reading, a linear projection is no
+// longer trustworthy enough to show.
+const MAX_PREDICTION_STALENESS_YEARS = 4
+// Half-width of the "expected mileage now" band, as a fraction of the estimate.
+const PREDICTION_BAND = 0.15
+
+/**
+ * "Expected mileage now": project the latest verified reading forward by the
+ * observed pace. Deliberately conservative — returned only when the trend is
+ * trustworthy (enough readings, no rollback, last reading not stale) and always
+ * as a rounded RANGE, never a point claim. See
+ * docs/plans/2026-07-09-001-feat-consumer-odometer-prediction-plan.md.
+ */
+function buildPrediction(
+	readings: Array<{ date: string; km: number }>,
+	avgKmPerYear: number | null,
+	rollbackSuspected: boolean
+): VehicleHistory['mileage']['prediction'] {
+	if (avgKmPerYear == null || avgKmPerYear <= 0 || rollbackSuspected) return null
+	if (readings.length < 2) return null
+
+	const first = readings[0]
+	const last = readings[readings.length - 1]
+	const yearsSinceLast =
+		(Date.now() - Date.parse(last.date)) / (365.25 * 86_400_000)
+	if (yearsSinceLast < 0 || yearsSinceLast > MAX_PREDICTION_STALENESS_YEARS) {
+		return null
+	}
+
+	const expectedRaw = last.km + avgKmPerYear * yearsSinceLast
+	const round1k = (n: number) => Math.round(n / 1000) * 1000
+	const band = expectedRaw * PREDICTION_BAND
+	return {
+		expectedKm: round1k(expectedRaw),
+		// The low end can never fall below the last verified reading.
+		lowKm: Math.max(last.km, round1k(expectedRaw - band)),
+		highKm: round1k(expectedRaw + band),
+		perYearKm: avgKmPerYear,
+		fromYear: Number(first.date.slice(0, 4)),
+		toYear: Number(last.date.slice(0, 4))
+	}
+}
 
 /**
  * Derive the mileage view from raw odometer rows ({ d: date, km }):
@@ -351,7 +405,8 @@ function computeMileage(
 			latestKm: null,
 			readings: [],
 			rollbackSuspected: false,
-			avgKmPerYear: null
+			avgKmPerYear: null,
+			prediction: null
 		}
 	}
 
@@ -372,7 +427,9 @@ function computeMileage(
 			? Math.round(((last.km - first.km) / days) * 365)
 			: null
 
-	return { latestKm: last.km, readings, rollbackSuspected, avgKmPerYear }
+	const prediction = buildPrediction(readings, avgKmPerYear, rollbackSuspected)
+
+	return { latestKm: last.km, readings, rollbackSuspected, avgKmPerYear, prediction }
 }
 
 /**

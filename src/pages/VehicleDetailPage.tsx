@@ -10,10 +10,10 @@ import { VehicleDataArray, VehicleHistory } from '../types'
 import { ApiError } from '../utils/apiClient'
 import { addVehicle, fetchVehicles } from '../utils/clientZoneApi'
 import {
-	cleanModelName,
 	fetchSharedVehicleInfo,
 	fetchVehicleInfoWithHistory,
 	getDataValue,
+	resolveVehicleTitle,
 	VehicleLookupError
 } from '../utils/vehicleApi'
 
@@ -82,10 +82,7 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 					setVehicleData(data)
 					setVehicleHistory(history)
 					const vinCode = getDataValue(data, 'VIN', '')
-					const brand = getDataValue(data, 'TovarniZnacka', '')
-					const model =
-						cleanModelName(brand, getDataValue(data, 'ObchodniOznaceni', '')) ||
-						cleanModelName(brand, getDataValue(data, 'Typ', ''))
+					const { brand, model } = resolveVehicleTitle(data)
 					document.title = `${brand} ${model} - ${vinCode} | VIN Info.cz`
 				} catch (err) {
 					if (err instanceof DOMException && err.name === 'AbortError') {
@@ -173,10 +170,7 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 
 				// Update page title
 				const vinCode = getDataValue(data, 'VIN', cleanCode)
-				const brand = getDataValue(data, 'TovarniZnacka', '')
-				const model =
-					cleanModelName(brand, getDataValue(data, 'ObchodniOznaceni', '')) ||
-					cleanModelName(brand, getDataValue(data, 'Typ', ''))
+				const { brand, model } = resolveVehicleTitle(data)
 				document.title = `${brand} ${model} - ${vinCode} | VIN Info.cz`
 
 				// Update meta description
@@ -327,10 +321,7 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 
 	const code = params.code || ''
 	const vinCode = getDataValue(vehicleData, 'VIN', code)
-	const brand = getDataValue(vehicleData, 'TovarniZnacka', '')
-	const model =
-		cleanModelName(brand, getDataValue(vehicleData, 'ObchodniOznaceni', '')) ||
-		cleanModelName(brand, getDataValue(vehicleData, 'Typ', ''))
+	const { brand, model } = resolveVehicleTitle(vehicleData)
 
 	const cleanVinForCebia = vinCode.replace(/[^a-zA-Z0-9]/g, '')
 	const cebiaVehicleDetailModalRetryUrl =

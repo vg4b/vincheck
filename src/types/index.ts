@@ -90,6 +90,9 @@ export interface VehicleHistory {
 		count: number
 		rollbackSuspected: boolean
 		readings: Array<{ date: string; protocol: string | null }>
+		/** True when an "expected mileage now" estimate is available. The figure
+		 *  itself is paid — the free view shows only a blurred teaser. */
+		hasPrediction?: boolean
 	}
 	snapshot: string | null
 }

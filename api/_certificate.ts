@@ -155,7 +155,15 @@ export function buildSampleSnapshot(): VehicleCacheResult {
 					{ date: '2026-04-28', km: 142500, protocol: 'CZ-3626-26-04-0500' }
 				],
 				rollbackSuspected: false,
-				avgKmPerYear: 17800
+				avgKmPerYear: 17800,
+				prediction: {
+					expectedKm: 146000,
+					lowKm: 143000,
+					highKm: 168000,
+					perYearKm: 17800,
+					fromYear: 2018,
+					toYear: 2026
+				}
 			},
 			snapshot: '2026-05-01'
 		}
