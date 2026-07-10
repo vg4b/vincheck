@@ -484,6 +484,9 @@ export async function renderCertificatePdf(
 	// STK inspection history.
 	children.push(secTitle('Historie STK', 'stk-t'))
 	if (history.inspections.total > 0) {
+		// Next STK due date — shown as the "Platnost STK" tile on the web, but kept
+		// out of the technical tables (SUMMARY_FIELDS), so surface it here.
+		const stkValidUntil = dataValue(data, 'PravidelnaTechnickaProhlidkaDo', '')
 		children.push(
 			e(View, { key: 'stk-s' }, [
 				row('Počet prohlídek', String(history.inspections.total)),
@@ -491,7 +494,10 @@ export async function renderCertificatePdf(
 				row(
 					'Kontrolováno na stanicích',
 					String(history.inspections.distinctStations)
-				)
+				),
+				...(stkValidUntil
+					? [row('Platnost STK do', fmtDate(stkValidUntil))]
+					: [])
 			])
 		)
 		children.push(
