@@ -59,7 +59,11 @@ const FleetPage: FC = () => {
 				if (err instanceof DOMException && err.name === 'AbortError') return
 				setError('Nepodařilo se načíst vozidla pro toto IČO.')
 			} finally {
-				setLoading(false)
+				// Don't clear loading for a request we aborted (StrictMode's
+				// double-invoke, or an ico change) — the superseding request is still
+				// in flight and owns the spinner. Clearing it here made the loader
+				// vanish immediately, leaving an empty page during the real fetch.
+				if (!controller.signal.aborted) setLoading(false)
 			}
 		}
 		run()
@@ -89,7 +93,23 @@ const FleetPage: FC = () => {
 			<Navigation />
 			<main className='container my-4 my-md-5'>
 				<h1 className='h4 mb-1'>Vozidla podle IČO</h1>
-				<p className='text-muted-ink num mb-3'>{ico}</p>
+				<p className='text-muted-ink mb-3'>
+					<span className='num'>{ico}</span>
+					{ico && (
+						<>
+							{' · '}
+							<a
+								href={`https://verejnerejstriky.msp.gov.cz/vysledky?resultsType=search&hledanyText=${encodeURIComponent(
+									ico
+								)}&rejstriky=VR`}
+								target='_blank'
+								rel='noopener noreferrer'
+							>
+								Ověřit v obchodním rejstříku
+							</a>
+						</>
+					)}
+				</p>
 
 				{error && (
 					<div className='alert alert-warning' role='alert'>
