@@ -4,6 +4,8 @@
  * api/ and src/ projects compile separately, so they can't share the module).
  */
 
+import { formatFuel } from './_fuelLabels'
+
 const fieldLabels: Record<string, string> = {
 	VIN: 'VIN',
 	TovarniZnacka: 'Tovární značka',
@@ -17,13 +19,14 @@ const fieldLabels: Record<string, string> = {
 	VozidloVyrobce: 'Výrobce vozidla',
 	MotorVyrobce: 'Výrobce motoru',
 	MotorTyp: 'Typ motoru',
-	MotorMaxVykon: 'Max. výkon [kW] / [min⁻¹]',
+	MotorMaxVykon: 'Max. výkon',
 	Palivo: 'Palivo',
-	MotorZdvihObjem: 'Zdvihový objem [cm³]',
+	MotorZdvihObjem: 'Zdvihový objem',
 	VozidloKaroserieBarva: 'Barva',
-	Rozmery: 'Celková délka/šířka/výška [mm]',
-	RozmeryRozvor: 'Rozvor [mm]',
+	Rozmery: 'Celkové rozměry',
+	RozmeryRozvor: 'Rozvor',
 	HmotnostiProvozni: 'Provozní hmotnost',
+	HmotnostiProvozniDo: 'Maximální provozní hmotnost',
 	CisloTp: 'Číslo TP',
 	CisloOrv: 'Číslo ORV',
 	StatusNazev: 'Status',
@@ -38,29 +41,28 @@ const fieldLabels: Record<string, string> = {
 	VozidloElektricke: 'Plně elektrické vozidlo',
 	VozidloHybridni: 'Hybridní vozidlo',
 	TridaHybridnihoVozidla: 'Třída hybridního vozidla',
-	EmiseEHKOSNEHSES: 'Emisní limit [EHKOSN/EHSES]',
+	EmiseEHKOSNEHSES: 'Emisní limit',
 	EmisniUroven: 'Stupeň plnění emisní úrovně',
 	EmiseKSA: 'Emise KSA',
-	EmiseCO2: 'CO2 město /mimo město/kombinované [g.km-1]',
+	EmiseCO2: 'Emise CO₂',
 	SpecifickaCo2: 'Specifické CO2',
 	SpotrebaMetodika: 'Spotřeba předpis',
-	SpotrebaNa100Km: 'Spotřeba město /mimo město/kombinovaná [l.100km⁻¹]',
-	SpotrebaPriRychlosti: 'Spotřeba při rychlosti [l.100 km⁻¹]',
+	SpotrebaNa100Km: 'Spotřeba paliva',
+	SpotrebaPriRychlosti: 'Spotřeba při rychlosti',
 	SnizeniEmisiNedc: 'Snížení emisí – NEDC',
 	SnizeniEmisiWltp: 'Snížení emisí – WLTP',
-	VozidloKaroserieMist: 'Počet míst celkem / k sezení / k stání',
-	Rozchod: 'Rozchod [mm]',
+	VozidloKaroserieMist: 'Počet míst',
+	Rozchod: 'Rozchod',
 	HmotnostiPripPov: 'Hmotnosti přípustné povolené',
 	HmotnostiPripPovN: 'Hmotnosti přípustné povolené nápravy',
 	HmotnostiPripPovBrzdenePV: 'Hmotnosti přípustné povolené brzděné přívěs',
 	HmotnostiPripPovNebrzdenePV: 'Hmotnosti přípustné povolené nebrzděné přívěs',
 	HmotnostiPripPovJS: 'Hmotnosti přípustné povolené jízdní souprava',
-	NapravyPocetDruh: 'Počet náprav - z toho poháněných',
-	NapravyPneuRafky:
-		'Kola a pneumatiky na nápravě - rozměry/montáž [N.1; N.2; N.3; N.4]',
-	HlukStojiciOtacky: 'Vnější hluk vozidla [dB(A)] - stojícího při ot. [min⁻¹]',
+	NapravyPocetDruh: 'Nápravy',
+	NapravyPneuRafky: 'Kola a pneumatiky',
+	HlukStojiciOtacky: 'Vnější hluk (stojící)',
 	HlukJizda: 'Za jízdy',
-	NejvyssiRychlost: 'Nejvyšší rychlost [km.h⁻¹]',
+	NejvyssiRychlost: 'Nejvyšší rychlost',
 	DalsiZaznamy: 'Další záznamy',
 	OrvZadrzeno: 'ORV zadrženo',
 	RzDruh: 'Druh RZ',
@@ -96,11 +98,12 @@ const fieldLabels: Record<string, string> = {
 	VozidloKaroserieMistStaniPozn: 'Poznámka k místům ke stání',
 	RozmeryDelkaDo: 'Max. délka [mm]',
 	RozmeryVyskaDo: 'Max. výška [mm]',
-	RozmeryLoznaDelka: 'Ložná délka [mm]',
-	RozmeryLoznaSirka: 'Ložná šířka [mm]',
+	RozmeryLoznaDelka: 'Ložná délka',
+	RozmeryLoznaSirka: 'Ložná šířka',
 	HmotnostiTestWltp: 'Hmotnosti vozidla při testu WLTP',
 	HmotnostUzitecneZatizeniPrumer: 'Průměrná hodnota užitečného zatížení',
 	HmotnostiZatizeniSZ: 'Hmotnosti zatížení SZ',
+	HmotnostiZatizeniSZTyp: 'Zatížení SZ – typ',
 	VozidloSpojZarizNazev: 'Spojovací zařízení – název',
 	PomerVykonHmotnost: 'Poměr výkon/hmotnost [kW·kg⁻¹]',
 	StupenDokonceni: 'Stupeň dokončení',
@@ -143,7 +146,11 @@ function formatValue(value: unknown): string {
 	if (s.toLowerCase() === 'false') return 'Ne'
 	const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
 	if (m) return `${Number(m[3])}. ${Number(m[2])}. ${m[1]}`
-	return s.split('|').map((p) => p.trim()).filter(Boolean).join(', ')
+	return s
+		.split('|')
+		.map((p) => p.trim())
+		.filter(Boolean)
+		.join(', ')
 }
 
 /** True when a value carries no real data. Besides empty/slash-only, older
@@ -242,53 +249,137 @@ const CATEGORY_LABELS: Record<CategoryId, string> = {
 }
 
 const DOKLADY = new Set<string>([
-	'CisloTp', 'CisloOrv', 'DatumPrvniRegistraceVCr', 'StatusNazev', 'Status',
-	'Pcv', 'ZarazeniVozidla', 'RzDruh', 'RzZadrzena', 'VariantaRz', 'RzVarianta',
-	'RzJkVydana', 'RzKeSkartaci', 'RzOdevzdano', 'OrvZadrzeno', 'OrvKeSkartaci',
-	'OrvOdevzdano', 'RmZaniku', 'PocetVlastniku', 'PocetProvozovatelu',
-	'PredRegistraciProhlidkaDne', 'PredSchvalenimProhlidkaDne',
-	'EvidencniProhlidkaDne', 'HistorickeVozidloProhlidkaDne'
+	'CisloTp',
+	'CisloOrv',
+	'DatumPrvniRegistraceVCr',
+	'StatusNazev',
+	'Status',
+	'Pcv',
+	'ZarazeniVozidla',
+	'RzDruh',
+	'RzZadrzena',
+	'VariantaRz',
+	'RzVarianta',
+	'RzJkVydana',
+	'RzKeSkartaci',
+	'RzOdevzdano',
+	'OrvZadrzeno',
+	'OrvKeSkartaci',
+	'OrvOdevzdano',
+	'RmZaniku',
+	'PocetVlastniku',
+	'PocetProvozovatelu',
+	'PredRegistraciProhlidkaDne',
+	'PredSchvalenimProhlidkaDne',
+	'EvidencniProhlidkaDne',
+	'HistorickeVozidloProhlidkaDne'
 ])
 const DRUH_TYP = new Set<string>([
-	'VozidloDruh', 'VozidloDruh2', 'Kategorie', 'CisloTypovehoSchvaleni',
-	'HomologaceEs', 'Varianta', 'Verze', 'TypKod', 'UcelVozidla', 'VozidloUcel',
+	'VozidloDruh',
+	'VozidloDruh2',
+	'Kategorie',
+	'CisloTypovehoSchvaleni',
+	'HomologaceEs',
+	'Varianta',
+	'Verze',
+	'TypKod',
+	'UcelVozidla',
+	'VozidloUcel',
 	'VozidloAutonomniStupen'
 ])
-const OZNACENI = new Set<string>(['ObchodniOznaceni', 'VozidloVyrobce', 'RokVyroby'])
+const OZNACENI = new Set<string>([
+	'ObchodniOznaceni',
+	'VozidloVyrobce',
+	'RokVyroby'
+])
 const MOTOR_SPOTREBA = new Set<string>([
-	'MotorVyrobce', 'MotorTyp', 'MotorMaxVykon', 'MotorZdvihObjem', 'Palivo',
-	'CisloMotoru', 'MotorCislo', 'VozidloElektricke', 'VozidloHybridni',
-	'TridaHybridnihoVozidla', 'VozidloHybridniTrida', 'SpotrebaMetodika',
-	'SpotrebaNa100Km', 'SpotrebaPriRychlosti', 'SpotrebaElMobilWhKmZ', 'Spotreba',
-	'SpotrebaEl', 'DojezdZrKm', 'DojezdZR', 'PomerVykonHmotnost'
+	'MotorVyrobce',
+	'MotorTyp',
+	'MotorMaxVykon',
+	'MotorZdvihObjem',
+	'Palivo',
+	'CisloMotoru',
+	'MotorCislo',
+	'VozidloElektricke',
+	'VozidloHybridni',
+	'TridaHybridnihoVozidla',
+	'VozidloHybridniTrida',
+	'SpotrebaMetodika',
+	'SpotrebaNa100Km',
+	'SpotrebaPriRychlosti',
+	'SpotrebaElMobilWhKmZ',
+	'Spotreba',
+	'SpotrebaEl',
+	'DojezdZrKm',
+	'DojezdZR',
+	'PomerVykonHmotnost'
 ])
 const EMISE = new Set<string>([
-	'EmiseEHKOSNEHSES', 'EmisniUroven', 'EmiseKSA', 'EmiseCO2', 'SpecifickaCo2',
-	'EmiseCO2Specificke', 'SnizeniEmisiNedc', 'SnizeniEmisiWltp', 'EmiseSnizeniNedc',
+	'EmiseEHKOSNEHSES',
+	'EmisniUroven',
+	'EmiseKSA',
+	'EmiseCO2',
+	'SpecifickaCo2',
+	'EmiseCO2Specificke',
+	'SnizeniEmisiNedc',
+	'SnizeniEmisiWltp',
+	'EmiseSnizeniNedc',
 	'EmiseSnizeniWltp'
 ])
 const KAROSERIE = new Set<string>([
-	'VozidloKaroserieBarva', 'BarvaDoplnkova', 'VozidloKaroserieBarvaDoplnkova',
-	'VozidloKaroserieMist', 'VozidloKaroserieMistSezeniPozn',
-	'VozidloKaroserieMistStaniPozn', 'VyrobceKaroserie', 'DruhTyp', 'KaroserieDruh',
-	'VyrobniCisloKaroserie', 'KaroserieVyrobniCislo', 'DoplnkovyTextNaTp',
+	'VozidloKaroserieBarva',
+	'BarvaDoplnkova',
+	'VozidloKaroserieBarvaDoplnkova',
+	'VozidloKaroserieMist',
+	'VozidloKaroserieMistSezeniPozn',
+	'VozidloKaroserieMistStaniPozn',
+	'VyrobceKaroserie',
+	'DruhTyp',
+	'KaroserieDruh',
+	'VyrobniCisloKaroserie',
+	'KaroserieVyrobniCislo',
+	'DoplnkovyTextNaTp',
 	'AlternativniProvedeni'
 ])
 const ROZMERY_HMOTNOSTI = new Set<string>([
-	'Rozmery', 'RozmeryRozvor', 'Rozchod', 'RozmeryDelkaDo', 'RozmeryVyskaDo',
-	'RozmeryLoznaDelka', 'RozmeryLoznaSirka', 'HmotnostiProvozni', 'HmotnostiPripPov',
-	'HmotnostiPripPovN', 'HmotnostiPripPovBrzdenePV', 'HmotnostiPripPovNebrzdenePV',
-	'HmotnostiPripPovJS', 'HmotnostiVozidlaPriTestuWltp', 'HmotnostiTestWltp',
-	'HmotnostiProvozniDo', 'HmotnostiZatizeniSz', 'HmotnostiZatizeniSzTyp',
-	'HmotnostiZatizeniSZ', 'PrumernaHodnotaUzitecnehoZatizeni',
-	'HmotnostUzitecneZatizeniPrumer', 'ObjemCisterny', 'ZatizeniStrechy', 'DelkaDo',
-	'LoznaDelka', 'LoznaSirka', 'VyskaDo'
+	'Rozmery',
+	'RozmeryRozvor',
+	'Rozchod',
+	'RozmeryDelkaDo',
+	'RozmeryVyskaDo',
+	'RozmeryLoznaDelka',
+	'RozmeryLoznaSirka',
+	'HmotnostiProvozni',
+	'HmotnostiPripPov',
+	'HmotnostiPripPovN',
+	'HmotnostiPripPovBrzdenePV',
+	'HmotnostiPripPovNebrzdenePV',
+	'HmotnostiPripPovJS',
+	'HmotnostiVozidlaPriTestuWltp',
+	'HmotnostiTestWltp',
+	'HmotnostiProvozniDo',
+	'HmotnostiZatizeniSz',
+	'HmotnostiZatizeniSzTyp',
+	'HmotnostiZatizeniSZ',
+	'PrumernaHodnotaUzitecnehoZatizeni',
+	'HmotnostUzitecneZatizeniPrumer',
+	'ObjemCisterny',
+	'ZatizeniStrechy',
+	'DelkaDo',
+	'LoznaDelka',
+	'LoznaSirka',
+	'VyskaDo'
 ])
 const NAPRAVY = new Set<string>([
-	'NapravyPocetDruh', 'NapravyPneuRafky', 'VozidloSpojZarizNazev'
+	'NapravyPocetDruh',
+	'NapravyPneuRafky',
+	'VozidloSpojZarizNazev'
 ])
 const HLUK_RYCHLOST = new Set<string>([
-	'HlukStojiciOtacky', 'HlukJizda', 'NejvyssiRychlost', 'NejvyssiRychlostOmezeni'
+	'HlukStojiciOtacky',
+	'HlukJizda',
+	'NejvyssiRychlost',
+	'NejvyssiRychlostOmezeni'
 ])
 
 function categoryOf(key: string): CategoryId {
@@ -320,9 +411,361 @@ function categoryOf(key: string): CategoryId {
 	return 'ostatni'
 }
 
+// --- Composite-field formatting (mirrors src/utils/vehicleFieldFormat.ts) ------
+// Many registry fields pack several sub-values into one string with a `|`/`/`
+// separator hierarchy and frequently-empty parts. We parse each into labelled
+// segments (Variant 2), dropping empty/placeholder-zero parts POSITIONALLY — the
+// label is paired with a fixed index, so dropping a middle part never re-indexes
+// the survivors. Falls back to the raw value for shapes that don't match.
+// See docs/plans/2026-07-10-001-improve-technical-data-display.md.
+
+export interface FieldSegment {
+	/** e.g. "1. náprava", "město", "přípustná" — omitted for unlabelled parts. */
+	label?: string
+	value: string
+}
+export interface FormattedComposite {
+	segments: FieldSegment[]
+	/** Field-level unit appended once after the last segment (e.g. "kg", "g/km"). */
+	unit?: string
+	/** Render each segment on its own line (long per-axle tyre specs). */
+	multiline?: boolean
+}
+
+/** 'keep' = 0 is a real value; 'empty' = 0 means "not recorded"; 'electric' =
+ *  0 is real only for a BEV (CO₂, zdvihový objem), otherwise a placeholder. */
+type ZeroPolicy = 'keep' | 'empty' | 'electric'
+type CompositeSpec =
+	| {
+			kind: 'split'
+			sep: string
+			parts: { label?: string; unit?: string }[]
+			zero: ZeroPolicy
+			unit?: string
+			/** Render an empty part as "0" instead of dropping it — only where a
+			 *  missing count genuinely means zero (e.g. míst k stání). */
+			fillZero?: boolean
+			/** Strip a leading "- " artifact from each part (e.g. "2/ - 1 PŘEDNÍ"). */
+			stripDash?: boolean
+	  }
+	| {
+			kind: 'axles'
+			groupSep: string
+			zero: ZeroPolicy
+			unit?: string
+			/** Collapse whitespace around inner `/` (weights "960/ 960" → "960/960").
+			 *  Off for tyre specs where the value legitimately contains " / ". */
+			tightSlash?: boolean
+			/** Render each axle on its own line (long per-axle tyre specs). */
+			multiline?: boolean
+	  }
+
+const COMPOSITE_FIELDS: Record<string, CompositeSpec> = {
+	VozidloKaroserieMist: {
+		kind: 'split',
+		sep: '/',
+		zero: 'keep',
+		fillZero: true,
+		parts: [{ label: 'celkem' }, { label: 'k sezení' }, { label: 'k stání' }]
+	},
+	Rozmery: {
+		kind: 'split',
+		sep: '/',
+		zero: 'empty',
+		unit: 'mm',
+		parts: [{ label: 'délka' }, { label: 'šířka' }, { label: 'výška' }]
+	},
+	RozmeryRozvor: {
+		kind: 'split',
+		sep: '/',
+		zero: 'empty',
+		unit: 'mm',
+		parts: [{}]
+	},
+	HmotnostiProvozni: {
+		kind: 'split',
+		sep: '/',
+		zero: 'empty',
+		unit: 'kg',
+		parts: [{}]
+	},
+	MotorZdvihObjem: {
+		kind: 'split',
+		sep: '/',
+		zero: 'electric',
+		unit: 'cm³',
+		parts: [{}]
+	},
+	NejvyssiRychlost: {
+		kind: 'split',
+		sep: '/',
+		zero: 'empty',
+		unit: 'km/h',
+		parts: [{}]
+	},
+	Rozchod: { kind: 'axles', groupSep: '/', zero: 'empty', unit: 'mm' },
+	HmotnostiPripPov: {
+		kind: 'split',
+		sep: '/',
+		zero: 'empty',
+		unit: 'kg',
+		parts: [{ label: 'přípustná' }, { label: 'povolená' }]
+	},
+	HmotnostiPripPovBrzdenePV: {
+		kind: 'split',
+		sep: '/',
+		zero: 'empty',
+		unit: 'kg',
+		parts: [{ label: 'přípustná' }, { label: 'povolená' }]
+	},
+	HmotnostiPripPovNebrzdenePV: {
+		kind: 'split',
+		sep: '/',
+		zero: 'empty',
+		unit: 'kg',
+		parts: [{ label: 'přípustná' }, { label: 'povolená' }]
+	},
+	HmotnostiPripPovJS: {
+		kind: 'split',
+		sep: '/',
+		zero: 'empty',
+		unit: 'kg',
+		parts: [{ label: 'přípustná' }, { label: 'povolená' }]
+	},
+	HmotnostiPripPovN: {
+		kind: 'axles',
+		groupSep: '|',
+		zero: 'empty',
+		unit: 'kg',
+		tightSlash: true
+	},
+	NapravyPneuRafky: {
+		kind: 'axles',
+		groupSep: '|',
+		zero: 'empty',
+		multiline: true
+	},
+	HmotnostiProvozniDo: {
+		kind: 'split',
+		sep: '/',
+		zero: 'empty',
+		unit: 'kg',
+		parts: [{}]
+	},
+	RozmeryLoznaDelka: {
+		kind: 'split',
+		sep: '/',
+		zero: 'empty',
+		unit: 'mm',
+		parts: [{}]
+	},
+	RozmeryLoznaSirka: {
+		kind: 'split',
+		sep: '/',
+		zero: 'empty',
+		unit: 'mm',
+		parts: [{}]
+	},
+	MotorMaxVykon: {
+		kind: 'split',
+		sep: '/',
+		zero: 'empty',
+		parts: [{ unit: 'kW' }, { label: 'při', unit: 'min⁻¹' }]
+	},
+	NapravyPocetDruh: {
+		// "2/ - 1 PŘEDNÍ" → počet náprav 2 · poháněná 1 PŘEDNÍ (drop the "- " artifact)
+		kind: 'split',
+		sep: '/',
+		zero: 'keep',
+		stripDash: true,
+		parts: [{ label: 'počet' }, { label: 'poháněná' }]
+	},
+	HlukJizda: {
+		kind: 'split',
+		sep: '/',
+		zero: 'empty',
+		parts: [{ unit: 'dB(A)' }]
+	},
+	SpotrebaNa100Km: {
+		kind: 'split',
+		sep: '/',
+		zero: 'empty',
+		unit: 'l/100 km',
+		parts: [
+			{ label: 'město' },
+			{ label: 'mimo město' },
+			{ label: 'kombinovaná' }
+		]
+	},
+	SpotrebaPriRychlosti: {
+		// Same quantity in two units (g/km and l/100 km) — units, not labels.
+		kind: 'split',
+		sep: '/',
+		zero: 'empty',
+		parts: [{ unit: 'g/km' }, { unit: 'l/100 km' }]
+	},
+	EmiseCO2: {
+		kind: 'split',
+		sep: '/',
+		zero: 'electric',
+		unit: 'g/km',
+		parts: [
+			{ label: 'město' },
+			{ label: 'mimo město' },
+			{ label: 'kombinovaná' }
+		]
+	},
+	EmiseEHKOSNEHSES: {
+		// The ES/EU part itself contains "/" (e.g. "566/2011F"), so the two
+		// homologation fields are separated by " / " (spaces), not a bare "/".
+		kind: 'split',
+		sep: ' / ',
+		zero: 'keep',
+		parts: [{ label: 'EHK-OSN' }, { label: 'ES/EU' }]
+	},
+	HlukStojiciOtacky: {
+		kind: 'split',
+		sep: '/',
+		zero: 'empty',
+		parts: [
+			{ label: 'hluk', unit: 'dB(A)' },
+			{ label: 'otáčky', unit: 'min⁻¹' }
+		]
+	}
+}
+
+/** A raw sub-part carrying no data: only punctuation/whitespace. */
+function isEmptySubpart(v: string): boolean {
+	return v.replace(/[.,;|/\s-]/g, '') === ''
+}
+/** "0", "0.0", "0 0" — a zero placeholder (before unit). */
+function isZeroLike(v: string): boolean {
+	return /^0+([.,]0+)?$/.test(v.replace(/\s/g, ''))
+}
+
+/**
+ * Parse a composite registry field into labelled segments. Returns:
+ *  - `null`  → not a composite field (caller uses default formatting)
+ *  - `'hide'`→ every part empty after policy (caller drops the field)
+ *  - segments→ labelled parts ready to render on either surface.
+ */
+export function formatCompositeField(
+	key: string,
+	raw: string,
+	opts: { electric: boolean }
+): FormattedComposite | 'hide' | null {
+	const spec = COMPOSITE_FIELDS[key]
+	if (!spec) return null
+	const dropZero =
+		spec.zero === 'empty' || (spec.zero === 'electric' && !opts.electric)
+	const isEmpty = (v: string): boolean =>
+		isEmptySubpart(v) || (dropZero && isZeroLike(v.trim()))
+
+	const segments: FieldSegment[] = []
+	if (spec.kind === 'split') {
+		const raws = String(raw).split(spec.sep)
+		let hasReal = false
+		spec.parts.forEach((p, i) => {
+			let v = (raws[i] ?? '').trim()
+			if (spec.stripDash) v = v.replace(/^[-–]\s*/, '').trim()
+			if (isEmpty(v)) {
+				if (!spec.fillZero) return
+				v = '0'
+			} else {
+				hasReal = true
+			}
+			segments.push({ label: p.label, value: p.unit ? `${v} ${p.unit}` : v })
+		})
+		// fillZero fabricates "0" for empty parts; if EVERY part was empty the
+		// whole field is meaningless (e.g. seats " /  / ") — drop it entirely so
+		// the PDF matches the web, which already hides the blank raw value.
+		if (spec.fillZero && !hasReal) return 'hide'
+	} else {
+		String(raw)
+			.split(spec.groupSep)
+			.forEach((g, i) => {
+				let v = g.trim()
+				if (isEmpty(v)) return
+				if (spec.tightSlash) v = v.replace(/\s*\/\s*/g, '/')
+				segments.push({ label: `${i + 1}. náprava`, value: v })
+			})
+	}
+	if (segments.length === 0) return 'hide'
+	return {
+		segments,
+		unit: spec.unit,
+		multiline: spec.kind === 'axles' ? spec.multiline : undefined
+	}
+}
+
+// Vehicle category (J) — https://cs.wikipedia.org/wiki/Kategorie_vozidel
+const CATEGORY_LABELS_MAP: Record<string, string> = {
+	M1: 'osobní automobil',
+	M2: 'autobus (do 5 t)',
+	M3: 'autobus (nad 5 t)',
+	N1: 'nákladní (do 3,5 t)',
+	N2: 'nákladní (3,5–12 t)',
+	N3: 'nákladní (nad 12 t)',
+	O1: 'přípojné (do 0,75 t)',
+	O2: 'přípojné (0,75–3,5 t)',
+	O3: 'přípojné (3,5–10 t)',
+	O4: 'přípojné (nad 10 t)',
+	T: 'traktor',
+	C: 'pásový traktor',
+	R: 'přípojné zemědělské',
+	S: 'tažené stroje'
+}
+
+// Registration-plate type by "Varianta RZ" code range.
+const RZ_VARIANT_RANGES: [number, number, string][] = [
+	[101, 119, 'běžná (silniční)'],
+	[131, 138, 'manipulační'],
+	[151, 158, 'zemědělská / pracovní'],
+	[161, 178, 'vývozní (převozní)'],
+	[201, 219, 'diplomatická'],
+	[221, 239, 'diplomatická (omezená)'],
+	[241, 259, 'ambasáda – služební personál'],
+	[261, 278, 'honorární konzul'],
+	[351, 357, 'zkušební'],
+	[401, 419, 'historické vozidlo'],
+	[501, 519, 'sportovní vozidlo'],
+	[581, 599, 'sportovní vozidlo'],
+	[602, 602, 'nosič jízdních kol'],
+	[701, 719, 'na přání'],
+	[801, 819, 'elektromobil']
+]
+
+/**
+ * Map a coded scalar value ("M1", "101") to "code – human label". Returns null
+ * for keys/values without a mapping (caller keeps the raw value).
+ */
+export function mapCodeValue(key: string, raw: string): string | null {
+	const v = raw.trim()
+	if (key === 'Palivo') {
+		return formatFuel(v)
+	}
+	if (key === 'Kategorie') {
+		const label =
+			CATEGORY_LABELS_MAP[v.toUpperCase()] ??
+			(/^L\d/i.test(v) ? 'motocykl / moped' : null)
+		return label ? `${v} – ${label}` : null
+	}
+	if (key === 'VariantaRz' || key === 'RzVarianta') {
+		const n = Number.parseInt(v, 10)
+		if (Number.isNaN(n)) return null
+		const hit = RZ_VARIANT_RANGES.find(([lo, hi]) => n >= lo && n <= hi)
+		return hit ? `${v} – ${hit[2]}` : null
+	}
+	return null
+}
+
 export interface TechnicalField {
 	label: string
 	value: string
+	/** Present for composite fields — labelled parts (Variant 2). */
+	segments?: FieldSegment[]
+	unit?: string
+	multiline?: boolean
 }
 export interface TechnicalGroup {
 	label: string
@@ -338,11 +781,28 @@ export function buildTechnicalGroups(
 ): TechnicalGroup[] {
 	const buckets = new Map<CategoryId, TechnicalField[]>()
 	for (const id of CATEGORY_ORDER) buckets.set(id, [])
+	const electric =
+		String(data['VozidloElektricke'] ?? '').toUpperCase() === 'ANO'
 	for (const [key, value] of Object.entries(data)) {
-		if (SUMMARY_FIELDS.has(key) || isBlank(value)) continue
+		if (SUMMARY_FIELDS.has(key)) continue
+		const composite = formatCompositeField(key, String(value ?? ''), {
+			electric
+		})
+		if (composite === 'hide') continue
+		if (composite) {
+			buckets.get(categoryOf(key))?.push({
+				label: formatFieldName(key),
+				value: formatValue(value),
+				segments: composite.segments,
+				unit: composite.unit,
+				multiline: composite.multiline
+			})
+			continue
+		}
+		if (isBlank(value)) continue
 		buckets.get(categoryOf(key))?.push({
 			label: formatFieldName(key),
-			value: formatValue(value)
+			value: mapCodeValue(key, String(value)) ?? formatValue(value)
 		})
 	}
 	return CATEGORY_ORDER.filter((id) => (buckets.get(id)?.length ?? 0) > 0).map(

@@ -1097,7 +1097,10 @@ img {
    size, and only shrink it when the tile itself is too narrow to fit it. */
 .stat-tile-value--status {
 	font-size: 1rem;
-	white-space: nowrap;
+	/* Multi-word statuses ("VYŘAZENO Z PROVOZU") wrap at spaces; a single long
+	   word breaks rather than overflowing the tile. The container query below
+	   shrinks the font first so short statuses still fit on one line. */
+	overflow-wrap: anywhere;
 }
 @container (max-width: 150px) {
 	.stat-tile-value--status {

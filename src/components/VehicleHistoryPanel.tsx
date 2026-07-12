@@ -162,15 +162,12 @@ const VehicleHistoryPanel: FC<{
 											{fmtDate(c.from)} – {c.current ? 'dosud' : fmtDate(c.to)}
 										</span>
 										<span>
-											{c.subjectType === 'company' && c.ico ? (
-												<>
-													<Link to={`/firma/${c.ico}`}>
-														{c.nazev ?? `IČO ${c.ico}`}
-													</Link>
-													<span className='text-muted-ink'> · IČO {c.ico}</span>
-												</>
+											{/* GDPR: entity names are never shown. A row with an IČO shows
+											    the public identifier, linked to our company (fleet) page. */}
+											{c.ico ? (
+												<Link to={`/firma/${c.ico}`}>IČO {c.ico}</Link>
 											) : c.subjectType === 'company' ? (
-												(c.nazev ?? 'Firma')
+												<span className='text-muted-ink'>Firma</span>
 											) : c.subjectType === 'private' ? (
 												<span className='text-muted-ink'>Soukromá osoba</span>
 											) : (
@@ -312,9 +309,12 @@ const VehicleHistoryPanel: FC<{
 									</li>
 								))}
 							</ul>
-							<div className='text-muted-ink mt-2' style={{ fontSize: '0.8rem' }}>
-								Záznamy STK a stavu tachometru jsou dostupné zhruba od roku 2009;
-								starší prohlídky nemusí být evidovány.
+							<div
+								className='text-muted-ink mt-2'
+								style={{ fontSize: '0.8rem' }}
+							>
+								Záznamy STK a stavu tachometru jsou dostupné zhruba od roku
+								2009; starší prohlídky nemusí být evidovány.
 							</div>
 						</>
 					) : (

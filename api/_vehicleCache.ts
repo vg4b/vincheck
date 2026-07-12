@@ -350,7 +350,8 @@ function buildPrediction(
 	avgKmPerYear: number | null,
 	rollbackSuspected: boolean
 ): VehicleHistory['mileage']['prediction'] {
-	if (avgKmPerYear == null || avgKmPerYear <= 0 || rollbackSuspected) return null
+	if (avgKmPerYear == null || avgKmPerYear <= 0 || rollbackSuspected)
+		return null
 	if (readings.length < 2) return null
 
 	const first = readings[0]
@@ -429,7 +430,13 @@ function computeMileage(
 
 	const prediction = buildPrediction(readings, avgKmPerYear, rollbackSuspected)
 
-	return { latestKm: last.km, readings, rollbackSuspected, avgKmPerYear, prediction }
+	return {
+		latestKm: last.km,
+		readings,
+		rollbackSuspected,
+		avgKmPerYear,
+		prediction
+	}
 }
 
 /**
@@ -481,112 +488,110 @@ export async function lookupVehicleFromCache(
 		imports,
 		mileageRows
 	] = await Promise.all([
-			p.query(
-				// kod_stk '9999' is the registry sentinel for synthetic administrative
-				// records ("Administrativní omezení - nové vozidlo": a new vehicle's
-				// initial STK validity, not a real inspection). Keep it in the due-date
-				// max() filters (it's the valid STK source for a brand-new car) but
-				// exclude it from the inspection counts/stations so we don't present it
-				// as a real pravidelná kontrola.
-				`SELECT
+		p.query(
+			// kod_stk '9999' is the registry sentinel for synthetic administrative
+			// records ("Administrativní omezení - nové vozidlo": a new vehicle's
+			// initial STK validity, not a real inspection). Keep it in the due-date
+			// max() filters (it's the valid STK source for a brand-new car) but
+			// exclude it from the inspection counts/stations so we don't present it
+			// as a real pravidelná kontrola.
+			`SELECT
         max(platnost_do) FILTER (WHERE typ LIKE 'P%' AND aktualni = 'True') AS pravidelna,
         max(platnost_do) FILTER (WHERE typ LIKE 'E%' AND aktualni = 'True') AS evidencni,
         count(*) FILTER (WHERE coalesce(kod_stk,'') <> '9999') AS total,
         count(*) FILTER (WHERE stav IN ('B','C') AND coalesce(kod_stk,'') <> '9999') AS failed,
         count(DISTINCT kod_stk) FILTER (WHERE coalesce(kod_stk,'') <> '9999') AS stations
        FROM vehicle_inspections WHERE pcv = $1`,
-				[pcv]
-			),
-			p.query(
-				`SELECT
+			[pcv]
+		),
+		p.query(
+			`SELECT
         count(*) FILTER (WHERE vztah_k_vozidlu IN ('1','3','4')) AS vlastniku,
         count(*) FILTER (WHERE vztah_k_vozidlu = '2') AS provozovatelu,
         count(DISTINCT nazev) FILTER (WHERE typ_subjektu = '2') AS companies,
         bool_or(typ_subjektu = '2') AS ever_company,
         bool_or(typ_subjektu = '2' AND aktualni = 'True') AS current_company
        FROM vehicle_owners WHERE pcv = $1`,
-				[pcv]
-			),
-			p.query(
-				`SELECT source_snapshot::text AS snapshot FROM cache_meta WHERE dataset = 'vypis_vozidel'`
-			),
-			p.query(
-				// Full owner/operator timeline (all subject types), oldest first.
-				// Individuals are anonymised at the source (ico/nazev null); we map
-				// the subject type so the UI can label them without exposing PII.
-				`SELECT ico, nazev, datum_od, datum_do, aktualni, vztah_k_vozidlu, typ_subjektu
+			[pcv]
+		),
+		p.query(
+			`SELECT source_snapshot::text AS snapshot FROM cache_meta WHERE dataset = 'vypis_vozidel'`
+		),
+		p.query(
+			// Full owner/operator timeline (all subject types), oldest first.
+			// Individuals are anonymised at the source (ico/nazev null); we map
+			// the subject type so the UI can label them without exposing PII.
+			`SELECT ico, nazev, datum_od, datum_do, aktualni, vztah_k_vozidlu, typ_subjektu
        FROM vehicle_owners
        WHERE pcv = $1
        ORDER BY datum_od ASC NULLS FIRST, datum_do ASC NULLS LAST
        LIMIT 100`,
-				[pcv]
-			),
-			p.query(
-				// Full STK inspection history (newest first). Includes the synthetic
-				// administrative records (kod_stk '9999' = "nové vozidlo") — useful
-				// context, flagged via kod_stk so the UI marks them as administrative
-				// rather than a real pravidelná inspection. Capped high enough to cover
-				// any real vehicle.
-				`SELECT platnost_od, platnost_do, stav, nazev_stk, typ, kod_stk
+			[pcv]
+		),
+		p.query(
+			// Full STK inspection history (newest first). Includes the synthetic
+			// administrative records (kod_stk '9999' = "nové vozidlo") — useful
+			// context, flagged via kod_stk so the UI marks them as administrative
+			// rather than a real pravidelná inspection. Capped high enough to cover
+			// any real vehicle.
+			`SELECT platnost_od, platnost_do, stav, nazev_stk, typ, kod_stk
        FROM vehicle_inspections
        WHERE pcv = $1
        ORDER BY platnost_od DESC NULLS LAST
        LIMIT 100`,
-				[pcv]
-			),
-			p.query(
-				`SELECT datum_od, datum_do, duvod
+			[pcv]
+		),
+		p.query(
+			`SELECT datum_od, datum_do, duvod
        FROM vehicle_deregistration
        WHERE pcv = $1
        ORDER BY datum_od DESC NULLS LAST`,
-				[pcv]
-			),
-			p
-				.query(
-					`SELECT stat, datum_dovozu
+			[pcv]
+		),
+		p
+			.query(
+				`SELECT stat, datum_dovozu
        FROM vehicle_imports
        WHERE pcv = $1
        ORDER BY datum_dovozu DESC NULLS LAST`,
-					[pcv]
-				)
-				// Imports are an optional enrichment — never let them break the core
-				// lookup. Tolerate a not-yet-migrated table (42P01 = undefined_table,
-				// safe to deploy before the table exists) and a missing grant (42501),
-				// degrading to "no imports".
-				.catch((e: { code?: string }) => {
-					if (e?.code === '42P01' || e?.code === '42501') {
-						if (e.code === '42501') {
-							console.warn(
-								'vehicle_imports: permission denied for vincheck_api'
-							)
-						}
-						return { rows: [] as Array<Record<string, unknown>> }
+				[pcv]
+			)
+			// Imports are an optional enrichment — never let them break the core
+			// lookup. Tolerate a not-yet-migrated table (42P01 = undefined_table,
+			// safe to deploy before the table exists) and a missing grant (42501),
+			// degrading to "no imports".
+			.catch((e: { code?: string }) => {
+				if (e?.code === '42P01' || e?.code === '42501') {
+					if (e.code === '42501') {
+						console.warn('vehicle_imports: permission denied for vincheck_api')
 					}
-					throw e
-				}),
-			p
-				.query(
-					// Odometer history by VIN (ISTP open data). Same fault-tolerance as
-					// imports: degrade to "no readings" if the table isn't migrated yet
-					// (42P01) or the read-only user lacks the grant (42501).
-					`SELECT inspection_date::text AS d, odometer_km AS km, cislo_protokolu AS protocol
+					return { rows: [] as Array<Record<string, unknown>> }
+				}
+				throw e
+			}),
+		p
+			.query(
+				// Odometer history by VIN (ISTP open data). Same fault-tolerance as
+				// imports: degrade to "no readings" if the table isn't migrated yet
+				// (42P01) or the read-only user lacks the grant (42501).
+				`SELECT inspection_date::text AS d, odometer_km AS km, cislo_protokolu AS protocol
        FROM vehicle_inspection_odometer
        WHERE vin = $1 AND odometer_km IS NOT NULL
        ORDER BY inspection_date ASC`,
-					[String(row.vin ?? '')]
-				)
-				.catch((e: { code?: string }) => {
-					if (e?.code === '42P01' || e?.code === '42501') {
-						if (e.code === '42501') {
-							console.warn(
-								'vehicle_inspection_odometer: permission denied for vincheck_api'
-							)
-						}
-						return { rows: [] as Array<Record<string, unknown>> }
+				[String(row.vin ?? '')]
+			)
+			.catch((e: { code?: string }) => {
+				if (e?.code === '42P01' || e?.code === '42501') {
+					if (e.code === '42501') {
+						console.warn(
+							'vehicle_inspection_odometer: permission denied for vincheck_api'
+						)
 					}
-					throw e
-				})
-		])
+					return { rows: [] as Array<Record<string, unknown>> }
+				}
+				throw e
+			})
+	])
 
 	const data: Record<string, unknown> = {}
 	for (const [col, apiKey] of Object.entries(COLUMN_TO_API_KEY)) {
@@ -617,17 +622,19 @@ export async function lookupVehicleFromCache(
 	const latestRow = recentRows[0]
 	const distinctStations = Number(insp.stations ?? 0)
 
-	// Full owner/operator timeline. Individuals (subjectType 'private') and
-	// unidentified rows carry no ico/nazev — null them defensively so no PII can
-	// leak even if the source ever populated them.
+	// Full owner/operator timeline. GDPR: entity names are NEVER exposed —
+	// companies and self-employed individuals (OSVČ) alike carry a personal-data
+	// risk in `nazev` (an OSVČ's name is their own), so we drop the name entirely
+	// and surface only the public IČO for legal-entity (ROS) rows. Individuals
+	// (ROB) and unidentified rows carry no ico either. The frontend/PDF turn the
+	// IČO into a link to the official public registers.
 	const timeline = (ownerRows.rows as Array<Record<string, unknown>>).map(
 		(r) => {
 			const subject = subjectType(r.typ_subjektu)
-			const isCompany = subject === 'company'
 			return {
 				subjectType: subject,
-				ico: isCompany ? nullIfEmpty(r.ico) : null,
-				nazev: isCompany ? nullIfEmpty(r.nazev) : null,
+				ico: subject === 'company' ? nullIfEmpty(r.ico) : null,
+				nazev: null,
 				from: nullIfEmpty(r.datum_od),
 				to: nullIfEmpty(r.datum_do),
 				current: nullIfEmpty(r.aktualni)?.toLowerCase() === 'true',

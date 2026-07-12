@@ -8,12 +8,14 @@
  * CommonJS, so it is pulled in via a dynamic `import()` at call time. JSX is
  * avoided (no tsx/jsx config needed); the tree is built with createElement (`e`).
  *
- * GDPR: individuals in the timeline are already anonymised upstream (ico/nazev
- * null). Only company owners are named. Never add buyer PII to the document.
+ * GDPR: entity names are never shown in the timeline — companies and
+ * self-employed individuals (OSVČ) alike are reduced to their public IČO
+ * (linked to the official registers); private individuals show as "Soukromá
+ * osoba". Names are dropped upstream (nazev null). Never add buyer PII either.
  */
 import path from 'node:path'
-import { createElement as e, type ReactNode } from 'react'
 import QRCode from 'qrcode'
+import { createElement as e, type ReactNode } from 'react'
 import type { VehicleCacheResult } from './_vehicleCache'
 import { buildTechnicalGroups, resolveBrandModel } from './_vehicleFieldLabels'
 
@@ -98,6 +100,13 @@ const styles = {
 	},
 	cellLabel: { width: '40%', color: MUTED },
 	cellValue: { width: '60%', fontWeight: 700 },
+	// Labelled composite parts: muted normal-weight label/unit/separator runs
+	// nested inside the bold value cell.
+	segLabel: { color: MUTED, fontWeight: 400 },
+	segMuted: { color: MUTED, fontWeight: 400 },
+	// Multi-line composite value cell (one axle per line).
+	cellValueCol: { width: '60%' },
+	segLineValue: { fontWeight: 700, marginBottom: 1 },
 	tlRow: {
 		flexDirection: 'row',
 		paddingVertical: 3,
@@ -106,6 +115,7 @@ const styles = {
 	},
 	tlDate: { width: '34%', color: MUTED },
 	tlMain: { width: '46%' },
+	tlLink: { width: '46%', color: BRAND, textDecoration: 'none' },
 	tlTag: { width: '20%', textAlign: 'right', color: MUTED },
 	tlRowZebra: { backgroundColor: '#f8fafc' },
 	flag: {
@@ -201,6 +211,15 @@ const RELATION_LABEL: Record<string, string> = {
 	other: 'jiný vztah'
 }
 
+// Official public-registers search (justice ministry) for a given IČO. We never
+// show the entity's name on the certificate (GDPR — OSVČ names are personal
+// data); the reader can look it up here from the public identifier instead.
+function registryUrl(ico: string): string {
+	return `https://verejnerejstriky.msp.gov.cz/vysledky?resultsType=search&hledanyText=${encodeURIComponent(
+		ico
+	)}&rejstriky=VR`
+}
+
 // Matches StkResult in src/types: pass | defects | unfit | unknown.
 const STK_LABEL: Record<string, string> = {
 	pass: 'Způsobilé',
@@ -246,7 +265,7 @@ export async function renderCertificatePdf(
 	meta: CertificateMeta
 ): Promise<Buffer> {
 	// ESM-only package — dynamic import keeps this CommonJS module compiling.
-	const { Document, Page, View, Text, Image, Font, renderToBuffer } =
+	const { Document, Page, View, Text, Link, Image, Font, renderToBuffer } =
 		await import('@react-pdf/renderer')
 
 	// Embed a Czech-capable TTF once per process (built-in Helvetica drops
@@ -458,17 +477,23 @@ export async function renderCertificatePdf(
 								{ style: styles.tlDate, key: 'd' },
 								`${fmtDate(t.from)} – ${t.current ? 'dosud' : fmtDate(t.to)}`
 							),
-							e(
-								Text,
-								{ style: styles.tlMain, key: 'm' },
-								t.subjectType === 'company'
-									? t.ico
-										? `${t.nazev ?? `IČO ${t.ico}`} · IČO ${t.ico}`
-										: (t.nazev ?? 'Firma')
-									: t.subjectType === 'private'
-										? 'Soukromá osoba'
-										: 'Neuvedeno'
-							),
+							// Entity names are never shown (GDPR); a row with an IČO shows the
+							// public identifier, linked to the official public registers.
+							t.ico
+								? e(
+										Link,
+										{ style: styles.tlLink, key: 'm', src: registryUrl(t.ico) },
+										`IČO ${t.ico}`
+									)
+								: e(
+										Text,
+										{ style: styles.tlMain, key: 'm' },
+										t.subjectType === 'company'
+											? 'Firma'
+											: t.subjectType === 'private'
+												? 'Soukromá osoba'
+												: 'Neuvedeno'
+									),
 							e(
 								Text,
 								{ style: styles.tlTag, key: 't' },
@@ -666,16 +691,60 @@ export async function renderCertificatePdf(
 
 	// Technical data — grouped into the same labeled sections as the detail page.
 	const techGroups = buildTechnicalGroups(data)
+	// Render a composite field's labelled parts as nested runs in the value cell:
+	// "celkem 5 · k sezení 5" (labels muted, values bold), unit once at the end.
+	const segRuns = (f: (typeof techGroups)[number]['fields'][number]) => {
+		const runs: ReactNode[] = []
+		f.segments!.forEach((s, j) => {
+			if (j > 0)
+				runs.push(e(Text, { style: styles.segMuted, key: `s-${j}` }, ' · '))
+			if (s.label)
+				runs.push(
+					e(Text, { style: styles.segLabel, key: `l-${j}` }, `${s.label} `)
+				)
+			runs.push(s.value)
+		})
+		if (f.unit)
+			runs.push(e(Text, { style: styles.segMuted, key: 'u' }, ` ${f.unit}`))
+		return runs
+	}
 	if (techGroups.length > 0) {
-		children.push(secTitle('Technické údaje', 'tech-t'))
-		for (const group of techGroups) {
-			children.push(
-				e(View, { key: `techg-${group.label}`, wrap: false }, [
-					grpTitle(group.label, 'gt'),
-					...group.fields.map((f, i) =>
-						// A long free-text registry dump reads as fine print, stacked
-						// full-width; normal fields keep the two-column label/value row.
-						f.value.length > 80
+		const renderTechGroup = (group: (typeof techGroups)[number]) =>
+			e(View, { key: `techg-${group.label}`, wrap: false }, [
+				grpTitle(group.label, 'gt'),
+				...group.fields.map((f, i) =>
+					// Composite fields render as labelled parts; a long free-text dump
+					// reads as fine print; everything else is a two-column label/value.
+					f.segments
+						? f.multiline
+							? e(View, { style: styles.row, key: `f-${i}` }, [
+									e(Text, { style: styles.cellLabel, key: 'l' }, f.label),
+									e(
+										View,
+										{ style: styles.cellValueCol, key: 'v' },
+										f.segments.map((s, j) =>
+											e(
+												Text,
+												{ style: styles.segLineValue, key: `m-${j}` },
+												s.label
+													? [
+															e(
+																Text,
+																{ style: styles.segLabel, key: 'l' },
+																`${s.label} `
+															),
+															s.value
+														]
+													: [s.value]
+											)
+										)
+									)
+								])
+							: e(View, { style: styles.row, key: `f-${i}` }, [
+									e(Text, { style: styles.cellLabel, key: 'l' }, f.label),
+									e(Text, { style: styles.cellValue, key: 'v' }, segRuns(f))
+								])
+						: f.value.length > 80
 							? e(View, { style: styles.appendixRow, key: `f-${i}` }, [
 									e(Text, { style: styles.appendixLabel, key: 'l' }, f.label),
 									// One entry per line (matches the web). formatValue joins the
@@ -695,9 +764,18 @@ export async function renderCertificatePdf(
 									e(Text, { style: styles.cellLabel, key: 'l' }, f.label),
 									e(Text, { style: styles.cellValue, key: 'v' }, f.value)
 								])
-					)
-				])
-			)
+				)
+			])
+		// Bind the section title to its first group so it never orphans at
+		// a page break (blank gap while its content flows to the next page).
+		children.push(
+			e(View, { key: 'tech-head', wrap: false }, [
+				secTitle('Technické údaje', 'tech-t'),
+				renderTechGroup(techGroups[0])
+			])
+		)
+		for (const group of techGroups.slice(1)) {
+			children.push(renderTechGroup(group))
 		}
 	}
 

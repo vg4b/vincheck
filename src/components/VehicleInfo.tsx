@@ -2,9 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { cebia } from '../config/affiliateCampaigns'
 import { isCertificateEnabled } from '../config/featureFlags'
-import { trackEvent } from '../utils/trackEvent'
 import type { VehicleDataArray, VehicleHistory } from '../types'
-import { formatFuel, fuelBaseLabel } from '../utils/fuelLabels'
+import { fuelBaseLabel } from '../utils/fuelLabels'
+import { trackEvent } from '../utils/trackEvent'
 import {
 	cleanModelName,
 	getDataValue,
@@ -16,11 +16,12 @@ import {
 	groupVehicleFieldsByCategory,
 	type VehicleFieldCategoryId
 } from '../utils/vehicleFieldCategories'
+import { formatCompositeField, mapCodeValue } from '../utils/vehicleFieldFormat'
 import CertificateCheckoutModal from './CertificateCheckoutModal'
 import Icon, { type IconName } from './Icon'
 import ProductComparison from './ProductComparison'
-import VehicleShareBar from './VehicleShareBar'
 import VehicleHistoryPanel from './VehicleHistoryPanel'
+import VehicleShareBar from './VehicleShareBar'
 
 // Display price of our own certificate (final price; we are a neplátce, no VAT).
 // Must match the backend CERTIFICATE_PRICE_CZK env (api/_certificate.ts).
@@ -125,6 +126,10 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	const palivo = getDataValue(data, 'Palivo', '')
 	const statusLabel =
 		getDataValue(data, 'StatusNazev', '') || getDataValue(data, 'Status', '')
+	// A BEV genuinely has 0 CO₂ / 0 displacement — the composite formatter keeps
+	// those zeros only when this is true (otherwise 0 = "not recorded").
+	const isElectric =
+		getDataValue(data, 'VozidloElektricke', '').toUpperCase() === 'ANO'
 
 	const firstRegistrationRaw = getDataValue(
 		data,
@@ -180,7 +185,9 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 	// Labelled subtitle bits so cryptic codes are legible ("Typ V" not bare "V").
 	// The type code is shown only when it isn't already the title.
 	const subtitleParts = [
-		model === typCode || !typCode || typCode.startsWith(model) ? '' : `Typ: ${typCode}`,
+		model === typCode || !typCode || typCode.startsWith(model)
+			? ''
+			: `Typ: ${typCode}`,
 		rokVyroby ? `Rok: ${rokVyroby}` : '',
 		fuelLabel ? `Palivo: ${fuelLabel}` : ''
 	].filter(Boolean)
@@ -191,9 +198,14 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 				(item) =>
 					!VEHICLE_INFO_SUMMARY_FIELDS.has(item.name) &&
 					item.value != null &&
-					!isBlankValue(item.value)
+					!isBlankValue(item.value) &&
+					// Drop composite fields that are empty after the zero policy
+					// (e.g. "Spotřeba při rychlosti 0 /") so the group count matches.
+					formatCompositeField(item.name, String(item.value), {
+						electric: isElectric
+					}) !== 'hide'
 			),
-		[data]
+		[data, isElectric]
 	)
 
 	const groupedData = useMemo(
@@ -444,8 +456,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 							Stav tachometru
 						</span>
 						<span className='stat-tile-value' style={{ fontSize: '1rem' }}>
-							{isCertificateEnabled() &&
-							(history?.mileage?.count ?? 0) > 0 ? (
+							{isCertificateEnabled() && (history?.mileage?.count ?? 0) > 0 ? (
 								<a href='#tachometr'>Zobrazit historii nájezdu ➜</a>
 							) : (
 								<a
@@ -589,22 +600,75 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 								<div className='table-responsive'>
 									<table className='table table-striped table-hover table-sm mb-0 align-middle'>
 										<tbody>
-											{group.items.map((item) => (
-												<tr key={item.name}>
-													<th scope='row' className='w-50'>
-														{item.label}
-													</th>
-													{item.name === 'Palivo' ? (
-														<td>{formatFuel(String(item.value))}</td>
-													) : (
-														<td
-															dangerouslySetInnerHTML={{
-																__html: formatValueHtml(String(item.value))
-															}}
-														/>
-													)}
-												</tr>
-											))}
+											{group.items.map((item) => {
+												// Composite fields render as labelled parts (matches the
+												// certificate); 'hide' drops a field that's empty after
+												// the zero policy (e.g. "Spotřeba při rychlosti 0 /").
+												const composite = formatCompositeField(
+													item.name,
+													String(item.value),
+													{ electric: isElectric }
+												)
+												if (composite === 'hide') return null
+												return (
+													<tr key={item.name}>
+														<th scope='row' className='w-50'>
+															{item.label}
+														</th>
+														{composite ? (
+															<td>
+																{composite.multiline ? (
+																	composite.segments.map((s, i) => (
+																		<div key={i}>
+																			{s.label && (
+																				<span className='text-muted-ink'>
+																					{s.label}{' '}
+																				</span>
+																			)}
+																			{s.value}
+																		</div>
+																	))
+																) : (
+																	<>
+																		{composite.segments.map((s, i) => (
+																			<span key={i}>
+																				{i > 0 && (
+																					<span className='text-muted-ink'>
+																						{' '}
+																						·{' '}
+																					</span>
+																				)}
+																				{s.label && (
+																					<span className='text-muted-ink'>
+																						{s.label}{' '}
+																					</span>
+																				)}
+																				{s.value}
+																			</span>
+																		))}
+																		{composite.unit && (
+																			<span className='text-muted-ink'>
+																				{' '}
+																				{composite.unit}
+																			</span>
+																		)}
+																	</>
+																)}
+															</td>
+														) : mapCodeValue(item.name, String(item.value)) ? (
+															<td>
+																{mapCodeValue(item.name, String(item.value))}
+															</td>
+														) : (
+															<td
+																dangerouslySetInnerHTML={{
+																	__html: formatValueHtml(String(item.value))
+																}}
+															/>
+														)}
+													</tr>
+												)
+											})}
 											{/* Affiliate row anchored to the engine/fuel table. */}
 											{group.categoryId === 'motor_palivo_spotreba' && (
 												<tr style={{ backgroundColor: 'var(--brand-50)' }}>
@@ -757,7 +821,10 @@ function toNullableNumber(value: string): number | null {
  * with at least one slash-free character (e.g. "5.2 / /") is kept.
  */
 function isBlankValue(value: unknown): boolean {
-	return String(value).replace(/[/\s]/g, '') === ''
+	// Besides empty/slash-only, old registry records store punctuation
+	// placeholders (".", "-", ". / .") where newer ones leave the field empty —
+	// treat those as blank. Mirrors isBlank() in api/_vehicleFieldLabels.ts.
+	return value == null || String(value).replace(/[.,;|\-/\s]/g, '') === ''
 }
 
 function formatValue(value: string): string {
