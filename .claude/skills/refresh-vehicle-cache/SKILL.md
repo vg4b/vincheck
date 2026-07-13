@@ -4,8 +4,8 @@ description: >
   Monthly refresh of the Scaleway vehicle-data cache from the open-data portal
   (download.dataovozidlech.cz). Use when the user wants to update the vehicle
   registry cache, ingest new monthly CSV snapshots, or asks "refresh the vehicle
-  DB / cache". Downloads the 5 RSV datasets, scales the Scaleway node up for the
-  load, runs the bulk ingest, smoke-tests, and scales back down.
+  DB / cache". Handles the 5 RSV datasets — downloading them if needed — runs the
+  bulk ingest (TRUNCATE + COPY + index rebuild), and smoke-tests the result.
 ---
 
 # Refresh the vehicle-data cache
@@ -50,14 +50,32 @@ without first extending the schema + `DATASETS` array.
 
 ## Procedure
 
-1. **(Recommended) Scale the node up for the load.** `DB-DEV-S` (2 GB) does the
-   index rebuild via slow on-disk merge sort (~2–3 h). Temporarily scaling to
-   `DB-GP-XS` (16 GB, ≈ €0.19/h) cuts it to ~30–45 min and costs cents because
-   Scaleway bills hourly. Console → instance → scale to `DB-GP-XS`. Verify the
-   user wants this before doing it, then remember to scale back in step 4.
+1. **(Optional) Scale the node up for the load.** `DB-DEV-S` (2 GB) is fine —
+   measured 2026-07-13: **~75 min total** (31 min COPY across the five CSVs,
+   43 min index rebuild). Default to staying on `DB-DEV-S`; don't scale up out
+   of habit. Only if you need the window shorter, temporarily scale to
+   `DB-GP-XS` (16 GB, ≈ €0.19/h — cents, since Scaleway bills hourly) via
+   Console → instance → scale. Ask the user first, and scale back in step 4.
 
-2. **Run the ingest with `DOWNLOAD=1`** — fetches fresh CSVs, then
-   TRUNCATE → COPY → rebuild indexes → ANALYZE, stamping `cache_meta`:
+2. **Run the ingest.** TRUNCATE → COPY → rebuild indexes → ANALYZE, stamping
+   `cache_meta`.
+
+   **(a) CSVs already on disk** (the user downloaded them by hand — the common
+   case, since the portal files are big and often fetched ahead of time). Omit
+   `DOWNLOAD=1`, or it will re-fetch ~40 GB and overwrite them:
+
+   ```bash
+   cd /Users/vgabriel/repos/vincheck
+   caffeinate -i env DATABASE_URL='<ADMIN_URL>' \
+     CSV_DIR="$HOME/Desktop/datova kostka" \
+     bash scripts/ingest-vehicle-cache.sh 2>&1 | tee /tmp/ingest.log
+   ```
+
+   `caffeinate -i` stops the Mac sleeping mid-load; `tee` keeps a log to check
+   the counts against afterwards. This is a long foreground run — have the user
+   start it in their own terminal rather than blocking the agent session.
+
+   **(b) Let the script fetch the CSVs** with `DOWNLOAD=1`:
 
    ```bash
    DATABASE_URL='<ADMIN_URL>' \
@@ -67,9 +85,9 @@ without first extending the schema + `DATASETS` array.
    ```
 
    The script prints a `cache_meta` table at the end (dataset, snapshot,
-   row_count). Sanity-check the row counts are in the expected ballpark
-   (registry ~19M, inspections ~80M+, owners ~90M+, deregistration ~2M,
-   imports a few M). A
+   row_count). Sanity-check the row counts against the last known-good run
+   (2026-07-01/03 snapshot): registry 19.3M, inspections 83.5M, owners 90.7M,
+   deregistration 1.9M, imports 3.4M — each grows slowly month over month. A
    sharp drop means a truncated download — investigate, don't deploy.
 
    Dev/dry-run variant (first N lines, keeps indexes, no download):
@@ -97,8 +115,7 @@ without first extending the schema + `DATASETS` array.
    npx tsx scripts/test-cache-lookup.ts WVWZZZ1KZDP015799  # known vehicle, PČV 12365572 — expect HIT
    ```
 
-4. **Scale the node back down** to `DB-DEV-S` if you scaled up in step 1.
-   Console → instance → scale to `DB-DEV-S`.
+4. **Scale the node back down** to `DB-DEV-S` — only if you scaled up in step 1.
 
 5. **Report** the new snapshot date + row counts to the user. No deploy needed —
    the live endpoint reads the DB directly; the new snapshot is served
@@ -108,7 +125,17 @@ without first extending the schema + `DATASETS` array.
 
 - The script connects via `DATABASE_URL` if set, else libpq env vars.
 - Snapshot date is parsed from the `RSV_..._YYYYMMDD.csv` filename, or pass
-  `SNAPSHOT=2026-06-12` to override.
+  `SNAPSHOT=2026-06-12` to override. The datasets are published on slightly
+  different days, so `cache_meta` legitimately ends up with mixed
+  `source_snapshot` dates (e.g. 2026-07-13: inspections 2026-07-03, the other
+  four 2026-07-01). Not an error.
+- Startup noise is expected on a refresh: `relation "…" already exists,
+  skipping` from the idempotent migrations, and `index "vehicle_owners_ico_idx"
+  does not exist, skipping` from the index-drop step (owners uses the composite
+  `vehicle_owners_ico_pcv_idx`). Both are harmless.
+- The `odometer` row in `cache_meta` is NOT part of this ingest — it's owned by
+  the weekly `.github/workflows/ingest-odometer.yml` (ISTP) job and lags
+  independently. Don't read its stale snapshot as a failed refresh.
 - Network ACL is `0.0.0.0/0`; encryption + credentials are the only gate.
 - The CSV download itself is the backup — no manual DB snapshot needed.
 - If you want this fully automated, `.github/workflows/ingest-vehicles.yml` is
