@@ -1,11 +1,13 @@
 name: Ingest odometer (ISTP)
 
 # Keeps the odometer cache (vehicle_inspection_odometer) current from the ISTP
-# open data. The source publishes each day's file with a ~2–3 week lag, so a
-# daily run would add no freshness while multiplying DB load — instead we run
-# WEEKLY and re-process a rolling window wide enough to absorb that lag. The load
-# is idempotent (download skips existing within a run; ingest UPSERTs on
-# cislo_protokolu) and never touches the other cache tables.
+# open data. The source publishes each day's file with a ~2–3 week lag (and can
+# stall far longer — it went dark 2026-06-06 → mid-July), so a daily run would
+# add no freshness while multiplying DB load. Instead we run WEEKLY and resume
+# from the newest day we already hold (see "Compute window start"), which absorbs
+# a lag of any length. The load is idempotent (download skips existing within a
+# run; ingest UPSERTs on cislo_protokolu) and never touches the other cache
+# tables.
 #
 # Required secret: SCALEWAY_ADMIN_DATABASE_URL — the admin connection string
 #   (postgres://<admin>:<pw>@<host>:<port>/rdb?sslmode=require). Read+write.
@@ -46,11 +48,35 @@ jobs:
           npm install --no-save --no-package-lock --no-audit --no-fund pg tsx
           mv _package.json package.json
 
+      # Anchor the window to the DATA, not the wall clock. A fixed "35 days ago"
+      # start silently loses days whenever the source stalls longer than the
+      # window: it slid past our newest reading during the 2026-06/07 ISTP
+      # outage, so a catch-up backfill would have been skipped for good while the
+      # job still went green. Instead we resume from the newest day we already
+      # hold (cache_meta.source_snapshot — a GREATEST() high-water mark, O(1) to
+      # read) minus OVERLAP_DAYS. Re-processing those days is free: the ingest
+      # UPSERTs on cislo_protokolu. Empty table / unreachable DB falls back to
+      # the old 35-day window.
       - name: Compute window start
         id: win
+        env:
+          DATABASE_URL: ${{ secrets.SCALEWAY_ADMIN_DATABASE_URL }}
+          OVERLAP_DAYS: '7'
         run: |
           FROM="${{ github.event.inputs.from }}"
-          if [ -z "$FROM" ]; then FROM=$(date -u -d '35 days ago' +%F); fi
+          if [ -z "$FROM" ]; then
+            # Subtract the overlap in Postgres, not in `date` — one round trip,
+            # no shell date-string parsing to get wrong.
+            FROM=$(psql "$DATABASE_URL" -tAc \
+              "SELECT (source_snapshot - MAKE_INTERVAL(days => $OVERLAP_DAYS))::date
+                 FROM cache_meta WHERE dataset = 'odometer'" 2>/dev/null | tr -d '[:space:]' || true)
+            if [ -n "$FROM" ]; then
+              echo "Resuming $OVERLAP_DAYS days before the odometer high-water mark"
+            else
+              FROM=$(date -u -d '35 days ago' +%F)
+              echo "No high-water mark (empty table / DB unreachable) — falling back to a 35-day window"
+            fi
+          fi
           echo "from=$FROM" >> "$GITHUB_OUTPUT"
           echo "Ingesting from $FROM"
 
