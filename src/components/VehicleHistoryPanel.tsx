@@ -343,6 +343,43 @@ const VehicleHistoryPanel: FC<{
 								najdete v certifikátu.
 							</div>
 						)}
+						{/* The predicted current mileage is our one genuinely unique number —
+						    derived from the official STK/emissions readings, and nowhere else
+						    on the market. It leads the panel: it is the single strongest
+						    reason to buy, so it gets the size and contrast to match. */}
+						{mileage.hasPrediction && (
+							<div
+								className='mb-3 p-3 rounded text-center'
+								style={{
+									background: 'var(--brand-50)',
+									border: '1px solid rgba(0, 0, 0, 0.08)'
+								}}
+							>
+								<div className='small text-muted-ink mb-1'>
+									Předpokládaný současný stav tachometru
+								</div>
+								<div
+									className='d-inline-flex align-items-center gap-2 text-brand'
+									style={{
+										fontSize: 'clamp(1.5rem, 5vw, 2rem)',
+										fontWeight: 700,
+										letterSpacing: '0.08em',
+										lineHeight: 1.2
+									}}
+								>
+									<span>•••••• km</span>
+									<Icon name='lock' size={20} />
+								</div>
+								<div
+									className='text-muted-ink mt-1'
+									style={{ fontSize: '0.75rem' }}
+								>
+									Odhad podle ověřené historie nájezdu — přesné číslo najdete v
+									certifikátu.
+								</div>
+							</div>
+						)}
+
 						<div className='small text-muted-ink mb-2'>
 							{mileage.count}{' '}
 							{czPlural(mileage.count, 'záznam', 'záznamy', 'záznamů')} stavu
@@ -353,29 +390,6 @@ const VehicleHistoryPanel: FC<{
 								)})`}
 							.
 						</div>
-
-						{mileage.hasPrediction && (
-							<div
-								className='small mb-3 p-2 rounded'
-								style={{
-									background: 'var(--brand-50)',
-									border: '1px solid rgba(0, 0, 0, 0.06)'
-								}}
-							>
-								<Icon name='lock' size={12} className='text-muted-ink' />{' '}
-								<strong>Předpokládaný současný stav tachometru:</strong>{' '}
-								<span style={{ fontWeight: 600, letterSpacing: '0.1em' }}>
-									•••••• km
-								</span>
-								<span
-									className='d-block text-muted-ink'
-									style={{ fontSize: '0.75rem' }}
-								>
-									Odhad podle ověřené historie nájezdu — orientační číslo
-									najdete v certifikátu.
-								</span>
-							</div>
-						)}
 
 						<ul
 							className='list-unstyled mb-0 small'

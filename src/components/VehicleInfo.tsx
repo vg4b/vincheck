@@ -483,6 +483,29 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 				orv={getDataValue(data, 'CisloOrv', '') || undefined}
 			/>
 
+			{showCertModal && (
+				<CertificateCheckoutModal
+					vin={cleanVin}
+					priceCzk={CERTIFICATE_PRICE_CZK}
+					onClose={() => setShowCertModal(false)}
+				/>
+			)}
+
+			{/* The history panel comes FIRST, deliberately. Its blurred odometer is what
+			    the certificate is for — show the thing worth paying for before naming a
+			    price, rather than opening with a product/price table. */}
+			{history && (
+				<VehicleHistoryPanel
+					history={history}
+					vinCode={vinCode}
+					onUnlock={
+						cleanVin.length === 17
+							? () => openCertModal('mileage_panel')
+							: undefined
+					}
+				/>
+			)}
+
 			{/* Two distinct products, side by side — they do different jobs, so the
 			    user self-selects by need rather than choosing between buttons:
 			    our certificate = the registry record + official STK mileage history
@@ -533,26 +556,6 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 						Prověřit historii ➜
 					</a>
 				</div>
-			)}
-
-			{showCertModal && (
-				<CertificateCheckoutModal
-					vin={cleanVin}
-					priceCzk={CERTIFICATE_PRICE_CZK}
-					onClose={() => setShowCertModal(false)}
-				/>
-			)}
-
-			{history && (
-				<VehicleHistoryPanel
-					history={history}
-					vinCode={vinCode}
-					onUnlock={
-						cleanVin.length === 17
-							? () => openCertModal('mileage_panel')
-							: undefined
-					}
-				/>
 			)}
 
 			{/* Promo section (if provided) */}
@@ -708,43 +711,17 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 							className='btn btn-outline-primary'
 							onClick={handleCebiaClick}
 						>
-							Načíst historii vozidla (nová stránka)
+							Načíst historii vozidla (u partnera)
 						</a>
 					</div>
 				</div>
 			)}
 
-			{/* Banner (max šířka na desktopu – původně 100 % kontejneru působilo přerostle) */}
-			<div className='mt-5 mb-5'>
-				<div className='mx-auto px-1' style={{ maxWidth: 'min(100%, 640px)' }}>
-					<a
-						href={cebia.getGraphicBannerUrl('vehicle_info_banner')}
-						target='_top'
-						rel='noopener noreferrer'
-						className='d-block'
-					>
-						<img
-							src={cebia.getGraphicBannerImage()}
-							alt='Advertisement'
-							className='img-fluid w-100 d-block rounded-2'
-						/>
-					</a>
-				</div>
-				<img
-					style={{
-						border: 0,
-						width: '1px',
-						height: '1px',
-						opacity: 0,
-						position: 'absolute',
-						left: '-9999px'
-					}}
-					src={cebia.getImpressionPixelUrl()}
-					width='1'
-					height='1'
-					alt=''
-				/>
-			</div>
+			{/* The eHub graphic banner used to sit here. Removed: it was the third Cebia
+			    surface on this page (after the comparison card and the "Načíst historii
+			    vozidla" link) and it pushed buyers toward a pricier competing product at
+			    the bottom of our own funnel. It also carried no click tracking, so it
+			    never produced a single attributable partner_click. */}
 		</div>
 	)
 }
