@@ -44,8 +44,11 @@ function isLiveMode(): boolean {
  * us run a full end-to-end test on the real production deployment (correct webhook
  * URL + prod DB) against Comgate's virtual bank — no card is charged and the
  * payment shows under portal → Testovací platby. Unset it to go live again.
+ *
+ * Exported so the certificate events can be stamped with `testMode` — a test
+ * purchase is otherwise indistinguishable from a real sale in the `events` table.
  */
-function useTestPayment(): boolean {
+export function isTestPayment(): boolean {
 	if (process.env.PAYMENTS_TEST_MODE === 'true') return true
 	return !isLiveMode()
 }
@@ -162,7 +165,7 @@ async function comgateCreateCheckout(
 		url_pending: params.pendingUrl ?? params.successUrl,
 		// Notification URL is set in the Comgate portal (e-shop connection); it must
 		// point at /api/certificate/webhook.
-		...(useTestPayment() ? { test: 'true' } : {})
+		...(isTestPayment() ? { test: 'true' } : {})
 	})
 
 	if (out.get('code') !== '0') {
@@ -209,7 +212,10 @@ async function comgateVerifyWebhook(
 export function webhookAckBody(): { contentType: string; body: string } {
 	return PAYMENT_PROVIDER === 'comgate'
 		? { contentType: 'text/plain', body: 'code=0&message=OK' }
-		: { contentType: 'application/json', body: JSON.stringify({ received: true }) }
+		: {
+				contentType: 'application/json',
+				body: JSON.stringify({ received: true })
+			}
 }
 
 // --- Lemon Squeezy (Merchant of Record, JSON:API) — kept as a fallback ------

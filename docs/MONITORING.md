@@ -16,12 +16,35 @@ Lightweight, zero-cost monitoring of the core flows. Two sinks, both best-effort
 |-----------------------|--------------------------------------|---------------|
 | `vin_lookup`          | `api/vehicle.ts`                     | `by` (vin/tp/orv), `source` (cache/live) |
 | `client_op`           | `api/client/*`                       | `endpoint`, `method`, `userId` |
-| `certificate_created` | `api/certificate` (create)           | `code`, `vin` (masked), `amountCzk` |
-| `certificate_issued`  | `api/certificate` (webhook, paid)    | `code`, `vin` (masked), `amountCzk` |
-| `certificate_error`   | `api/certificate` (checkout failure) | `stage`, `vin` (masked) |
+| `certificate_created` | `api/certificate` (create)           | `code`, `vin` (masked), `amountCzk`, `provider`, `testMode` |
+| `certificate_issued`  | `api/certificate` (webhook, paid)    | `code`, `vin` (masked), `amountCzk`, `provider`, `testMode` |
+| `certificate_error`   | `api/certificate` (checkout + webhook failures) | `stage` (`checkout` / `webhook_no_code` / `webhook_unknown_code`), `vin` (masked) |
+
+Client-fired funnel events (added 2026-07-07), posted from the frontend via
+`POST /api/certificate/track` — they show the drop between viewing a detail page
+and starting a purchase:
+
+| `type`                | Fired when |
+|-----------------------|------------|
+| `comparison_view`     | the user sees the certificate comparison block |
+| `cert_cta_click`      | the user clicks the certificate CTA |
+| `checkout_modal_open` | the checkout modal opens |
+| `partner_click`       | an outbound partner link is clicked |
 
 VINs are always masked in stored props. No personal data is logged (client ops
 store only the user id).
+
+## ⚠️ `testMode`: never compute revenue without it
+
+`PAYMENTS_TEST_MODE=true` runs a full purchase against the **real production
+deployment** (correct webhook URL + prod DB) using the provider's test gateway —
+no card is charged. Such a sale writes a `certificate_issued` event that is
+otherwise **identical to a real one**, `amountCzk: 99` and all.
+
+Every revenue/conversion query must therefore filter `props->>'testMode' = 'false'`.
+Events written before 2026-07-13 carry **no** `testMode` prop at all, so sales
+from that period cannot be split into real vs test after the fact — treat their
+revenue as an upper bound.
 
 ## Alerts
 
@@ -55,11 +78,25 @@ FROM events
 WHERE type = 'vin_lookup' AND created_at > now() - interval '14 days'
 GROUP BY day ORDER BY day;
 
--- Certificates sold + revenue, last 30 days
+-- Certificates sold + revenue, last 30 days (REAL sales only — see testMode above)
 SELECT count(*) AS sold,
        coalesce(sum((props->>'amountCzk')::int), 0) AS revenue_czk
 FROM events
-WHERE type = 'certificate_issued' AND created_at > now() - interval '30 days';
+WHERE type = 'certificate_issued'
+  AND props->>'testMode' = 'false'
+  AND created_at > now() - interval '30 days';
+
+-- Checkout abandonment: created but never issued (real sales only)
+SELECT c.props->>'code' AS code, c.created_at
+FROM events c
+WHERE c.type = 'certificate_created'
+  AND c.props->>'testMode' = 'false'
+  AND NOT EXISTS (
+    SELECT 1 FROM events i
+    WHERE i.type = 'certificate_issued'
+      AND i.props->>'code' = c.props->>'code'
+  )
+ORDER BY c.created_at DESC;
 
 -- Client-zone usage by endpoint
 SELECT props->>'endpoint' AS endpoint, props->>'method' AS method, count(*)
