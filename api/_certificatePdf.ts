@@ -367,6 +367,10 @@ export async function renderCertificatePdf(
 		flagNodes.push(
 			e(Text, { style: styles.flag, key: 'ins' }, 'Zaniklé pojištění')
 		)
+	// NOTE: usage signals from the equipment records (ex-autoškola, ex-IZS) are
+	// deliberately NOT in this list — it's the stolen/deregistered warning block,
+	// and they are notable history, not defects. They render as informational
+	// notes in the "Výbava a úpravy" section instead, matching the web.
 	if (flagNodes.length > 0) {
 		children.push(
 			e(View, { key: 'flags', style: { marginBottom: 6 } }, flagNodes)
@@ -663,6 +667,78 @@ export async function renderCertificatePdf(
 				Text,
 				{ style: styles.note, key: 'imp-note' },
 				'Český registr neobsahuje historii ze země původu.'
+			)
+		)
+	}
+
+	// Equipment / modifications — mirrors the web. Optional: snapshots frozen
+	// before this feature shipped carry no `equipment` key.
+	const equipment = history.equipment?.items ?? []
+	if (equipment.length > 0) {
+		children.push(secTitle('Doplňkové vybavení zapsané v registru', 'eq-t'))
+
+		// What this section IS — without it a bare "Klimatizace, Katalyzátor" list
+		// reads like a factory equipment spec. Wording matches the web.
+		children.push(
+			e(
+				Text,
+				{ style: styles.note, key: 'eq-intro' },
+				'Vybavení a úpravy, které byly na vozidlo dodatečně namontovány a zapsány do registru silničních vozidel — nejde o výbavu vozu z výroby.'
+			)
+		)
+
+		// Usage signals as informational notes — wording matches the web
+		// (VehicleHistoryPanel usageNotes). Not in the red flag block above: an
+		// ex-autoškola or ex-fleet car is notable history, not a defect.
+		const eqFlags = history.equipment?.flags
+		const notes: string[] = []
+		if (eqFlags?.drivingSchool)
+			notes.push(
+				'Evidováno dvojí ovládání — vozidlo mohlo sloužit jako autoškola.'
+			)
+		if (eqFlags?.emergency)
+			notes.push(
+				'Evidován maják (modrý/červený) — vozidlo mohlo sloužit u složek IZS.'
+			)
+		if (eqFlags?.utility)
+			notes.push(
+				'Evidován oranžový maják — vozidlo mohlo sloužit jako služební/údržbové.'
+			)
+		if (eqFlags?.heavyDuty)
+			notes.push(
+				'Evidována nástavba pro těžký provoz (ruka, pluh, nakladač apod.).'
+			)
+		for (const [i, n] of notes.entries()) {
+			children.push(e(Text, { style: styles.note, key: `eq-n-${i}` }, n))
+		}
+
+		children.push(
+			e(
+				View,
+				{ key: 'eq' },
+				// Removed equipment stays listed and is labelled as such — the usage
+				// history is the point, not the hardware currently bolted on.
+				equipment.map((item) =>
+					row(
+						item.label,
+						item.removed
+							? `${item.from ? `${fmtDate(item.from)} – ` : 'do '}${fmtDate(item.to)} · odstraněno`
+							: item.from
+								? `od ${fmtDate(item.from)}`
+								: '—',
+						item.type
+					)
+				)
+			)
+		)
+		children.push(
+			e(
+				Text,
+				{ style: styles.note, key: 'eq-note' },
+				// Honesty: absence of an item is NOT evidence the vehicle lacks it.
+				// (Dates are omitted where the registry holds none — a fact about the
+				// dataset, not about this vehicle, so it stays out of the buyer's copy.)
+				'Seznam nemusí být úplný — chybějící položka neznamená, že ji vozidlo nemá.'
 			)
 		)
 	}

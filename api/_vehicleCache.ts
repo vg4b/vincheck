@@ -1,4 +1,5 @@
 import { Pool } from 'pg'
+import { buildEquipment, type VehicleEquipment } from './_vehicleEquipment'
 
 /**
  * Read-only lookup layer over the RSV vehicle-data cache (Scaleway Postgres).
@@ -288,6 +289,16 @@ export type VehicleHistory = {
 		country: string | null
 		date: string | null
 	}>
+	/** Additional equipment / modifications the registry records
+	 *  (vehicle_equipment). Carries usage flags — ex-driving-school, ex-emergency,
+	 *  LPG retrofit — that no other field reveals. ABS/AIRBAG/ASR are excluded:
+	 *  the registry columns already cover them, better. Absence of an item is NOT
+	 *  evidence the vehicle lacks it; the record may simply be incomplete.
+	 *
+	 *  OPTIONAL on purpose: certificates freeze this whole object into the DB, and
+	 *  snapshots sold before this feature shipped have no `equipment` key. Readers
+	 *  must fall back to EMPTY_EQUIPMENT rather than assume it is present. */
+	equipment?: VehicleEquipment
 	/** Odometer/mileage history from the ISTP inspection open data
 	 *  (vehicle_inspection_odometer), one reading per inspection date (same-day
 	 *  STK+emission protocols collapsed). Empty when we have no readings for the
@@ -486,7 +497,8 @@ export async function lookupVehicleFromCache(
 		inspRecent,
 		dereg,
 		imports,
-		mileageRows
+		mileageRows,
+		equipmentRows
 	] = await Promise.all([
 		p.query(
 			// kod_stk '9999' is the registry sentinel for synthetic administrative
@@ -585,6 +597,29 @@ export async function lookupVehicleFromCache(
 					if (e.code === '42501') {
 						console.warn(
 							'vehicle_inspection_odometer: permission denied for vincheck_api'
+						)
+					}
+					return { rows: [] as Array<Record<string, unknown>> }
+				}
+				throw e
+			}),
+		p
+			.query(
+				// Additional equipment / modifications. Same fault-tolerance as imports:
+				// degrade to "no equipment" if the table isn't migrated yet (42P01) or
+				// the read-only user lacks the grant (42501). Ordered oldest-first so
+				// the dedupe in buildEquipment() keeps the earliest fitted date.
+				`SELECT typ, od, do_
+       FROM vehicle_equipment
+       WHERE pcv = $1
+       ORDER BY od ASC NULLS FIRST`,
+				[pcv]
+			)
+			.catch((e: { code?: string }) => {
+				if (e?.code === '42P01' || e?.code === '42501') {
+					if (e.code === '42501') {
+						console.warn(
+							'vehicle_equipment: permission denied for vincheck_api'
 						)
 					}
 					return { rows: [] as Array<Record<string, unknown>> }
@@ -716,6 +751,13 @@ export async function lookupVehicleFromCache(
 			reason: nullIfEmpty(r.duvod)
 		})),
 		imports: importsList,
+		equipment: buildEquipment(
+			equipmentRows.rows as Array<{
+				typ?: unknown
+				od?: unknown
+				do_?: unknown
+			}>
+		),
 		mileage: computeMileage(
 			mileageRows.rows as Array<{ d: string; km: unknown; protocol: unknown }>
 		),

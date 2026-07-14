@@ -35,7 +35,10 @@ export function getCertificatePriceCzk(): number {
 
 /** Public site origin for building success/verify/download URLs. No trailing slash. */
 export function getPublicBaseUrl(): string {
-	return (process.env.PUBLIC_BASE_URL ?? 'https://www.vininfo.cz').replace(/\/$/, '')
+	return (process.env.PUBLIC_BASE_URL ?? 'https://www.vininfo.cz').replace(
+		/\/$/,
+		''
+	)
 }
 
 /** Mask a VIN for public display: keep the first 3 and last 4 chars. */
@@ -145,6 +148,35 @@ export function buildSampleSnapshot(): VehicleCacheResult {
 			},
 			deregistrations: [],
 			imports: [{ country: 'Německo', date: '2018-03-01' }],
+			equipment: {
+				items: [
+					{
+						type: 'TAŽNÉ ZAŘÍZENÍ',
+						label: 'Tažné zařízení',
+						from: '2018-04-12',
+						to: null,
+						removed: false,
+						flag: 'towing'
+					},
+					{
+						type: 'KLIMATIZACE',
+						label: 'Klimatizace',
+						from: null,
+						to: null,
+						removed: false,
+						flag: null
+					}
+				],
+				flags: {
+					drivingSchool: false,
+					emergency: false,
+					utility: false,
+					gasPowered: false,
+					towing: true,
+					heavyDuty: false,
+					adapted: false
+				}
+			},
 			mileage: {
 				latestKm: 142500,
 				readings: [

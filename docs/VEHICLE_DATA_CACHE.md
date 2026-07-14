@@ -24,7 +24,7 @@ Confirmed (2026-05-20) from the open-data portal:
 - **Available range:** snapshots from **November 2025** onwards (older snapshots are in a different format and not published here). Past months are gzipped; the current month is uncompressed.
 - **Cross-dataset join key:** **PČV** (jedinečný identifikátor vozidla). Replaces our earlier "everything keyed by VIN" assumption.
 
-The bulk source is **not** one CSV — it's **seven companion datasets**, all joined by PČV. The live API exposes only dataset #1; the rest is data the API never returns. So this isn't just a cache, it's a **superset**.
+The bulk source is **not** one CSV — it's **seven companion datasets** (six ingested, one rejected), all joined by PČV. The live API exposes only dataset #1; the rest is data the API never returns. So this isn't just a cache, it's a **superset**.
 
 ## Available datasets & strategic priority
 
@@ -34,9 +34,9 @@ The bulk source is **not** one CSV — it's **seven companion datasets**, all jo
 | 2 | `technickeprohlidky` — Technické prohlídky | STK history per vehicle: pass-status (Stav A/B/C), station, validity windows. **No odometer column.** | **P0** | STK pass/fail history + station-shopping anomalies + count of past inspections. Not a Cebia replacement (no mileage in source), still a unique free signal. |
 | 3 | `vlastnikprovozovatelvozidla` — Vlastník/provozovatel | Owner & operator intervals. Legal entities expose IČO + Název + Adresa; individuals are anonymised (only dates + flags). | **P0** | "5 majitelů za 8 let" + ex-fleet detection (IČO match). Used-car valuation signal. |
 | 4 | `vozidlavyrazenazprovozu` — Vyřazená z provozu | Deregistration events (sold abroad / scrapped / totaled). | **P1** | Buyer-safety warning. Small volume, high signal. |
-| 5 | `zpravyvyrobcezastupce` — Zprávy výrobce/zástupce | Open recalls, manufacturer notices. | **P1** | Safety value-add. |
+| 5 | `zpravyvyrobcezastupce` — Zprávy výrobce/zástupce | **Not recalls** (the original assumption was wrong): free-text clerk notes, truncated at 65 chars. | **✗ Rejected** | 1.1% coverage; 32% of rows carry clerk names (GDPR); only signal of value (VIN re-stamping) fires on 1 in 1,480 live vehicles. Assessed + dropped 2026-07-14. |
 | 6 | `vozidladovoz` — Dovezená vozidla | Import country + date (`PČV, Stát, Datum dovozu`). | **P1 — ✅ ingested** | Imported = the CZ registry holds no foreign history, so the paid Cebia report is worth most there. Powers the "Dovezené vozidlo z {země}" badge + an import-targeted Cebia upsell. |
-| 7 | `vozidladoplnkovevybaveni` — Doplňkové vybavení | Accessory list. | **Skip** | Low product value vs. ingest cost. |
+| 7 | `vozidladoplnkovevybaveni` — Doplňkové vybavení | Equipment + modifications per vehicle (`PČV, Typ, Od, Do`), 35 types. | **P1 — ✅ ingested** | Originally dismissed as a mere "accessory list" — wrong. It's the only source of **usage** signals: dual controls = ex-driving-school (21k), beacons = ex-emergency/utility (138k), LPG/CNG retrofit (315k). Powers the "Výbava a úpravy" section + red-flag badges. |
 
 > **Note on date-mismatch heuristics:** the naive "imported = `datum_prvni_registrace_v_cr` > `datum_prvni_registrace`" trick was rejected — it fires on ~40% of the parc and is polluted by sentinel dates (`1900-01-01`, bulk `1981-xx`). The authoritative source is the `vozidladovoz` dataset above, which also gives the country of origin.
 
@@ -128,13 +128,32 @@ the live file (`RSV_vozidla_dovoz_YYYYMMDD.csv`, UTF-8 BOM). Many vehicles have 
 row; non-empty = imported. Column order in `vehicle_imports` matches the header so
 `COPY` needs no column list.
 
-### `zpravyvyrobcezastupce` — Manufacturer notices (P1, 2 cols)
+### `zpravyvyrobcezastupce` — Manufacturer notices (✗ rejected, 2 cols)
 
 `PČV` (int), `Krátký text` (string) — e.g. `ALTERNATIVNÍ PNEU`.
 
-### `vozidladoplnkovevybaveni` — Equipment (skip, 4 cols)
+**Do not ingest.** Despite the name these are not recalls: 269k rows / 217.8k
+distinct PČV (**1.1% coverage**), free text **truncated at 65 chars**, and
+**85,162 rows (32%) embed the clerk's name** (`Zprávu zapsal: …`) — a GDPR
+hazard. The one signal worth anything is VIN re-stamping (`Ražba VIN`, `obnova
+VIN`), which resolves to just **7,320 vehicles still in operation — 1 in 1,480**.
+Full analysis + the decision to drop it:
+`docs/plans/2026-07-14-001-feat-equipment-and-manufacturer-messages.md`.
 
-`PČV` (int), `Typ` (string), `Od`/`Do` (date).
+### `vozidladoplnkovevybaveni` — Equipment (✅ ingested → `vehicle_equipment`, 4 cols)
+
+`PČV` (int), `Typ` (string), `Od`/`Do` (date). 345 MB, 12.48M rows, 8.5M distinct
+PČV (1–8 rows per vehicle), 35 distinct types. **CRLF line endings** — Postgres
+`COPY` strips the `\r` correctly (verified), but any awk/cut preprocessing must
+`tr -d '\r'` first or the `Do` column parses as `\r` instead of empty. Several
+type names carry double spaces (`MAJÁK  ORANŽOVÝ`, `ZVEDACÍ  ČELO`), so matching
+normalises whitespace.
+
+`ABS` / `AIRBAG` / `ASR` rows (4.41M, 35% of the file) are loaded but **never
+displayed**: `vehicle_registry` already has them as dedicated columns in a better
+form (`abs`/`asr` are explicit `True`/`False`, `airbag` is a count). A missing row
+here means "no record", not "no ABS". Classification lives in
+`api/_vehicleEquipment.ts`.
 
 ## Proposed architecture
 
@@ -335,8 +354,9 @@ Keep ≥2 snapshots, diff per-vehicle to detect changes ("Your STK validity was 
 
 | File | Status | Purpose |
 |---|---|---|
-| `scripts/migrations/001_vehicle_cache.sql` | ✅ done | 5 tables (CSV-column-aligned, all TEXT except `pcv BIGINT`) + `cache_meta`. Tables: `vehicle_registry`, `vehicle_inspections`, `vehicle_owners`, `vehicle_deregistration`, `vehicle_imports`. |
-| `scripts/migrations/002_vehicle_cache_indexes.sql` | ✅ done | Indexes (idempotent); dropped/rebuilt around bulk load. Includes `vehicle_imports_pcv_idx`. |
+| `scripts/migrations/001_vehicle_cache.sql` | ✅ done | 6 tables (CSV-column-aligned, all TEXT except `pcv BIGINT`) + `cache_meta`. Tables: `vehicle_registry`, `vehicle_inspections`, `vehicle_owners`, `vehicle_deregistration`, `vehicle_imports`, `vehicle_equipment`. |
+| `scripts/migrations/002_vehicle_cache_indexes.sql` | ✅ done | Indexes (idempotent); dropped/rebuilt around bulk load. Includes `vehicle_imports_pcv_idx`, `vehicle_equipment_pcv_idx`. |
+| `scripts/migrations/005_vehicle_equipment.sql` | ✅ done | `vehicle_equipment` + its index + a role-guarded `GRANT`. Additive: applying it cannot affect the live lookup path. |
 | `scripts/migrations/003_readonly_user.sql` | ✅ done | Creates the read-only `vincheck_api` role + table SELECT grants. `ALTER DEFAULT PRIVILEGES` auto-grants SELECT on tables the admin creates later (e.g. `vehicle_imports`), so a new table is readable without re-running 003. Its `GRANT CONNECT` / `GRANT USAGE` are **no-ops on Scaleway** (admin owns neither the DB nor `public`) — grant DB access via `scw rdb privilege set … permission=readonly` (see Runbook). |
 | `scripts/ingest-vehicle-cache.sh` | ✅ done | Bash + psql `\copy` ingest. Host-agnostic (libpq env / `DATABASE_URL`), optional `DOWNLOAD=1`, `SAMPLE_LINES` for dev, and `ONLY=<dataset key>` to load a single table without touching the others or rebuilding their indexes (used to bootstrap `vehicle_imports`). Replaces the planned `.ts` script (Vercel can't run a 40 GB ingest; bash+psql is the right ops tool). |
 | `api/_vehicleCache.ts` | ✅ done | `pg`-pool lookup. Maps registry columns → live-API PascalCase keys, composes derived fields (incl. `history.imports`), reads snapshot from `cache_meta`. The imports query tolerates a not-yet-migrated table (42P01) / missing grant (42501) so it's safe to deploy before the table exists. |

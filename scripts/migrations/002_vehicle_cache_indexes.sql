@@ -44,3 +44,6 @@ CREATE INDEX IF NOT EXISTS vehicle_deregistration_pcv_idx
 
 CREATE INDEX IF NOT EXISTS vehicle_imports_pcv_idx
   ON vehicle_imports (pcv);
+
+CREATE INDEX IF NOT EXISTS vehicle_equipment_pcv_idx
+  ON vehicle_equipment (pcv);
