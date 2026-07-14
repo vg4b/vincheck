@@ -209,7 +209,7 @@ const TermsPage: React.FC = () => {
 					<p>
 						V případě dotazů nebo připomínek nás kontaktujte:
 						<br />
-						Telefon: +420 774 931 227
+						Telefon: +420 705 903 615
 						<br />
 						E-mail: vininfo(zavináč)mail.vininfo.cz
 					</p>

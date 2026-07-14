@@ -45,7 +45,7 @@ const KontaktPage: React.FC = () => {
 						<ul className='list-unstyled'>
 							<li>
 								<strong>Telefon:</strong>{' '}
-								<a href='tel:+420774931227'>+420 774 931 227</a>
+								<a href='tel:+420705903615'>+420 705 903 615</a>
 							</li>
 							<li>
 								<strong>E-mail:</strong>{' '}
