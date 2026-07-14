@@ -12,17 +12,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { sql } from '@vercel/postgres'
 import { getUserFromToken } from '../_auth'
-import { ensureTables } from '../_db'
-import { sendCertificateEmail, sendOperatorAlert } from '../_email'
-import { logEvent, type EventType } from '../_metrics'
-import { rateLimit } from '../_rateLimit'
-import {
-	createCheckout,
-	PAYMENT_PROVIDER,
-	verifyAndParseWebhook,
-	webhookAckBody
-} from '../_payments'
-import { renderCertificatePdf } from '../_certificatePdf'
 import {
 	buildSampleSnapshot,
 	generateCode,
@@ -31,6 +20,18 @@ import {
 	getPublicBaseUrl,
 	maskVin
 } from '../_certificate'
+import { renderCertificatePdf } from '../_certificatePdf'
+import { ensureTables } from '../_db'
+import { sendCertificateEmail, sendOperatorAlert } from '../_email'
+import { type EventType, logEvent } from '../_metrics'
+import {
+	createCheckout,
+	PAYMENT_PROVIDER,
+	isTestPayment,
+	verifyAndParseWebhook,
+	webhookAckBody
+} from '../_payments'
+import { rateLimit } from '../_rateLimit'
 import {
 	isCacheConfigured,
 	isCacheFresh,
@@ -138,7 +139,10 @@ async function handleSample(req: VercelRequest, res: VercelResponse) {
 		watermark: 'UKÁZKA'
 	})
 	res.setHeader('Content-Type', 'application/pdf')
-	res.setHeader('Content-Disposition', 'inline; filename="certifikat-ukazka.pdf"')
+	res.setHeader(
+		'Content-Disposition',
+		'inline; filename="certifikat-ukazka.pdf"'
+	)
 	// Static content — cache hard at the edge.
 	res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400')
 	return res.status(200).send(pdf)
@@ -177,9 +181,9 @@ async function handleCreate(req: VercelRequest, res: VercelResponse) {
 			.json({ error: 'Je nutné souhlasit s obchodními podmínkami.' })
 	}
 	if (!isCacheConfigured()) {
-		return res
-			.status(503)
-			.json({ error: 'Služba je dočasně nedostupná. Zkuste to prosím později.' })
+		return res.status(503).json({
+			error: 'Služba je dočasně nedostupná. Zkuste to prosím později.'
+		})
 	}
 
 	// Freeze the registry data now so the certificate is immutable. Only sell when
@@ -218,7 +222,10 @@ async function handleCreate(req: VercelRequest, res: VercelResponse) {
 		})
 	} catch (error) {
 		console.error('Checkout creation failed:', error)
-		void logEvent('certificate_error', { stage: 'checkout', vin: maskVin(cleanVin) })
+		void logEvent('certificate_error', {
+			stage: 'checkout',
+			vin: maskVin(cleanVin)
+		})
 		// A failure here means the customer can't even start paying — if it's the
 		// provider/config rather than a fluke, every order is broken, so alert.
 		void sendOperatorAlert('Platbu nelze zahájit', [
@@ -252,10 +259,15 @@ async function handleCreate(req: VercelRequest, res: VercelResponse) {
 		);
 	`
 
+	// testMode + provider make the sale self-identifying: a PAYMENTS_TEST_MODE
+	// purchase runs against the real production deployment and is otherwise
+	// indistinguishable from a real one, so revenue queries MUST filter on it.
 	void logEvent('certificate_created', {
 		code,
 		vin: maskVin(cleanVin),
-		amountCzk
+		amountCzk,
+		provider: PAYMENT_PROVIDER,
+		testMode: isTestPayment()
 	})
 
 	return res.status(201).json({ code, checkoutUrl: checkout.url })
@@ -311,7 +323,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 		SET status = 'issued', issued_at = now()
 		WHERE code = ${parsed.certificateCode}
 			AND status = 'pending'
-		RETURNING code, vin, buyer_email, download_token, amount_czk;
+		RETURNING code, vin, buyer_email, download_token, amount_czk, provider;
 	`
 
 	if (rows.length === 0) {
@@ -342,14 +354,21 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 		buyer_email: string
 		download_token: string
 		amount_czk: number | null
+		provider: string | null
 	}
 
 	// Durable record of the sale (no operator email — the payment provider
 	// notifies of sales; operator alerts are reserved for delivery failures).
+	// testMode marks purchases made against the provider's test gateway (no card
+	// charged) — they are otherwise identical to real sales, so revenue queries
+	// MUST filter them out. provider comes from the row, i.e. the value in force
+	// when the checkout was created, not whatever is configured now.
 	await logEvent('certificate_issued', {
 		code: cert.code,
 		vin: maskVin(cert.vin),
-		amountCzk: cert.amount_czk
+		amountCzk: cert.amount_czk,
+		provider: cert.provider,
+		testMode: isTestPayment()
 	})
 
 	const base = getPublicBaseUrl()
