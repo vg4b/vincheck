@@ -16,6 +16,17 @@ export type StkResult = 'pass' | 'defects' | 'unfit' | 'unknown'
 export type OwnerRelation = 'owner' | 'operator' | 'other'
 export type SubjectType = 'company' | 'private' | 'unknown'
 
+/** Usage signals derived from the registry's equipment records. Mirrors
+ *  `EquipmentFlag` in api/_vehicleEquipment.ts — keep the two in sync. */
+export type EquipmentFlag =
+	| 'drivingSchool'
+	| 'emergency'
+	| 'utility'
+	| 'gasPowered'
+	| 'towing'
+	| 'heavyDuty'
+	| 'adapted'
+
 /** Public-registry "history-lite" composed server-side from the companion
  *  tables; present only on a cache hit. See docs/VEHICLE_HISTORY_PANEL.md. */
 export interface VehicleHistory {
@@ -82,6 +93,31 @@ export interface VehicleHistory {
 		country: string | null
 		date: string | null
 	}>
+	/** Additional equipment / modifications the registry records. The usage flags
+	 *  (ex-driving-school, ex-emergency, LPG retrofit) are the valuable part — no
+	 *  other field reveals them. ABS/airbag/ASR are excluded: the technical data
+	 *  already covers them, better.
+	 *
+	 *  IMPORTANT: the registry's record may be incomplete, so a missing item is
+	 *  NOT evidence the vehicle lacks it. Copy must say "registr eviduje…", never
+	 *  "vozidlo nemá…".
+	 *
+	 *  Optional: absent from certificate snapshots frozen before this shipped, and
+	 *  from responses served by the live-API fallback. */
+	equipment?: {
+		items: Array<{
+			type: string
+			label: string
+			from: string | null
+			/** Removal date, when recorded. Removed items stay listed: the usage
+			 *  history is the point (a beacon removed in 2022 still means years of
+			 *  emergency service), so they are marked, not hidden. */
+			to: string | null
+			removed: boolean
+			flag: EquipmentFlag | null
+		}>
+		flags: Record<EquipmentFlag, boolean>
+	}
 	/** Odometer/mileage TEASER from the official STK/emission inspections (ISTP).
 	 *  Exact km are a paid feature and are NOT sent to the client — only the
 	 *  reading count, the inspection dates (already public via the STK history),

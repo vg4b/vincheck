@@ -35,8 +35,8 @@ const Footer: React.FC = () => {
 							E-mail: vininfo(zavináč)mail.vininfo.cz
 							<br />
 							Tel.:{' '}
-							<a href='tel:+420774931227' className='text-decoration-none'>
-								+420 774 931 227
+							<a href='tel:+420705903615' className='text-decoration-none'>
+								+420 705 903 615
 							</a>
 						</p>
 						{/* <p

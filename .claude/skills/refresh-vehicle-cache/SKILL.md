@@ -19,9 +19,9 @@ operational refresh** — it does NOT change schema or code.
 
 The portal publishes a **full monthly snapshot** (not deltas) on the **12th of
 the following month**. Refresh any time after that. Each refresh TRUNCATEs and
-reloads all five tables — there is no incremental/append mode.
+reloads all six tables — there is no incremental/append mode.
 
-## The 4 datasets (this is the answer to "what to download")
+## The 6 datasets (this is the answer to "what to download")
 
 The ingest script's `DATASETS` array drives everything. Base URL:
 `https://download.dataovozidlech.cz/vypiszregistru/<slug>`
@@ -33,10 +33,13 @@ The ingest script's `DATASETS` array drives everything. Base URL:
 | `vlastnikprovozovatelvozidla` | `vehicle_owners` | `RSV_vlastnik_provozovatel_vozidla_*.csv` |
 | `vozidlavyrazenazprovozu` | `vehicle_deregistration` | `RSV_vozidla_vyrazena_z_provozu_*.csv` |
 | `vozidladovoz` | `vehicle_imports` | `RSV_vozidla_dovoz_*.csv` |
+| `vozidladoplnkovevybaveni` | `vehicle_equipment` | `RSV_vozidla_doplnkove_vybaveni_*.csv` |
 
-The other registry datasets (`zpravyvyrobcezastupce`,
-`vozidladoplnkovevybaveni`) are intentionally NOT ingested. Don't add them here
-without first extending the schema + `DATASETS` array.
+`zpravyvyrobcezastupce` (manufacturer messages) is intentionally NOT ingested —
+1.1% coverage, text truncated at 65 chars, and 32% of rows carry clerk names
+(GDPR). Assessed and dropped 2026-07-14; see
+docs/plans/2026-07-14-001-feat-equipment-and-manufacturer-messages.md. Don't add
+it here without re-reading that decision.
 
 ## Prerequisites
 
@@ -51,7 +54,9 @@ without first extending the schema + `DATASETS` array.
 ## Procedure
 
 1. **(Optional) Scale the node up for the load.** `DB-DEV-S` (2 GB) is fine —
-   measured 2026-07-13: **~75 min total** (31 min COPY across the five CSVs,
+   measured 2026-07-13 (before `vehicle_equipment` was added; the 345 MB /
+   12.5M-row equipment CSV adds to this): **~75 min total** (31 min COPY across
+   the five CSVs,
    43 min index rebuild). Default to staying on `DB-DEV-S`; don't scale up out
    of habit. Only if you need the window shorter, temporarily scale to
    `DB-GP-XS` (16 GB, ≈ €0.19/h — cents, since Scaleway bills hourly) via

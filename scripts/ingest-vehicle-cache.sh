@@ -41,6 +41,7 @@ DATASETS=(
   "vlastnik_provozovatel|vlastnikprovozovatelvozidla|RSV_vlastnik_provozovatel_vozidla_*.csv|vehicle_owners"
   "vozidla_vyrazena|vozidlavyrazenazprovozu|RSV_vozidla_vyrazena_z_provozu_*.csv|vehicle_deregistration"
   "vozidla_dovoz|vozidladovoz|RSV_vozidla_dovoz_*.csv|vehicle_imports"
+  "vozidla_doplnkove_vybaveni|vozidladoplnkovevybaveni|RSV_vozidla_doplnkove_vybaveni_*.csv|vehicle_equipment"
 )
 
 # --- Optional: restrict to a single dataset (ONLY=<dataset key>) ---
@@ -102,6 +103,7 @@ derive_snapshot() {
 echo "→ applying schema migrations"
 "${PSQL[@]}" -f "$MIGRATIONS_DIR/001_vehicle_cache.sql"
 "${PSQL[@]}" -f "$MIGRATIONS_DIR/002_vehicle_cache_indexes.sql"
+"${PSQL[@]}" -f "$MIGRATIONS_DIR/005_vehicle_equipment.sql"
 
 # --- 2. Optionally drop indexes for a faster bulk load (full loads only) ---
 DROP_INDEXES=0
@@ -123,6 +125,7 @@ DROP INDEX IF EXISTS vehicle_owners_ico_idx;
 DROP INDEX IF EXISTS vehicle_owners_ico_pcv_idx;
 DROP INDEX IF EXISTS vehicle_deregistration_pcv_idx;
 DROP INDEX IF EXISTS vehicle_imports_pcv_idx;
+DROP INDEX IF EXISTS vehicle_equipment_pcv_idx;
 SQL
 fi
 

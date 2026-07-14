@@ -163,6 +163,15 @@ CREATE TABLE IF NOT EXISTS vehicle_imports (
   datum_dovozu  TEXT
 );
 
+-- vozidla_doplnkove_vybaveni.csv: 4 cols. Additional equipment / modifications,
+-- many rows per PČV. `do` is a reserved word, hence do_. See 005 for the detail.
+CREATE TABLE IF NOT EXISTS vehicle_equipment (
+  pcv  BIGINT,
+  typ  TEXT,
+  od   TEXT,
+  do_  TEXT
+);
+
 -- One row per ingested dataset. Drives staleness checks in the lookup layer.
 CREATE TABLE IF NOT EXISTS cache_meta (
   dataset          TEXT PRIMARY KEY,

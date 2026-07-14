@@ -12,6 +12,7 @@ DROP TABLE IF EXISTS vehicle_registry CASCADE;
 DROP TABLE IF EXISTS vehicle_inspections CASCADE;
 DROP TABLE IF EXISTS vehicle_owners CASCADE;
 DROP TABLE IF EXISTS vehicle_deregistration CASCADE;
+DROP TABLE IF EXISTS vehicle_equipment CASCADE;
 
 -- vypis_vozidel.csv: 99 columns. Order MUST match the CSV header.
 CREATE TABLE vehicle_registry (
@@ -150,4 +151,13 @@ CREATE TABLE vehicle_deregistration (
   duvod     TEXT,
   rm_kod    TEXT,
   rm_nazev  TEXT
+);
+
+-- vozidla_doplnkove_vybaveni.csv: 4 cols. Many rows per PČV (1-8).
+-- `do` is a reserved word, hence do_.
+CREATE TABLE vehicle_equipment (
+  pcv  BIGINT,
+  typ  TEXT,
+  od   TEXT,
+  do_  TEXT
 );

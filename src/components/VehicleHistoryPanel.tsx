@@ -78,6 +78,39 @@ function buildFlags(h: VehicleHistory): Flag[] {
 }
 
 /**
+ * Usage signals derived from the equipment records — how the vehicle was USED,
+ * which nothing else in the registry reveals. Rendered inside the equipment
+ * card, deliberately NOT alongside the stolen/deregistered warnings: an
+ * ex-autoškola or ex-fleet car is notable history, not a defect, and a red/amber
+ * alert-triangle badge would overstate it. Neutral tone, informational icon.
+ *
+ * The signal stands even when the equipment was later removed — taking the
+ * beacon or the dual controls out before a sale doesn't undo the wear.
+ */
+function usageNotes(h: VehicleHistory): string[] {
+	const eq = h.equipment?.flags
+	if (!eq) return []
+	const notes: string[] = []
+	if (eq.drivingSchool)
+		notes.push(
+			'Evidováno dvojí ovládání — vozidlo mohlo sloužit jako autoškola.'
+		)
+	if (eq.emergency)
+		notes.push(
+			'Evidován maják (modrý/červený) — vozidlo mohlo sloužit u složek IZS.'
+		)
+	if (eq.utility)
+		notes.push(
+			'Evidován oranžový maják — vozidlo mohlo sloužit jako služební/údržbové.'
+		)
+	if (eq.heavyDuty)
+		notes.push(
+			'Evidována nástavba pro těžký provoz (ruka, pluh, nakladač apod.).'
+		)
+	return notes
+}
+
+/**
  * Public-registry "history-lite": one card for owners/flags/deregistration and a
  * separate card for the STK inspection history. Rendered only on a cache hit
  * (the `history` prop is otherwise absent). See docs/VEHICLE_HISTORY_PANEL.md.
@@ -90,6 +123,9 @@ const VehicleHistoryPanel: FC<{
 	onUnlock?: () => void
 }> = ({ history, vinCode, onUnlock }) => {
 	const { owners, inspections, deregistrations, imports, mileage } = history
+	// Absent on certificate snapshots frozen before the equipment feature shipped.
+	const equipment = history.equipment?.items ?? []
+	const notes = usageNotes(history)
 	const flags = buildFlags(history)
 	const cleanVin = vinCode.replace(/[^a-zA-Z0-9]/g, '')
 	// Mileage is a paid-certificate feature — shown only behind the cert flag and
@@ -324,6 +360,77 @@ const VehicleHistoryPanel: FC<{
 					)}
 				</div>
 			</details>
+
+			{/* Equipment & modifications — its own card. Usage signals live here
+			    rather than in the registry card's warning badges: they're notable
+			    history, not defects. */}
+			{equipment.length > 0 && (
+				<details id='vybava' className='spec-group mt-3' open>
+					<summary className='spec-summary'>
+						<Icon name='car' size={18} className='text-brand' />
+						<span>Doplňkové vybavení zapsané v registru</span>
+						<Icon name='chevron-right' size={18} className='spec-chevron' />
+					</summary>
+					<div className='spec-body'>
+						{/* What this section IS. Without this, a bare list reading
+						    "Klimatizace, Katalyzátor" looks like a factory equipment spec and
+						    a buyer could read a missing item as "the car doesn't have it".
+						    It is doplňkové vybavení recorded in the RSV, with from/to dates. */}
+						<div className='small text-muted-ink mb-3'>
+							Vybavení a úpravy, které byly na vozidlo dodatečně namontovány a
+							zapsány do registru silničních vozidel — nejde o výbavu vozu z
+							výroby.
+						</div>
+
+						{notes.length > 0 && (
+							<div className='small mb-3'>
+								{notes.map((n) => (
+									<div key={n} className='d-flex gap-2 align-items-start mb-1'>
+										<Icon
+											name='info'
+											size={14}
+											className='text-brand flex-shrink-0 mt-1'
+										/>
+										<span>{n}</span>
+									</div>
+								))}
+							</div>
+						)}
+
+						<ul className='list-unstyled small mb-2'>
+							{equipment.map((item) => {
+								// Removed equipment stays listed — the usage history IS the point
+								// (a beacon removed in 2022 still means years of emergency
+								// service), so say so rather than hide it. Undated rows are
+								// common: the registry simply holds no date for them.
+								const period = item.removed
+									? `${item.from ? `${fmtDate(item.from)} – ` : 'do '}${fmtDate(item.to)} · odstraněno`
+									: item.from
+										? `od ${fmtDate(item.from)}`
+										: null
+								return (
+									<li key={item.type} className='d-flex flex-wrap gap-2 mb-1'>
+										<span className='badge rounded-pill text-bg-light border'>
+											{item.label}
+										</span>
+										{period && <span className='text-muted-ink'>{period}</span>}
+									</li>
+								)
+							})}
+						</ul>
+
+						{/* Honesty: the registry's record can be incomplete, so a missing
+						    item is NOT evidence the vehicle lacks it. Never phrase this as
+						    "vozidlo nemá…". Dates are simply omitted when the registry holds
+						    none (~65% of rows) — that's a fact about the dataset, not about
+						    the vehicle, so it doesn't belong in the buyer's copy. */}
+						<div className='text-muted-ink' style={{ fontSize: '0.75rem' }}>
+							Seznam nemusí být úplný — chybějící položka neznamená, že ji
+							vozidlo nemá.
+						</div>
+					</div>
+				</details>
+			)}
 
 			{/* Mileage / odometer — paid-certificate teaser. The structure (how many
 			    readings, the year range) and any rollback suspicion are shown to hook

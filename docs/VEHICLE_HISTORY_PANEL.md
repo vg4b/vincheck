@@ -58,6 +58,32 @@ Columns: `typ` (`P…` regular / `E…` evidence), `stav` (`A` pass / `B` defect
 - **statusLabel** = `status` (already mapped to `StatusNazev`)
 - **deregistrations[]** = `{ from, to, reason }`, newest first
 
+### Equipment — `vehicle_equipment` (added 2026-07-14)
+Classified in `api/_vehicleEquipment.ts` (`buildEquipment`), rendered as the
+"Výbava a úpravy" section on the web and in the PDF.
+- **items[]** = `{ type, label, from, to, removed, flag }`. Still-fitted flagged
+  items first, then removed flagged items, then the rest (A–Z within each group).
+  Duplicate types are deduped, preferring the row that is still fitted.
+- **Removed equipment is KEPT, not dropped**, and the usage flag still fires.
+  A blue beacon fitted 2003 and removed 2022 still means ~19 years in emergency
+  service; dual controls pulled out before the sale still mean an ex-autoškola
+  car. Stripping the hardware doesn't strip the wear — and doing it right before
+  selling is exactly the case a buyer needs to see. Removed items render as
+  `6. 2. 2003 – 25. 1. 2022 · odstraněno`.
+- **flags** = usage signals that nothing else in the registry reveals:
+  `drivingSchool` (DVOJÍ OVLÁDÁNÍ — an ex-autoškola car), `emergency` (blue/red
+  beacon), `utility` (orange beacon), `gasPowered` (LPG/CNG), `towing`,
+  `heavyDuty`, `adapted`. `drivingSchool` + `emergency` also surface as badges
+  alongside the stolen/exported flags.
+- **ABS / AIRBAG / ASR are never displayed** — the registry columns already carry
+  them, better (explicit `True`/`False`; airbag as a count).
+- `equipment` is **optional**: certificate snapshots frozen before this shipped
+  have no such key, so readers fall back to `EMPTY_EQUIPMENT`.
+
+> **Honesty:** the registry's equipment record can be incomplete, so a missing
+> item is NOT evidence the vehicle lacks it. Copy says *"Registr eviduje pouze
+> vybrané prvky výbavy — seznam nemusí být úplný."* — never *"vozidlo nemá…"*.
+
 ## Response shape
 
 `history` is **additive and present only on a cache hit** — it does not touch the
