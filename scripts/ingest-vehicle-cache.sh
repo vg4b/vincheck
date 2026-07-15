@@ -99,6 +99,80 @@ derive_snapshot() {
   fi
 }
 
+# --- Tables loaded via atomic swap instead of TRUNCATE + COPY ---
+# For these, an empty/half-loaded table during the refresh is NOT acceptable: a
+# cache miss on the registry falls back to the live API, but an empty *companion*
+# table is a successful lookup that returns nothing — and a certificate sold in
+# that window freezes the empty snapshot forever. So we load into <table>_new and
+# swap it in with a transactional rename (readers see old or new, never empty).
+#
+# Phase A = equipment only. The big companion tables (inspections, owners) also
+# want this but need a bigger volume first — swapping them peaks at old+new on
+# disk, and on the current 85 GB Scaleway volume the largest (inspections, ~14 GB)
+# leaves no safe headroom. See docs/plans/2026-07-14-002-atomic-swap-vehicle-equipment.md.
+SWAP_TABLES=" vehicle_equipment "
+
+is_swap_table() {
+  case "$SWAP_TABLES" in *" $1 "*) return 0 ;; *) return 1 ;; esac
+}
+
+# Load a table via the atomic-swap path. Builds <table>_new (heap + index +
+# grant), guards against a truncated source, then swaps with a transactional
+# rename whose lock is held only for milliseconds.
+load_via_swap() {
+  local table="$1" file="$2" dataset="$3"
+  local newt="${table}_new"
+
+  # Previous row count (guard baseline). 0 on the first run.
+  local prev
+  prev="$("${PSQL[@]}" -tAc \
+    "SELECT coalesce(row_count, 0) FROM cache_meta WHERE dataset = '$dataset'")"
+  prev="${prev:-0}"
+
+  echo "    atomic swap via $newt"
+  "${PSQL[@]}" -c "DROP TABLE IF EXISTS $newt;"
+  "${PSQL[@]}" -c "CREATE TABLE $newt (LIKE $table INCLUDING DEFAULTS);"
+  time "${PSQL[@]}" -c \
+    "\copy $newt FROM '$file' WITH (FORMAT csv, HEADER, ENCODING 'UTF8')"
+
+  local newcount
+  newcount="$("${PSQL[@]}" -tAc "SELECT count(*) FROM $newt")"
+
+  # Guard: never replace a good table with a truncated download. Require at least
+  # 80% of the previous load. Aborts loudly (leaving the live table untouched)
+  # rather than swap in garbage.
+  if [ "$prev" -gt 0 ]; then
+    local floor=$(( prev * 80 / 100 ))
+    if [ "$newcount" -lt "$floor" ]; then
+      echo "ERROR: $newt loaded $newcount rows, below 80% of the previous" >&2
+      echo "       $prev (floor $floor). Refusing to swap; live table kept." >&2
+      "${PSQL[@]}" -c "DROP TABLE IF EXISTS $newt;"
+      exit 1
+    fi
+  fi
+
+  "${PSQL[@]}" -c "CREATE INDEX ${newt}_pcv_idx ON $newt (pcv);"
+  # Role-guarded grant (mirrors migration 005): the swapped-in table is a NEW
+  # relation, so it does not inherit the old table's grant automatically.
+  "${PSQL[@]}" -c \
+    "DO \$\$ BEGIN IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='vincheck_api') THEN GRANT SELECT ON $newt TO vincheck_api; END IF; END \$\$;"
+  "${PSQL[@]}" -c "ANALYZE $newt;"
+
+  # The swap. DDL is transactional in Postgres, so a concurrent reader sees either
+  # the old table or the new one — never an empty one. The lock is held only for
+  # the rename, i.e. milliseconds.
+  "${PSQL[@]}" -c "
+    BEGIN;
+    ALTER TABLE $table RENAME TO ${table}_old;
+    ALTER TABLE $newt RENAME TO $table;
+    ALTER INDEX IF EXISTS ${table}_pcv_idx RENAME TO ${table}_pcv_idx_old;
+    ALTER INDEX ${newt}_pcv_idx RENAME TO ${table}_pcv_idx;
+    DROP TABLE ${table}_old;
+    COMMIT;
+  "
+  echo "    ✓ swapped in $newcount rows (prev $prev)"
+}
+
 # --- 1. Ensure schema exists ---
 echo "→ applying schema migrations"
 "${PSQL[@]}" -f "$MIGRATIONS_DIR/001_vehicle_cache.sql"
@@ -125,8 +199,10 @@ DROP INDEX IF EXISTS vehicle_owners_ico_idx;
 DROP INDEX IF EXISTS vehicle_owners_ico_pcv_idx;
 DROP INDEX IF EXISTS vehicle_deregistration_pcv_idx;
 DROP INDEX IF EXISTS vehicle_imports_pcv_idx;
-DROP INDEX IF EXISTS vehicle_equipment_pcv_idx;
 SQL
+# NB: vehicle_equipment_pcv_idx is intentionally NOT dropped here — that table is
+# swap-managed (see load_via_swap), keeps its index live throughout the load, and
+# the swap builds/renames its own index.
 fi
 
 # --- 3. Load each dataset ---
@@ -149,15 +225,21 @@ for spec in "${DATASETS[@]}"; do
   echo "→ $dataset → $table   (snapshot $snapshot)"
   echo "    file: $file"
 
-  "${PSQL[@]}" -c "TRUNCATE $table;"
-
-  if [ -n "${SAMPLE_LINES:-}" ]; then
-    echo "    sampling: first $SAMPLE_LINES lines"
-    time head -n "$SAMPLE_LINES" "$file" \
-      | "${PSQL[@]}" -c "\copy $table FROM stdin WITH (FORMAT csv, HEADER, ENCODING 'UTF8')"
+  # Swap-managed tables use the zero-blackout path — but NOT under SAMPLE_LINES:
+  # a sampled load must never swap a 200k-row sample over the real table.
+  if is_swap_table "$table" && [ -z "${SAMPLE_LINES:-}" ]; then
+    load_via_swap "$table" "$file" "$dataset"
   else
-    time "${PSQL[@]}" -c \
-      "\copy $table FROM '$file' WITH (FORMAT csv, HEADER, ENCODING 'UTF8')"
+    "${PSQL[@]}" -c "TRUNCATE $table;"
+
+    if [ -n "${SAMPLE_LINES:-}" ]; then
+      echo "    sampling: first $SAMPLE_LINES lines"
+      time head -n "$SAMPLE_LINES" "$file" \
+        | "${PSQL[@]}" -c "\copy $table FROM stdin WITH (FORMAT csv, HEADER, ENCODING 'UTF8')"
+    else
+      time "${PSQL[@]}" -c \
+        "\copy $table FROM '$file' WITH (FORMAT csv, HEADER, ENCODING 'UTF8')"
+    fi
   fi
 
   "${PSQL[@]}" -c "
