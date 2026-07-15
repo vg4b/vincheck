@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { sql } from '@vercel/postgres'
-import { requireUserId } from '../_auth'
-import { ensureTables } from '../_db'
-import { logEvent } from '../_metrics'
+import { requireUserId } from './_auth'
+import { ensureTables } from './_db'
+import { logEvent } from './_metrics'
 
 const NOTE_MAX_LENGTH = 70
 const KM_MIN = 0
@@ -41,7 +41,7 @@ const parseDate = (value: unknown): string | null => {
 	return match[0]
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export async function handleOdometer(req: VercelRequest, res: VercelResponse) {
 	await ensureTables()
 
 	const userId = requireUserId(req, res)

@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { sql } from '@vercel/postgres'
-import { ensureTables } from '../_db'
-import { getUserById, requireUserId } from '../_auth'
-import { logEvent } from '../_metrics'
+import { ensureTables } from './_db'
+import { getUserById, requireUserId } from './_auth'
+import { logEvent } from './_metrics'
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export async function handlePreferences(req: VercelRequest, res: VercelResponse) {
 	await ensureTables()
 
 	const userId = requireUserId(req, res)

@@ -1,13 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { sql } from '@vercel/postgres'
-import { ensureTables } from '../_db'
-import { requireUserId } from '../_auth'
-import { logEvent } from '../_metrics'
+import { ensureTables } from './_db'
+import { requireUserId } from './_auth'
+import { logEvent } from './_metrics'
 import {
 	isCacheConfigured,
 	isCacheFresh,
 	lookupVehicleFromCache
-} from '../_vehicleCache'
+} from './_vehicleCache'
 
 const getQueryString = (
 	value: string | string[] | undefined
@@ -57,7 +57,7 @@ async function refreshVehicleSnapshot(
 	return v
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export async function handleVehicles(req: VercelRequest, res: VercelResponse) {
 	await ensureTables()
 
 	const userId = requireUserId(req, res)
