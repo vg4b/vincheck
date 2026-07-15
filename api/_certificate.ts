@@ -148,6 +148,8 @@ export function buildSampleSnapshot(): VehicleCacheResult {
 			},
 			deregistrations: [],
 			imports: [{ country: 'Německo', date: '2018-03-01' }],
+			// Imported, so the "poprvé registrováno v ČR" note must NOT render.
+			firstRegisteredInCz: false,
 			equipment: {
 				items: [
 					{

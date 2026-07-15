@@ -93,6 +93,22 @@ export interface VehicleHistory {
 		country: string | null
 		date: string | null
 	}>
+	/** True when the vehicle's first registration anywhere was in the CZ AND the
+	 *  registry holds no import record. Surface this as those two facts only —
+	 *  do NOT claim the history is "complete". A vehicle first registered here,
+	 *  later exported and re-imported WITHOUT the re-import being recorded is
+	 *  undetectable: the registry keeps no export history (deregistration has no
+	 *  export reason, and status reflects only the current state). That case is
+	 *  ~0.1% of vehicles this flag is true for; stating what the registry records
+	 *  stays true even then, asserting completeness would not.
+	 *
+	 *  NEVER invert this into "vozidlo nebylo dovezeno". A missing import record
+	 *  does not prove a vehicle wasn't imported (13.3% of near-certain imports have
+	 *  no import row), so `false` means "we don't know", not "not imported" — and
+	 *  the UI must stay silent in that case rather than reassure the buyer.
+	 *
+	 *  Optional: absent from snapshots frozen before this shipped. */
+	firstRegisteredInCz?: boolean
 	/** Additional equipment / modifications the registry records. The usage flags
 	 *  (ex-driving-school, ex-emergency, LPG retrofit) are the valuable part — no
 	 *  other field reveals them. ABS/airbag/ASR are excluded: the technical data
