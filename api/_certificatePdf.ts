@@ -671,6 +671,30 @@ export async function renderCertificatePdf(
 		)
 	}
 
+	// Counterpart to the import section — two provable facts, not an inference:
+	// the first registration was in the CZ, and the registry holds no import
+	// record. We do NOT claim the history is complete: a car first registered
+	// here, later exported and re-imported without that being recorded is
+	// undetectable (the registry keeps no export history). Never assert "nebylo
+	// dovezeno" either. Wording matches the web (VehicleHistoryPanel).
+	if (history.imports.length === 0 && history.firstRegisteredInCz) {
+		children.push(secTitle('Původ vozidla', 'orig-t'))
+		children.push(
+			e(
+				View,
+				{ key: 'orig' },
+				row('První registrace', 'Česká republika', 'orig-r')
+			)
+		)
+		children.push(
+			e(
+				Text,
+				{ style: styles.note, key: 'orig-note' },
+				'Vozidlo bylo poprvé registrováno v ČR. Registr neeviduje dovoz ze zahraničí.'
+			)
+		)
+	}
+
 	// Equipment / modifications — mirrors the web. Optional: snapshots frozen
 	// before this feature shipped carry no `equipment` key.
 	const equipment = history.equipment?.items ?? []

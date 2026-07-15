@@ -237,6 +237,31 @@ const VehicleHistoryPanel: FC<{
 						</div>
 					)}
 
+					{/* Counterpart to the import note, stated as TWO PROVABLE FACTS rather
+					    than an inference:
+					      1. first registration anywhere was in the CZ (dates match), and
+					      2. the registry holds no import record.
+					    We deliberately do NOT claim "historie je kompletní". A vehicle first
+					    registered here, later exported and then re-imported WITHOUT the
+					    re-import being recorded is undetectable in our data — the registry
+					    keeps no export history (vehicle_deregistration has no export reason,
+					    and `status` only reflects the CURRENT state). That case is ~0.1% of
+					    the vehicles this note fires on. Saying what the registry records
+					    stays true even then; asserting completeness would not.
+
+					    And never invert this into "nebylo dovezeno": 13.3% of near-certain
+					    imports carry no import row, so absence proves nothing. When
+					    firstRegisteredInCz is false we stay silent. */}
+					{imports.length === 0 && history.firstRegisteredInCz && (
+						<div className='small mt-3'>
+							<Icon name='check-circle' size={14} className='text-brand' />{' '}
+							<strong>Vozidlo bylo poprvé registrováno v ČR.</strong>
+							<div className='text-muted-ink'>
+								Registr neeviduje dovoz ze zahraničí.
+							</div>
+						</div>
+					)}
+
 					{/* External legal/financing check. Temporarily hidden — flip to re-enable. */}
 					{SHOW_CHECKLEASE_LINK && cleanVin.length === 17 && (
 						<div className='small mt-3'>

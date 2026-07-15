@@ -289,6 +289,20 @@ export type VehicleHistory = {
 		country: string | null
 		date: string | null
 	}>
+	/** True when the vehicle's FIRST registration anywhere was in the CZ, i.e. the
+	 *  Czech registry should cover its whole life and there is no foreign-history
+	 *  gap. Derived from datum_prvni_registrace == datum_prvni_registrace_v_cr
+	 *  plus the absence of an import record.
+	 *
+	 *  This is deliberately a POSITIVE claim. We must never assert the negative
+	 *  ("nebylo dovezeno") from a missing import row: measured on the 2026-07
+	 *  snapshot, 13.3% of vehicles first registered abroad ≥2 years before their
+	 *  CZ registration carry NO import row, so absence proves nothing. Both dates
+	 *  matching, on the other hand, holds for 65.5% of operated vehicles and
+	 *  contradicts an import record only 0.74% of the time.
+	 *
+	 *  Optional: absent from certificate snapshots frozen before this shipped. */
+	firstRegisteredInCz?: boolean
 	/** Additional equipment / modifications the registry records
 	 *  (vehicle_equipment). Carries usage flags — ex-driving-school, ex-emergency,
 	 *  LPG retrofit — that no other field reveals. ABS/AIRBAG/ASR are excluded:
@@ -751,6 +765,20 @@ export async function lookupVehicleFromCache(
 			reason: nullIfEmpty(r.duvod)
 		})),
 		imports: importsList,
+		// Positive claim only — see the type doc. Both dates must be present and
+		// plausible (plausibleDate drops the 1900-01-01 sentinels, which would
+		// otherwise "match" each other and fake a domestic first registration), and
+		// no import record may contradict them.
+		firstRegisteredInCz: (() => {
+			const first = plausibleDate(nullIfEmpty(row.datum_prvni_registrace))
+			const inCz = plausibleDate(nullIfEmpty(row.datum_prvni_registrace_v_cr))
+			return (
+				first != null &&
+				inCz != null &&
+				first === inCz &&
+				importsList.length === 0
+			)
+		})(),
 		equipment: buildEquipment(
 			equipmentRows.rows as Array<{
 				typ?: unknown
