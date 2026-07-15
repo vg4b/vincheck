@@ -157,10 +157,31 @@ costs the disk.
 **Recommendation / sequencing decision (2026-07-15):**
 1. **Phase A now** — shipped on `feat/equipment-atomic-swap`. Deploy before the
    next ingest so the next refresh already runs zero-blackout.
-2. **Phase B only after resizing the volume** (to ~120 GB gives real margin). The
-   "before or after next ingest" question is moot — timing stops mattering once
-   the disk fits; the gate is the resize, not the ingest cadence. Do NOT attempt B
-   on the current 85 GB volume.
+2. **Live with Phase A; do NOT resize the volume just for Phase B.** Scaleway block
+   volumes **cannot be shrunk** ([docs](https://www.scaleway.com/en/docs/managed-databases-for-postgresql-and-mysql/how-to/manage-volumes/)),
+   so bumping 85 → 120 GB is a permanent, irreversible cost. Phase B only buys the
+   elimination of a *rare* risk (a certificate sold during the ~10–15 min/month
+   window while inspections/owners reload), which does not justify a forever cost
+   increase at current certificate volume.
+
+   Cheap mitigations instead, no disk cost:
+   - **Run the monthly ingest off-peak (≈ 3–4 AM CET)** — collapses the probability
+     of a sale landing in the window; a page view self-heals anyway, only a *sold
+     cert* freezes bad data. (Now documented in the refresh-vehicle-cache skill.)
+   - *Optional, later:* a `refresh_in_progress` flag in `cache_meta` that the
+     certificate **purchase** path checks and briefly defers — closes the only hole
+     that truly matters (a permanently-wrong paid PDF). Hold until cert volume
+     justifies it.
+
+3. **The natural trigger for Phase B: the next capacity-driven resize.** The volume
+   is already **~82% full (69.38 / 85 GB) and grows every month** — the odometer
+   table appends weekly, and the monthly snapshots creep up as the fleet grows. A
+   resize for *capacity* is likely coming within months regardless. When it does,
+   size it generously and **Phase B rides along for free** — the headroom will
+   already be there and the irreversible cost is one you were going to pay anyway.
+   Don't spend an irreversible resize *on Phase B*; fold Phase B into the resize
+   you'll be forced into. Revisit sooner only if certificate volume grows enough
+   that a ~15 min/month window starts catching real sales.
 
 ## Verification
 

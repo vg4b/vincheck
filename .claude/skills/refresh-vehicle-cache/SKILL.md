@@ -18,8 +18,20 @@ operational refresh** — it does NOT change schema or code.
 ## When it runs
 
 The portal publishes a **full monthly snapshot** (not deltas) on the **12th of
-the following month**. Refresh any time after that. Each refresh TRUNCATEs and
-reloads all six tables — there is no incremental/append mode.
+the following month**. Refresh any time after that. Each refresh reloads all six
+tables — there is no incremental/append mode. Five tables use TRUNCATE + COPY;
+`vehicle_equipment` uses an atomic swap (see gotchas).
+
+**Run it at a low-traffic hour (≈ 3–4 AM CET).** The TRUNCATE + COPY tables are
+empty/partial for the duration of their COPY (the big ones — inspections, owners
+— take ~10–15 min combined). During that window a page view shows incomplete
+history (self-heals on next load) and, worse, **a certificate sold in that window
+freezes the incomplete snapshot into the DB permanently**. Running off-peak makes
+a sale landing in the window negligible. `vehicle_equipment` is already immune (it
+swaps atomically); the remaining exposure is the other companion tables, and this
+scheduling is the cheap mitigation for them — see
+`docs/plans/2026-07-14-002-atomic-swap-vehicle-equipment.md` for the full fix
+(Phase B) and why it's deferred.
 
 ## The 6 datasets (this is the answer to "what to download")
 
