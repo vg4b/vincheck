@@ -72,7 +72,10 @@ function SplitBars({
 	limit: number
 	fmtLabel?: (s: string) => string
 }) {
+	// Drop entries that would render as "0 %" (rounds below 1 %) — e.g. Elektro/
+	// Ostatní with a rounding-to-zero share — so no meaningless empty bars show.
 	const rows = Object.entries(split)
+		.filter(([, frac]) => Math.round(frac * 100) >= 1)
 		.sort((a, b) => b[1] - a[1])
 		.slice(0, limit)
 	return (
