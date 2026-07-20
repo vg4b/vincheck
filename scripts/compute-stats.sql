@@ -35,7 +35,18 @@ SELECT
   pcv,
   vin,
   substring(datum_prvni_registrace FROM '^(\d{4})')::int     AS reg_year,
-  coalesce(nullif(btrim(palivo), ''), 'Neuvedeno')           AS fuel,
+  -- Fuel is stored as raw registry codes (BA, NM, "BA 95 B", "BA + LPG", junk
+  -- ".") — fold into buyer-facing categories. LPG/CNG first so bi-fuel ("BA + LPG")
+  -- lands there; NM (incl. "BIO NM") = diesel; BA* = petrol.
+  CASE
+    WHEN palivo IS NULL OR btrim(palivo) IN ('', '.') THEN 'Neuvedeno'
+    WHEN upper(palivo) LIKE '%LPG%' THEN 'LPG'
+    WHEN upper(palivo) LIKE '%CNG%' THEN 'CNG'
+    WHEN upper(palivo) = 'EL' OR upper(palivo) LIKE 'EL %' THEN 'Elektro'
+    WHEN upper(palivo) LIKE '%NM%' THEN 'Nafta'
+    WHEN upper(palivo) LIKE 'BA%' THEN 'Benzín'
+    ELSE 'Ostatní'
+  END                                                        AS fuel,
   nullif(btrim(barva), '')                                   AS color
 FROM vehicle_registry
 WHERE status = 'PROVOZOVANÉ'
@@ -63,9 +74,12 @@ CREATE INDEX ON _cohort (brand, model);
 CREATE TEMP TABLE _fuel ON COMMIT DROP AS
 SELECT brand, model, jsonb_object_agg(fuel, frac ORDER BY frac DESC) AS fuel_split
 FROM (
+  -- Fractions over vehicles with a KNOWN fuel, so the junk/unknown bucket doesn't
+  -- show as a "0 %" row on the page.
   SELECT b.brand, b.model, b.fuel,
          round(count(*)::numeric / sum(count(*)) OVER (PARTITION BY b.brand, b.model), 3) AS frac
   FROM _base b JOIN _cohort c USING (brand, model)
+  WHERE b.fuel <> 'Neuvedeno'
   GROUP BY b.brand, b.model, b.fuel
 ) x
 GROUP BY brand, model;
