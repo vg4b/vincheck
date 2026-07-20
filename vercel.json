@@ -15,7 +15,7 @@
 			"destination": "/api/stats?type=sitemap"
 		},
 		{
-			"source": "/((?!api/|znacky-sitemap.xml|static/|logos/|favicon.ico|manifest.json|logo192.png|logo512.png|robots.txt|asset-manifest.json|site.webmanifest|sitemap.xml|certificate-preview.png).*)",
+			"source": "/((?!api/|znacky-sitemap.xml|seznam-wmt-|static/|logos/|favicon.ico|manifest.json|logo192.png|logo512.png|robots.txt|asset-manifest.json|site.webmanifest|sitemap.xml|certificate-preview.png).*)",
 			"destination": "/index.html"
 		}
 	],
