@@ -9,7 +9,11 @@
  *     → 200 { stats }  |  404 { error }
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { getAllPublishedModels, getModelStatsBySlug } from './_statsData'
+import {
+	getAllPublishedModels,
+	getModelIndex,
+	getModelStatsBySlug
+} from './_statsData'
 
 function q(v: string | string[] | undefined): string {
 	return (Array.isArray(v) ? v[0] : (v ?? '')).toLowerCase()
@@ -33,15 +37,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 	const type = q(req.query.type)
 
+	if (type === 'index') {
+		const models = await getModelIndex()
+		res.setHeader(
+			'Cache-Control',
+			'public, s-maxage=86400, stale-while-revalidate=604800'
+		)
+		return res.status(200).json({ models })
+	}
+
 	if (type === 'sitemap') {
 		const models = await getAllPublishedModels()
 		const base = baseUrl()
-		const urls = models
-			.map((m) => {
-				const loc = xmlEscape(`${base}/znacky/${m.brandSlug}/${m.modelSlug}`)
-				const lastmod = m.lastmod ? `<lastmod>${m.lastmod}</lastmod>` : ''
-				return `  <url><loc>${loc}</loc>${lastmod}<changefreq>monthly</changefreq></url>`
-			})
+		// Hub page first, then every model page.
+		const hubUrl = `  <url><loc>${xmlEscape(`${base}/znacky`)}</loc><changefreq>monthly</changefreq></url>`
+		const urls = [hubUrl]
+			.concat(
+				models.map((m) => {
+					const loc = xmlEscape(`${base}/znacky/${m.brandSlug}/${m.modelSlug}`)
+					const lastmod = m.lastmod ? `<lastmod>${m.lastmod}</lastmod>` : ''
+					return `  <url><loc>${loc}</loc>${lastmod}<changefreq>monthly</changefreq></url>`
+				})
+			)
 			.join('\n')
 		const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

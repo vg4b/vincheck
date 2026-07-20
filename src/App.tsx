@@ -22,6 +22,7 @@ import TermsPage from './pages/TermsPage'
 import UpozorneniNaTerminyPage from './pages/UpozorneniNaTerminyPage'
 import VehicleDetailPage from './pages/VehicleDetailPage'
 import VerifyCertificatePage from './pages/VerifyCertificatePage'
+import ZnackyHubPage from './pages/ZnackyHubPage'
 
 function App() {
 	return (
@@ -57,6 +58,7 @@ function App() {
 				<Route path='/s/:code' element={<VehicleDetailPage type='share' />} />
 				<Route path='/firma' element={<FleetSearchPage />} />
 				<Route path='/firma/:ico' element={<FleetPage />} />
+				<Route path='/znacky' element={<ZnackyHubPage />} />
 				<Route path='/znacky/:brand/:model' element={<BrandModelStatsPage />} />
 				<Route
 					path='/overeny-vypis-vozidla'

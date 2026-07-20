@@ -149,6 +149,14 @@ const Footer: React.FC = () => {
 							</li>
 							<li className='mb-2'>
 								<Link
+									to='/znacky'
+									className='text-muted-ink text-decoration-none small'
+								>
+									Statistiky podle značky
+								</Link>
+							</li>
+							<li className='mb-2'>
+								<Link
 									to='/upozorneni-na-terminy'
 									className='text-muted-ink text-decoration-none small'
 								>

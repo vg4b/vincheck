@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
 import { ApiError, requestJson } from '../utils/apiClient'
+import { niceLabel, titleCase } from '../utils/carLabels'
 
 // Mirror of api/_statsData.ts ModelStats (the JSON shape /api/stats returns).
 interface ModelStats {
@@ -25,28 +26,6 @@ interface ModelStats {
 }
 
 const BASE_URL = 'https://www.vininfo.cz'
-
-// Brands that must NOT be title-cased (acronyms). Everything else: Title Case.
-const KEEP_UPPER = new Set(['BMW', 'VW', 'MG', 'DS', 'KGM', 'DFSK', 'SWM'])
-
-function titleCase(s: string): string {
-	return s
-		.split(/\s+/)
-		.map((w) =>
-			KEEP_UPPER.has(w.toUpperCase())
-				? w.toUpperCase()
-				: w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
-		)
-		.join(' ')
-}
-
-// Title-case an ALL-CAPS registry label, across spaces and hyphens:
-// "ŠEDÁ-METAL" → "Šedá-Metal", "BÍLÁ" → "Bílá".
-function niceLabel(s: string): string {
-	return s
-		.toLowerCase()
-		.replace(/(^|[\s-])(\p{L})/gu, (_m, sep, ch) => sep + ch.toUpperCase())
-}
 
 // Czech number formatting via Intl (space thousands separator, comma decimal).
 const fmtInt = (n: number) => Math.round(n).toLocaleString('cs-CZ')
@@ -255,9 +234,9 @@ const BrandModelStatsPage: React.FC = () => {
 			descParts.push(`${fmtInt(stats.vehicleCount)} vozidel`)
 			const description = `${descParts.join(', ')}.`
 
-			document.title = `${name} — statistiky, spolehlivost a nájezd | VIN Info.cz`
+			document.title = `${name}: statistiky, spolehlivost a nájezd | VIN Info.cz`
 			setMeta('name', 'description', description)
-			setMeta('property', 'og:title', `${name} — statistiky a spolehlivost`)
+			setMeta('property', 'og:title', `${name}: statistiky a spolehlivost`)
 			setMeta('property', 'og:description', description)
 			setMeta('property', 'og:url', canonical)
 			setMeta('property', 'og:type', 'website')
@@ -345,7 +324,7 @@ const BrandModelStatsPage: React.FC = () => {
 
 				{state === 'ok' && stats && (
 					<>
-						<h1 className='mb-2'>{name} — statistiky a spolehlivost</h1>
+						<h1 className='mb-2'>{name}: statistiky a spolehlivost</h1>
 						<p className='text-muted-ink' style={{ fontSize: '1.05rem' }}>
 							Souhrn z veřejného registru silničních vozidel ČR za{' '}
 							{fmtInt(stats.vehicleCount)} provozovaných vozů {name}

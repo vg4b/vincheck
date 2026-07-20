@@ -30,7 +30,29 @@ BEGIN;
 -- year and a non-empty model string. This is the join spine for every metric.
 CREATE TEMP TABLE _base ON COMMIT DROP AS
 SELECT
-  tovarni_znacka                                             AS brand,
+  -- Brand-alias normalisation: the registry's free-text tovarni_znacka carries
+  -- the same maker under several strings (sub-brands, legal names, diacritic and
+  -- OEM-service variants). Fold them to one canonical brand BEFORE grouping so
+  -- their cohorts merge (e.g. CITROEN + CITROËN → one CITROËN, VW → VOLKSWAGEN).
+  -- Model strings are left as-is (kept intentionally granular).
+  CASE upper(btrim(tovarni_znacka))
+    WHEN 'BMW I'                          THEN 'BMW'
+    WHEN 'CITROEN'                        THEN 'CITROËN'
+    WHEN 'TESLA MOTORS'                   THEN 'TESLA'
+    WHEN 'VW'                             THEN 'VOLKSWAGEN'
+    WHEN 'VOLKSWAGEN/FD SERVIS'           THEN 'VOLKSWAGEN'
+    WHEN 'FORD-CNG-TECHNIK'               THEN 'FORD'
+    WHEN 'ŠKODA OCTAVIA'                  THEN 'ŠKODA'
+    WHEN 'VAZ'                            THEN 'LADA'
+    WHEN 'LADA - VAZ'                     THEN 'LADA'
+    WHEN 'GM DAEWOO'                      THEN 'DAEWOO'
+    WHEN 'MCC'                            THEN 'SMART'
+    WHEN 'MICRO COMPACT CAR SMART'        THEN 'SMART'
+    WHEN 'KG MOBILITY'                    THEN 'SSANGYONG'
+    WHEN 'MERCEDES-AMG'                   THEN 'MERCEDES-BENZ'
+    WHEN 'AUTOMOBILI LAMBORGHINI S.P.A.'  THEN 'LAMBORGHINI'
+    ELSE btrim(tovarni_znacka)
+  END                                                        AS brand,
   btrim(regexp_replace(obchodni_oznaceni, '\s+', ' ', 'g'))  AS model,
   pcv,
   vin,

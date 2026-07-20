@@ -133,6 +133,45 @@ export type PublishedModel = {
 	lastmod: string | null
 }
 
+export type IndexModel = {
+	brand: string
+	model: string
+	brandSlug: string
+	modelSlug: string
+	vehicleCount: number
+}
+
+/**
+ * All published cohorts for the /znacky hub: raw names (for display) + slugs (for
+ * links) + count (for ordering/grouping). Ordered by brand then size. Empty on a
+ * missing table/grant.
+ */
+export async function getModelIndex(): Promise<IndexModel[]> {
+	const p = getPool()
+	if (!p) return []
+	try {
+		const { rows } = await p.query(
+			`SELECT brand, model,
+			        ${slugSql('brand')} AS brand_slug,
+			        ${slugSql('model')} AS model_slug,
+			        vehicle_count
+			 FROM stats_model
+			 ORDER BY brand, vehicle_count DESC`
+		)
+		return rows.map((r) => ({
+			brand: String(r.brand),
+			model: String(r.model),
+			brandSlug: String(r.brand_slug),
+			modelSlug: String(r.model_slug),
+			vehicleCount: Number(r.vehicle_count)
+		}))
+	} catch (e: unknown) {
+		const code = (e as { code?: string })?.code
+		if (code === '42P01' || code === '42501') return []
+		throw e
+	}
+}
+
 /**
  * Every published cohort as URL slugs, for the sitemap. Slugs are built in SQL
  * with the SAME fold as slugify()/getModelStatsBySlug, so each emitted URL
