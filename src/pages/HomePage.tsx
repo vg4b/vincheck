@@ -350,38 +350,8 @@ const HomePage: React.FC = () => {
 					<h2 id='search-heading' className='visually-hidden'>
 						Vyhledávání vozidla
 					</h2>
-					<p>
-						Při koupi ojetého vozidla je nezbytné prověřit jeho historii a
-						technický stav. Naše služba umožňuje zdarma zkontrolovat klíčové
-						informace o vozidle přímo z oficiálního registru vozidel České
-						republiky. Stačí zadat VIN kód (17 znaků), číslo TP (6-10 znaků)
-						nebo číslo ORV (5-9 znaků) a během několika sekund získáte přístup k
-						více než 90 údajům o vozidle.
-					</p>
-
 					{showSearch && (
-						<div className='row mt-5' id='searchSection'>
-							<div className='col-md-12 mb-4'>
-								<div className='alert alert-info' role='alert'>
-									<h3 className='h5 mb-2'>Jak zkontrolovat vozidlo?</h3>
-									<p className='mb-2'>
-										<strong>VIN kód</strong> je unikátní 17místný identifikátor
-										vozidla (Vehicle Identification Number), který najdete na
-										technickém průkazu nebo v motorovém prostoru vozidla.
-									</p>
-									<p className='mb-2'>
-										<strong>Číslo TP</strong> (6-10 znaků) je číslo velkého
-										technického průkazu vozidla, které je také unikátní
-										identifikátor vozidla v České republice.
-									</p>
-									<p className='mb-0'>
-										<strong>Číslo ORV</strong> (5-9 znaků) je číslo osvědčení o
-										registraci vozidla, známé také jako "malý techničák". Tento
-										identifikátor můžete použít pro kontrolu vozidla v registru.
-									</p>
-								</div>
-							</div>
-
+						<div className='row' id='searchSection'>
 							<div className='col-12 mb-3'>
 								<label className='form-label'>
 									<strong>Vyberte způsob vyhledávání:</strong>
@@ -445,7 +415,7 @@ const HomePage: React.FC = () => {
 											className='form-control'
 											id='vinInput'
 											name='vin'
-											placeholder='Např. WF0FXXWPCFHD05923'
+											placeholder='Např. WVWZZZ1KZDP015799'
 											value={vin}
 											onChange={handleVinChange}
 											onKeyPress={(e) => handleKeyPress(e, isVinValid)}
@@ -637,6 +607,50 @@ const HomePage: React.FC = () => {
 									</div>
 								</div>
 							)}
+
+							<div className='col-12 mt-4'>
+								<details className='spec-group'>
+									<summary className='spec-summary'>
+										<Icon name='info' size={18} className='text-brand' />
+										<span>Kde najdu VIN, číslo TP nebo ORV?</span>
+										<Icon
+											name='chevron-right'
+											size={18}
+											className='spec-chevron'
+										/>
+									</summary>
+									<div className='spec-body'>
+										<p className='mb-2'>
+											<strong>VIN kód</strong> je unikátní 17místný
+											identifikátor vozidla (Vehicle Identification Number),
+											který najdete na technickém průkazu nebo v motorovém
+											prostoru vozidla.
+										</p>
+										<p className='mb-2'>
+											<strong>Číslo TP</strong> (6-10 znaků) je číslo velkého
+											technického průkazu vozidla, které je také unikátní
+											identifikátor vozidla v České republice.
+										</p>
+										<p className='mb-0'>
+											<strong>Číslo ORV</strong> (5-9 znaků) je číslo osvědčení
+											o registraci vozidla, známé také jako "malý techničák".
+											Tento identifikátor můžete použít pro kontrolu vozidla v
+											registru.
+										</p>
+									</div>
+								</details>
+							</div>
+
+							<div className='col-12 mt-4'>
+								<p className='mb-0'>
+									Při koupi ojetého vozidla je nezbytné prověřit jeho historii a
+									technický stav. Naše služba umožňuje zdarma zkontrolovat
+									klíčové informace o vozidle přímo z oficiálního registru
+									vozidel České republiky. Stačí zadat VIN kód (17 znaků), číslo
+									TP (6-10 znaků) nebo číslo ORV (5-9 znaků) a během několika
+									sekund získáte přístup k více než 90 údajům o vozidle.
+								</p>
+							</div>
 
 							<section
 								className='jumbotron jumbotron-fluid mt-5'
