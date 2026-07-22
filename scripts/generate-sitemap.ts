@@ -6,10 +6,14 @@
  * as a second sitemap.
  *
  * `lastmod` is read from git history for the route's page component, so the
- * dates track real edits instead of drifting into placeholders. Vercel builds
- * from a shallow clone where per-file history is often missing, so every route
- * also pins a `fallback` date: git wins when available, the pin covers the rest.
- * Regenerate and commit whenever you add or retire a public route:
+ * dates track real edits instead of drifting into placeholders. That only works
+ * in a full clone: on a shallow one (Vercel's default) git reports the graft
+ * boundary rather than nothing, so each route also pins a `fallback` date and
+ * shallow builds use the pins exclusively — see IS_SHALLOW below.
+ *
+ * The pins are therefore what production actually serves. Regenerate here (full
+ * clone, real dates), then copy any changed date into its `fallback` and commit
+ * both, whenever you add, retire, or meaningfully edit a public route:
  *
  *   pnpm sitemap
  */
@@ -118,22 +122,33 @@ const ROUTES: Route[] = [
 	}
 ]
 
-/** Author date (yyyy-mm-dd) of the last commit touching the page, or null. */
-function gitLastModified(page: string): string | null {
+function git(args: string[]): string | null {
 	try {
-		const out = execFileSync(
-			'git',
-			['log', '-1', '--format=%as', '--', `src/pages/${page}.tsx`],
-			{
-				cwd: join(__dirname, '..'),
-				encoding: 'utf8',
-				stdio: ['ignore', 'pipe', 'ignore']
-			}
-		).trim()
-		return /^\d{4}-\d{2}-\d{2}$/.test(out) ? out : null
+		return execFileSync('git', args, {
+			cwd: join(__dirname, '..'),
+			encoding: 'utf8',
+			stdio: ['ignore', 'pipe', 'ignore']
+		}).trim()
 	} catch {
 		return null
 	}
+}
+
+/**
+ * A shallow clone cannot date files honestly. Where a file's last real commit
+ * lies beyond the fetched depth, `git log` does not come back empty — it
+ * reports the graft boundary commit, so every such page collapses onto the same
+ * plausible-looking wrong date. Vercel builds shallow by default, which is
+ * exactly how a first deploy stamped seven routes with one bogus lastmod.
+ * Detect it up front and trust only the pinned dates.
+ */
+const IS_SHALLOW = git(['rev-parse', '--is-shallow-repository']) !== 'false'
+
+/** Author date (yyyy-mm-dd) of the last commit touching the page, or null. */
+function gitLastModified(page: string): string | null {
+	if (IS_SHALLOW) return null
+	const out = git(['log', '-1', '--format=%as', '--', `src/pages/${page}.tsx`])
+	return out && /^\d{4}-\d{2}-\d{2}$/.test(out) ? out : null
 }
 
 function build(): string {
