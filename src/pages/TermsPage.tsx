@@ -1,13 +1,19 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
 import { isCertificateEnabled } from '../config/featureFlags'
+import { applyNoindex } from '../utils/seo'
 
 const TermsPage: React.FC = () => {
 	// The paid certificate (§6) is hidden until the product launches; the later
 	// sections renumber so there's no gap when it's off.
 	const certOn = isCertificateEnabled()
+
+	// Reachable on the site, but kept out of search — names the operator and its
+	// registered address. Still valid as the Dataset `license` target on the
+	// /znacky pages; a license URL does not need to be indexed.
+	useEffect(applyNoindex, [])
 	return (
 		<>
 			<Navigation />
@@ -20,9 +26,9 @@ const TermsPage: React.FC = () => {
 					<p>
 						Tyto obchodní podmínky (dále jen „podmínky") upravují práva a
 						povinnosti uživatelů služby VINInfo (dále jen „služba") provozované
-						fyzickou osobou Bc. Václav Gabriel, se sídlem Krkoškova 1662/37,
-						613 00 Brno, IČO 88350207, zapsanou v živnostenském rejstříku (dále
-						jen „provozovatel"). Provozovatel není plátcem DPH.
+						fyzickou osobou Bc. Václav Gabriel, se sídlem Krkoškova 1662/37, 613
+						00 Brno, IČO 88350207, zapsanou v živnostenském rejstříku (dále jen
+						„provozovatel"). Provozovatel není plátcem DPH.
 					</p>
 					<p>
 						Používáním služby uživatel souhlasí s těmito podmínkami a zavazuje
@@ -152,12 +158,12 @@ const TermsPage: React.FC = () => {
 								nehodách ani zástavy/leasing. Stav tachometru vychází ze záznamů
 								technických a emisních prohlídek; není-li pro dané vozidlo k
 								dispozici, certifikát jej neobsahuje. Záznamy o technických
-								prohlídkách (STK/ME) a stavu tachometru jsou v centrální evidenci
-								dostupné přibližně od roku 2009 (od zavedení centrálního
-								informačního systému technických prohlídek – ISTP); starší
-								prohlídky nemusí být evidovány. Provozovatel neručí za úplnost ani
-								aktuálnost dat poskytovaných registrem a stanicemi technické
-								kontroly.
+								prohlídkách (STK/ME) a stavu tachometru jsou v centrální
+								evidenci dostupné přibližně od roku 2009 (od zavedení
+								centrálního informačního systému technických prohlídek – ISTP);
+								starší prohlídky nemusí být evidovány. Provozovatel neručí za
+								úplnost ani aktuálnost dat poskytovaných registrem a stanicemi
+								technické kontroly.
 							</li>
 							<li>
 								<strong>Reklamace.</strong> Nebude-li certifikát doručen nebo

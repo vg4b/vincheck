@@ -253,6 +253,9 @@ const BrandModelStatsPage: React.FC = () => {
 				description,
 				url: canonical,
 				creator: { '@type': 'Organization', name: 'VIN Info.cz' },
+				// Fills the `license` field Google's Dataset report asks for without
+				// granting redistribution rights — terms of use govern reuse.
+				license: `${BASE_URL}/podminky`,
 				...(stats.computedAt
 					? { dateModified: stats.computedAt.slice(0, 10) }
 					: {})

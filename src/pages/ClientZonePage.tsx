@@ -28,6 +28,7 @@ import {
 	updateReminder,
 	updateVehicleTitle
 } from '../utils/clientZoneApi'
+import { applyNoindex } from '../utils/seo'
 import {
 	fetchVehicleInfo,
 	formatValue,
@@ -468,6 +469,8 @@ const ClientZonePage: React.FC = () => {
 	}
 
 	useEffect(() => {
+		// Applies signed out too — the route is never a useful search result.
+		const restoreRobots = applyNoindex()
 		if (user) {
 			document.title =
 				'Moje VINInfo – stav tachometru, upozornění na STK | VIN Info.cz'
@@ -481,6 +484,7 @@ const ClientZonePage: React.FC = () => {
 		}
 		return () => {
 			document.title = 'VIN Info.cz'
+			restoreRobots()
 		}
 	}, [user])
 
@@ -1675,7 +1679,8 @@ const ClientZonePage: React.FC = () => {
 										<h5 className='card-title'>Cestovní pojištění</h5>
 										<p className='card-text text-muted small mb-2'>
 											Pojištění léčebných výloh, úrazu, odpovědnosti i zavazadel
-											na cesty po Evropě i do světa. Porovnejte si nabídky online.
+											na cesty po Evropě i do světa. Porovnejte si nabídky
+											online.
 										</p>
 										<Link
 											to='/sjednat-pojisteni?typ=cestovni&src=client_zone_benefits'

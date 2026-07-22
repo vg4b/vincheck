@@ -1,9 +1,13 @@
 import React, { useEffect } from 'react'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
+import { applyNoindex } from '../utils/seo'
 
 const PrivacyPolicyPage: React.FC = () => {
 	useEffect(() => {
+		// Reachable on the site, but kept out of search — names the operator and
+		// its registered address.
+		const restoreRobots = applyNoindex()
 		document.title = 'Ochrana osobních údajů a Cookies | VIN Info.cz'
 		const metaDescription = document.querySelector('meta[name="description"]')
 		if (metaDescription) {
@@ -12,6 +16,7 @@ const PrivacyPolicyPage: React.FC = () => {
 				'Informace o zpracování osobních údajů, používání souborů cookies, identita správce, zpracovatelé a vaše práva na webu VIN Info.cz.'
 			)
 		}
+		return restoreRobots
 	}, [])
 
 	return (
@@ -36,7 +41,7 @@ const PrivacyPolicyPage: React.FC = () => {
 								<strong>IČO:</strong> 88350207
 							</li>
 							<li>
-								<strong>Sídlo:</strong> Krkoškova 1662/36, 613 00 Brno
+								<strong>Sídlo:</strong> Krkoškova 1662/37, 613 00 Brno
 							</li>
 							<li>
 								<strong>Kontaktní e-mail:</strong>{' '}
@@ -301,9 +306,9 @@ const PrivacyPolicyPage: React.FC = () => {
 
 						<h3 className='h5 mt-3'>Affiliate cookies</h3>
 						<p>
-							Používáme na základě oprávněného zájmu (pro affiliate tracking, kde
-							je to nezbytné pro přiřazení provize, avšak profilování podléhá
-							souhlasu).
+							Používáme na základě oprávněného zájmu (pro affiliate tracking,
+							kde je to nezbytné pro přiřazení provize, avšak profilování
+							podléhá souhlasu).
 						</p>
 						<div className='table-responsive'>
 							<table className='table table-bordered table-sm'>

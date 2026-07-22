@@ -2,9 +2,13 @@ import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
+import { applyNoindex } from '../utils/seo'
 
 const KontaktPage: React.FC = () => {
 	useEffect(() => {
+		// Reachable on the site, but kept out of search — the page carries the
+		// operator's phone, e-mail and registered address.
+		const restoreRobots = applyNoindex()
 		document.title = 'Kontakt | VIN Info.cz'
 		const metaDescription = document.querySelector('meta[name="description"]')
 		if (metaDescription) {
@@ -13,6 +17,7 @@ const KontaktPage: React.FC = () => {
 				'Kontaktní údaje provozovatele služby VIN Info.cz — telefon, e-mail, sídlo a IČO.'
 			)
 		}
+		return restoreRobots
 	}, [])
 
 	return (
@@ -36,7 +41,9 @@ const KontaktPage: React.FC = () => {
 							<li>
 								<strong>IČO:</strong> 88350207
 							</li>
-							<li>Fyzická osoba zapsaná v živnostenském rejstříku. Neplátce DPH.</li>
+							<li>
+								Fyzická osoba zapsaná v živnostenském rejstříku. Neplátce DPH.
+							</li>
 						</ul>
 					</section>
 

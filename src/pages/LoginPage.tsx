@@ -4,6 +4,7 @@ import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
 import { useAuth } from '../contexts/AuthContext'
 import { ApiError } from '../utils/apiClient'
+import { applyNoindex } from '../utils/seo'
 
 const LoginPage: React.FC = () => {
 	const navigate = useNavigate()
@@ -28,8 +29,10 @@ const LoginPage: React.FC = () => {
 				'Přihlaste se pro správu vozidel a upozornění na STK, pojištění a servis. Moje VINInfo – vše na jednom místě zdarma.'
 			)
 		}
+		const restoreRobots = applyNoindex()
 		return () => {
 			document.title = 'VIN Info.cz'
+			restoreRobots()
 		}
 	}, [])
 
@@ -93,11 +96,7 @@ const LoginPage: React.FC = () => {
 							{error}
 						</div>
 					)}
-					<button
-						type='submit'
-						className='btn btn-primary'
-						disabled={loading}
-					>
+					<button type='submit' className='btn btn-primary' disabled={loading}>
 						{loading ? 'Přihlašuji...' : 'Přihlásit se'}
 					</button>
 				</form>
