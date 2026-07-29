@@ -206,9 +206,13 @@ function renderModelPage(
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-	if (req.method !== 'GET') {
+	// GET serves; HEAD is answered like GET but with headers only (below), so the
+	// /znacky/* pages this handler now renders stay HEAD-able for crawlers, uptime
+	// monitors and link-checkers — as they were when served as static files.
+	if (req.method !== 'GET' && req.method !== 'HEAD') {
 		return res.status(405).json({ error: 'Method not allowed' })
 	}
+	const headOnly = req.method === 'HEAD'
 
 	const type = q(req.query.type)
 
@@ -218,6 +222,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 			'Cache-Control',
 			'public, s-maxage=86400, stale-while-revalidate=604800'
 		)
+		if (headOnly) return res.status(200).end()
 		return res.status(200).json({ models })
 	}
 
@@ -244,6 +249,7 @@ ${urls}
 			'Cache-Control',
 			'public, s-maxage=86400, stale-while-revalidate=604800'
 		)
+		if (headOnly) return res.status(200).end()
 		return res.status(200).send(xml)
 	}
 
@@ -278,6 +284,7 @@ ${urls}
 		)
 		res.setHeader('Content-Type', 'text/html; charset=utf-8')
 		res.setHeader('Cache-Control', cacheControl)
+		if (headOnly) return res.status(status).end()
 		return res.status(status).send(body)
 	}
 
@@ -290,6 +297,7 @@ ${urls}
 				: null
 		if (!stats) {
 			res.setHeader('Cache-Control', 'public, s-maxage=3600')
+			if (headOnly) return res.status(404).end()
 			return res.status(404).json({ error: 'not_found' })
 		}
 		// Cached at the edge for a day, served stale while revalidating. Content only
@@ -298,9 +306,11 @@ ${urls}
 			'Cache-Control',
 			'public, s-maxage=86400, stale-while-revalidate=604800'
 		)
+		if (headOnly) return res.status(200).end()
 		return res.status(200).json({ stats })
 	}
 
 	res.setHeader('Cache-Control', 'public, s-maxage=3600')
+	if (headOnly) return res.status(404).end()
 	return res.status(404).json({ error: 'not_found' })
 }
