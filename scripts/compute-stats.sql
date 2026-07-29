@@ -35,6 +35,11 @@ SELECT
   -- OEM-service variants). Fold them to one canonical brand BEFORE grouping so
   -- their cohorts merge (e.g. CITROEN + CITROËN → one CITROËN, VW → VOLKSWAGEN).
   -- Model strings are left as-is (kept intentionally granular).
+  -- NOTE: retired source-brand slugs (e.g. mercedes-amg -> mercedes-benz) are
+  -- 308-redirected to their canonical target in vercel.json -> "redirects", so
+  -- URLs indexed before a fold keep their ranking. Keep the two lists in sync:
+  -- add/remove a redirect there whenever this CASE changes (skip folds whose
+  -- source and target slugify identically, e.g. CITROEN -> CITROEN = "citroen").
   CASE upper(btrim(tovarni_znacka))
     WHEN 'BMW I'                          THEN 'BMW'
     WHEN 'CITROEN'                        THEN 'CITROËN'

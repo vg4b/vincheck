@@ -36,7 +36,7 @@
 	"scripts": {
 		"start": "react-scripts start",
 		"prebuild": "tsx scripts/generate-sitemap.ts",
-		"build": "react-scripts build",
+		"build": "react-scripts build && tsx scripts/copy-shell.ts",
 		"sitemap": "tsx scripts/generate-sitemap.ts",
 		"eject": "react-scripts eject",
 		"lint": "biome lint .",
@@ -49,16 +49,10 @@
 		"odometer:download": "npx tsx scripts/download-odometer.ts"
 	},
 	"eslintConfig": {
-		"extends": [
-			"react-app"
-		]
+		"extends": ["react-app"]
 	},
 	"browserslist": {
-		"production": [
-			">0.2%",
-			"not dead",
-			"not op_mini all"
-		],
+		"production": [">0.2%", "not dead", "not op_mini all"],
 		"development": [
 			"last 1 chrome version",
 			"last 1 firefox version",

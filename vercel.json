@@ -1,10 +1,82 @@
 {
 	"functions": {
 		"api/**/*.ts": {
-			"includeFiles": "api/_fonts/**"
+			"includeFiles": "{api/_fonts/**,api/_shell.html,build/index.html}"
 		}
 	},
 	"trailingSlash": false,
+	"redirects": [
+		{
+			"source": "/znacky/mercedes-amg/:model",
+			"destination": "/znacky/mercedes-benz/:model",
+			"permanent": true
+		},
+		{
+			"source": "/znacky/bmw-i/:model",
+			"destination": "/znacky/bmw/:model",
+			"permanent": true
+		},
+		{
+			"source": "/znacky/tesla-motors/:model",
+			"destination": "/znacky/tesla/:model",
+			"permanent": true
+		},
+		{
+			"source": "/znacky/vw/:model",
+			"destination": "/znacky/volkswagen/:model",
+			"permanent": true
+		},
+		{
+			"source": "/znacky/volkswagen-fd-servis/:model",
+			"destination": "/znacky/volkswagen/:model",
+			"permanent": true
+		},
+		{
+			"source": "/znacky/ford-cng-technik/:model",
+			"destination": "/znacky/ford/:model",
+			"permanent": true
+		},
+		{
+			"source": "/znacky/skoda-octavia/:model",
+			"destination": "/znacky/skoda/:model",
+			"permanent": true
+		},
+		{
+			"source": "/znacky/vaz/:model",
+			"destination": "/znacky/lada/:model",
+			"permanent": true
+		},
+		{
+			"source": "/znacky/lada-vaz/:model",
+			"destination": "/znacky/lada/:model",
+			"permanent": true
+		},
+		{
+			"source": "/znacky/gm-daewoo/:model",
+			"destination": "/znacky/daewoo/:model",
+			"permanent": true
+		},
+		{
+			"source": "/znacky/mcc/:model",
+			"destination": "/znacky/smart/:model",
+			"permanent": true
+		},
+		{
+			"source": "/znacky/micro-compact-car-smart/:model",
+			"destination": "/znacky/smart/:model",
+			"permanent": true
+		},
+		{
+			"source": "/znacky/kg-mobility/:model",
+			"destination": "/znacky/ssangyong/:model",
+			"permanent": true
+		},
+		{
+			"source": "/znacky/automobili-lamborghini-s-p-a/:model",
+			"destination": "/znacky/lamborghini/:model",
+			"permanent": true
+		}
+	],
 	"rewrites": [
 		{
 			"source": "/api/(.*)",
@@ -13,6 +85,10 @@
 		{
 			"source": "/znacky-sitemap.xml",
 			"destination": "/api/stats?type=sitemap"
+		},
+		{
+			"source": "/znacky/:brand/:model",
+			"destination": "/api/stats?type=page&brand=:brand&model=:model"
 		},
 		{
 			"source": "/((?!api/|znacky-sitemap.xml|seznam-wmt-|static/|logos/|favicon.ico|manifest.json|logo192.png|logo512.png|robots.txt|asset-manifest.json|site.webmanifest|sitemap.xml|certificate-preview.png).*)",
@@ -41,37 +117,55 @@
 		{
 			"source": "/favicon.svg",
 			"headers": [
-				{ "key": "Cache-Control", "value": "public, max-age=604800, must-revalidate" }
+				{
+					"key": "Cache-Control",
+					"value": "public, max-age=604800, must-revalidate"
+				}
 			]
 		},
 		{
 			"source": "/favicon.ico",
 			"headers": [
-				{ "key": "Cache-Control", "value": "public, max-age=604800, must-revalidate" }
+				{
+					"key": "Cache-Control",
+					"value": "public, max-age=604800, must-revalidate"
+				}
 			]
 		},
 		{
 			"source": "/favicon-96x96.png",
 			"headers": [
-				{ "key": "Cache-Control", "value": "public, max-age=604800, must-revalidate" }
+				{
+					"key": "Cache-Control",
+					"value": "public, max-age=604800, must-revalidate"
+				}
 			]
 		},
 		{
 			"source": "/apple-touch-icon.png",
 			"headers": [
-				{ "key": "Cache-Control", "value": "public, max-age=604800, must-revalidate" }
+				{
+					"key": "Cache-Control",
+					"value": "public, max-age=604800, must-revalidate"
+				}
 			]
 		},
 		{
 			"source": "/web-app-manifest-192x192.png",
 			"headers": [
-				{ "key": "Cache-Control", "value": "public, max-age=604800, must-revalidate" }
+				{
+					"key": "Cache-Control",
+					"value": "public, max-age=604800, must-revalidate"
+				}
 			]
 		},
 		{
 			"source": "/web-app-manifest-512x512.png",
 			"headers": [
-				{ "key": "Cache-Control", "value": "public, max-age=604800, must-revalidate" }
+				{
+					"key": "Cache-Control",
+					"value": "public, max-age=604800, must-revalidate"
+				}
 			]
 		}
 	],

@@ -35,3 +35,5 @@ curl.txt
 /tmp
 
 TODO
+# Build artifact: SPA shell copied for the /znacky SSR renderer (copy-shell.ts)
+api/_shell.html
