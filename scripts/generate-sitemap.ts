@@ -53,6 +53,8 @@ type Route = {
  *    here and this exclusion is only housekeeping.
  *  - /platba and everything keyed by a lookup code (/vin, /tp, /orv, /s,
  *    /certifikat, /overit, /firma) — per-visitor, not landing pages.
+ *  - /leasingove-spolecnosti — a reference list the certificate links to, not a
+ *    landing page we want ranking. Reachable and crawlable, just not submitted.
  */
 const ROUTES: Route[] = [
 	{

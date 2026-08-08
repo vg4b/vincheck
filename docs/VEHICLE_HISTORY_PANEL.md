@@ -58,6 +58,39 @@ Columns: `typ` (`P…` regular / `E…` evidence), `stav` (`A` pass / `B` defect
 - **statusLabel** = `status` (already mapped to `StatusNazev`)
 - **deregistrations[]** = `{ from, to, reason }`, newest first
 
+### Financing — derived from the owner timeline (added 2026-08-06)
+
+No new query: `buildFinancing()` in `api/_financingCompanies.ts` matches the
+timeline's **IČO** against a curated allowlist of ~200 leasing, fleet and rental
+companies (see `docs/plans/2026-08-06-001-feat-leasing-check.md` for how the list
+was derived and how to refresh it).
+
+- **hasHistory** = any match. **active** = a `leasing`/`fleet` match that is the
+  CURRENT owner — the case that blocks a sale (the seller is only the
+  provozovatel).
+- **records[]** = `{ ico, name, kind, relation, from, to, current }`, oldest
+  first. Operating leases carry the lessor twice (owner + operator, same period);
+  those collapse to one record, keeping the owner row.
+- **The list is public**, at `/leasingove-spolecnosti`
+  (`src/pages/FinancingCompaniesPage.tsx`), and the certificate links to it — the
+  check has to be auditable, not a black box. That is why the data lives in
+  `src/data/financingCompanies.ts` and `api/_financingCompanies.ts` imports it:
+  one source for the page and the matching, so they cannot drift.
+- **Matching is by IČO only.** The displayed `name` comes from OUR list, never
+  from `vehicle_owners.nazev` — which stays dropped for GDPR. An allowlist also
+  makes it structurally impossible to mislabel a dealer or importer as financing.
+- A `rental` match counts only where the company was the **owner**: rental fleets
+  are owned, and an IČO trading as a carsharing operator today may have been an
+  unrelated business decades ago.
+- **PAID.** `api/vehicle.ts` sends only the teaser — `hasHistory`, `active`,
+  `count`, `kinds`. The `records` (which company, when, what relation) are
+  certificate-only. `kinds` ships free so a badge can't mislabel an ex-rental as
+  "leasing".
+- **Copy rule:** state the registry fact and the action, never a legal conclusion.
+  An úvěr never appears here, a zástavní právo lives in another register, and
+  ~7–11% of "currently financed" rows are stale. Never print "vozidlo není
+  zatíženo".
+
 ### Equipment — `vehicle_equipment` (added 2026-07-14)
 Classified in `api/_vehicleEquipment.ts` (`buildEquipment`), rendered as the
 "Výbava a úpravy" section on the web and in the PDF.

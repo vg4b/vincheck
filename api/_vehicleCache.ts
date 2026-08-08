@@ -1,4 +1,5 @@
 import { Pool } from 'pg'
+import { buildFinancing, type VehicleFinancing } from './_financingCompanies'
 import { buildEquipment, type VehicleEquipment } from './_vehicleEquipment'
 
 /**
@@ -313,6 +314,19 @@ export type VehicleHistory = {
 	 *  snapshots sold before this feature shipped have no `equipment` key. Readers
 	 *  must fall back to EMPTY_EQUIPMENT rather than assume it is present. */
 	equipment?: VehicleEquipment
+	/** Leasing / fleet / rental subjects found in the owner history, matched by
+	 *  IČO against the curated allowlist in _financingCompanies.ts.
+	 *
+	 *  This is an OWNERSHIP statement from the registry, never a legal conclusion
+	 *  about debt: an úvěr leaves no trace here at all, a zástavní právo lives in
+	 *  a different register, and ~7-11% of "currently owned by a financier" rows
+	 *  are stale (leases don't run 12 years). Copy states the registry fact and
+	 *  what to do about it — see docs/plans/2026-08-06-001-feat-leasing-check.md.
+	 *
+	 *  OPTIONAL for the same reason as `equipment`: certificate snapshots frozen
+	 *  before this shipped have no such key, so readers fall back to
+	 *  EMPTY_FINANCING. */
+	financing?: VehicleFinancing
 	/** Odometer/mileage history from the ISTP inspection open data
 	 *  (vehicle_inspection_odometer), one reading per inspection date (same-day
 	 *  STK+emission protocols collapsed). Empty when we have no readings for the
@@ -718,6 +732,8 @@ export async function lookupVehicleFromCache(
 			companyOwners: timeline.filter((t) => t.subjectType === 'company'),
 			timeline
 		},
+		// Pure derivation over the timeline we already built — no extra query.
+		financing: buildFinancing(timeline),
 		inspections: {
 			total: Number(insp.total ?? 0),
 			failed: Number(insp.failed ?? 0),

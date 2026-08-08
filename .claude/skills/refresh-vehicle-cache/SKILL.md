@@ -132,9 +132,77 @@ it here without re-reading that decision.
    npx tsx scripts/test-cache-lookup.ts WVWZZZ1KZDP015799  # known vehicle, PČV 12365572 — expect HIT
    ```
 
-4. **Scale the node back down** to `DB-DEV-S` — only if you scaled up in step 1.
+4. **Refresh the leasing/financing company list** — `src/data/financingCompanies.ts`
+   is a hand-curated IČO allowlist that is **published** at
+   `/leasingove-spolecnosti` and cited in every certificate, so it must not rot.
+   New lessors appear, and companies rename (ALD/LeasePlan → Ayvens,
+   sAutoleasing → Leasing ČS). Two passes, both against the freshly ingested data:
 
-5. **Report** the new snapshot date + row counts to the user. No deploy needed —
+   **a) Name sweep** — one regex, one seq scan (~5 min). Append
+   `&keepalives=1&keepalives_idle=15` to the URL or the connection dies silently
+   mid-scan and psql hangs forever:
+   ```sql
+   SELECT ico, nazev, count(*) AS rows
+   FROM vehicle_owners
+   WHERE typ_subjektu = '2' AND ico IS NOT NULL
+     AND nazev ~* '(leas|financ|credit|kredit|rent|půjčov|pujcov|sharing|fleet|mobilit)'
+   GROUP BY ico, nazev HAVING count(*) >= 300 ORDER BY 3 DESC;
+   ```
+
+   **b) Structure sweep** — catches what the name sweep cannot. `Birne by Direct`
+   (car subscription) carries no keyword at all; it was found only by its
+   owner/operator split. Operating-lease and subscription providers hold many
+   vehicles *currently*, as owner and/or operator:
+   ```sql
+   SELECT ico, min(nazev) AS nazev, count(*) AS rows,
+          count(*) FILTER (WHERE vztah_k_vozidlu='1') AS own_rows,
+          count(*) FILTER (WHERE vztah_k_vozidlu='2') AS oper_rows,
+          count(*) FILTER (WHERE aktualni='True')     AS cur_rows
+   FROM vehicle_owners WHERE typ_subjektu='2' AND ico IS NOT NULL
+   GROUP BY ico HAVING count(*) >= 1500 ORDER BY 3 DESC LIMIT 900;
+   ```
+
+   **Confirm before adding — never guess from the name or the numbers.** Check the
+   IČO in the official register; NACE **77110** (pronájem a leasing automobilů),
+   77120 (nákladní), or 64910 (finanční leasing) is the decisive signal:
+   ```bash
+   curl -s "https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/<ICO>" \
+     | python3 -c "import sys,json;d=json.load(sys.stdin);print(d['obchodniJmeno'],sorted(d.get('czNace') or []))"
+   ```
+   **Check the name history too, not just the current name.** An IČO outlives the
+   business behind it, and the registry only ever gives us the *current* name. The
+   VR extract carries the full history:
+   ```bash
+   curl -s "https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty-vr/<ICO>" \
+     | python3 -c "import sys,json;d=json.load(sys.stdin);r=(d['zaznamy'] or [{}])[0];[print(n.get('datumZapisu'),'->',n.get('datumVymazu'),'|',n.get('hodnota')) for n in (r.get('obchodniJmeno') or [])]"
+   ```
+   Where the entity previously traded as something ELSE, set `since` on the entry
+   (the date the current name was registered) so ownership from the earlier
+   business is not counted. IČO 25131401 was AUTOSALON LOUDA, a dealership, until
+   2013-10-03 and only then became CAR4WAY — without `since` its 1999 records get
+   labelled "ex-vozidlo z půjčovny".
+   **A rename inside the same trade must NOT get a `since`** (OB Leasing → ČSOB
+   Leasing, ALD Automotive → Ayvens, s Autoleasing → Leasing ČS): those old
+   records are true positives and suppressing them loses real history. 25 of 205
+   entries carry a `since`; the rule excludes ~4% of their ownership records.
+
+   **77110 alone is a filter, not a verdict.** Car dealerships hold it for their
+   courtesy/replacement cars, and utilities and builders list it among dozens of
+   unrelated codes. Confirmed 2026-08-07: of 342 structurally provider-like
+   candidates, 19 carried 77110 and only two were genuine (`JPPE s.r.o.`,
+   `IPB Invest, a.s.`) — the rest were dealers (Auto Palace, Hedin Automotive,
+   Olfin Car Palace…), a construction firm and a window maker. Treat a **short**
+   NACE list dominated by 77110/64910 plus an owner/operator split that matches a
+   provider as the bar, and skip anything whose business is obviously something
+   else. A wrong entry is worse than a missing one — it puts a false "financed"
+   claim in a paid document. **Never delete an entry**, even for a dissolved company:
+   historic ownership rows still point at it. See
+   `docs/plans/2026-08-06-001-feat-leasing-check.md` for the full method, and
+   appendix A4 there for the traps (autobazars, importers, banks, `CARent, a.s.`).
+
+5. **Scale the node back down** to `DB-DEV-S` — only if you scaled up in step 1.
+
+6. **Report** the new snapshot date + row counts to the user. No deploy needed —
    the live endpoint reads the DB directly; the new snapshot is served
    immediately once `cache_meta.source_snapshot` updates.
 

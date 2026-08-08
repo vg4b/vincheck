@@ -10,7 +10,7 @@ import { isCertificateEnabled } from '../config/featureFlags'
 const PRICE_CZK = 99
 
 const PAGE_TITLE = `Certifikát historie vozidla z registru ČR za ${PRICE_CZK} Kč | VIN Info.cz`
-const PAGE_DESCRIPTION = `Přehledný certifikát historie vozidla zpracovaný z dat registru silničních vozidel ČR a STK — vlastníci, STK, stav tachometru, dovoz a stav vozidla. Ihned, v ověřitelném PDF, za ${PRICE_CZK} Kč.`
+const PAGE_DESCRIPTION = `Přehledný certifikát historie vozidla zpracovaný z dat registru silničních vozidel ČR a STK — vlastníci, leasing a financování, STK, stav tachometru, dovoz a stav vozidla. Ihned, v ověřitelném PDF, za ${PRICE_CZK} Kč.`
 const CANONICAL_URL = 'https://www.vininfo.cz/overeny-vypis-vozidla'
 
 const CertificateLandingPage: React.FC = () => {
@@ -115,9 +115,9 @@ const CertificateLandingPage: React.FC = () => {
 						</h1>
 						<p className='lead mb-4'>
 							Data z registru silničních vozidel ČR a STK jsou špatně čitelná — my
-							je za vás zpracujeme do srozumitelného přehledu: vlastníci, STK, stav
-							tachometru, dovoz a stav vozidla. Ihned, v ověřitelném PDF — podklad
-							pro koupi i prodej vozidla.
+							je za vás zpracujeme do srozumitelného přehledu: vlastníci, leasing a
+							financování, STK, stav tachometru, dovoz a stav vozidla. Ihned, v
+							ověřitelném PDF — podklad pro koupi i prodej vozidla.
 						</p>
 						<form onSubmit={handleSubmit}>
 							<label htmlFor='landing-vin' className='form-label fw-semibold'>

@@ -64,6 +64,73 @@ const RELATION_BADGE: Record<OwnerRelation, string> = {
 
 type Flag = { label: string; severe: boolean }
 
+type FinancingBadge = { label: string; className: string }
+
+/** Accusative, so the kinds slot into "…jsme našli X a Y." */
+const FINANCING_KIND_ACC: Record<'leasing' | 'fleet' | 'rental', string> = {
+	leasing: 'leasingovou nebo úvěrovou společnost',
+	fleet: 'firemní vozový park (operativní leasing)',
+	rental: 'autopůjčovnu'
+}
+
+/**
+ * One sentence naming what we actually found, built from the kinds so it is never
+ * vague ("leasingová, firemní nebo …" would describe the list, not this vehicle).
+ */
+function financingSummary(kinds: Array<'leasing' | 'fleet' | 'rental'> = []) {
+	const parts = (['leasing', 'fleet', 'rental'] as const)
+		.filter((k) => kinds.includes(k))
+		.map((k) => FINANCING_KIND_ACC[k])
+	if (parts.length === 0) return 'V historii vozidla je financující společnost.'
+	const list =
+		parts.length === 1
+			? parts[0]
+			: `${parts.slice(0, -1).join(', ')} a ${parts[parts.length - 1]}`
+	return `V historii vozidla jsme našli ${list}.`
+}
+
+/**
+ * Badges for the leasing/fleet/rental signal. The kind comes down with the free
+ * teaser precisely so these never mislabel — an ex-rental is not "leasing".
+ *
+ * Only the CURRENT-ownership case is a warning. Past financing is history, not a
+ * defect: it usually means the car was serviced on schedule. Ex-rental gets an
+ * amber tone even in the past, because that history is what a buyer overpays for
+ * without knowing.
+ */
+function financingBadges(h: VehicleHistory): FinancingBadge[] {
+	const f = h.financing
+	if (!f?.hasHistory) return []
+	const kinds = f.kinds ?? []
+	const badges: FinancingBadge[] = []
+	// Only the CURRENT-ownership case gets colour. Everything else is history the
+	// registry recorded, not a defect, and colouring it would editorialise.
+	if (f.active) {
+		badges.push({
+			label: 'Aktivní leasing / financování',
+			className: 'text-bg-warning'
+		})
+	} else if (kinds.includes('leasing')) {
+		badges.push({
+			label: 'Leasing v historii',
+			className: 'text-bg-light border'
+		})
+	}
+	if (kinds.includes('fleet')) {
+		badges.push({
+			label: 'Ex-firemní / operativní leasing',
+			className: 'text-bg-light border'
+		})
+	}
+	if (kinds.includes('rental')) {
+		badges.push({
+			label: 'Ex-vozidlo z půjčovny',
+			className: 'text-bg-light border'
+		})
+	}
+	return badges
+}
+
 function buildFlags(h: VehicleHistory): Flag[] {
 	const flags: Flag[] = []
 	if (h.flags.stolen)
@@ -127,6 +194,10 @@ const VehicleHistoryPanel: FC<{
 	const equipment = history.equipment?.items ?? []
 	const notes = usageNotes(history)
 	const flags = buildFlags(history)
+	// Absent on snapshots frozen before the financing check shipped, and on the
+	// live-API fallback.
+	const financing = history.financing
+	const finBadges = financingBadges(history)
 	const cleanVin = vinCode.replace(/[^a-zA-Z0-9]/g, '')
 	// Mileage is a paid-certificate feature — shown only behind the cert flag and
 	// only when we actually have readings. Free view = blurred values + unlock CTA.
@@ -147,7 +218,7 @@ const VehicleHistoryPanel: FC<{
 					<Icon name='chevron-right' size={18} className='spec-chevron' />
 				</summary>
 				<div className='spec-body'>
-					{flags.length > 0 && (
+					{(flags.length > 0 || finBadges.length > 0) && (
 						<div className='d-flex flex-wrap gap-2 mb-3'>
 							{flags.map((f) => (
 								<span
@@ -157,6 +228,53 @@ const VehicleHistoryPanel: FC<{
 									<Icon name='alert-triangle' size={12} /> {f.label}
 								</span>
 							))}
+							{finBadges.map((b) => (
+								<span
+									key={b.label}
+									className={`badge rounded-pill ${b.className}`}
+								>
+									<Icon name='file-text' size={12} /> {b.label}
+								</span>
+							))}
+						</div>
+					)}
+
+					{/* Financing. State what the registry records and nothing more — never
+					    a claim about debt (an úvěr never shows up here, and a stale
+					    un-transferred lease looks identical to a live one) and never a
+					    guess about who is selling the vehicle. What it means and what to
+					    check before buying belongs on /leasingove-spolecnosti, not here.
+					    Silence when nothing was found: absence is not proof, so we never
+					    print "vozidlo není zatíženo". */}
+					{/* Deliberately NOT an `.alert`: the badge above already flags this, and
+					    the site's alert styling (icon + accent stripe) reads as a defect.
+					    This is a registry fact — and one that is stale on a noticeable share
+					    of vehicles — so it gets the same weight as the historic case. */}
+					{financing?.active && (
+						<div className='small mb-3 d-flex gap-2 align-items-start'>
+							<Icon
+								name='info'
+								size={14}
+								className='text-brand flex-shrink-0 mt-1'
+							/>
+							{/* No claim about the operator: on an operating lease the same
+							    company is registered as owner AND operator, so "vlastník a
+							    provozovatel nejsou tentýž subjekt" is false for those
+							    vehicles. The timeline below shows the actual relations. */}
+							<strong>
+								Vozidlo je podle registru ve vlastnictví leasingové nebo finanční
+								společnosti.
+							</strong>
+						</div>
+					)}
+					{financing?.hasHistory && !financing.active && (
+						<div className='small mb-3 d-flex gap-2 align-items-start'>
+							<Icon
+								name='info'
+								size={14}
+								className='text-brand flex-shrink-0 mt-1'
+							/>
+							<strong>{financingSummary(financing.kinds)}</strong>
 						</div>
 					)}
 

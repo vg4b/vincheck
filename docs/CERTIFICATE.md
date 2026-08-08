@@ -65,6 +65,12 @@ file). Columns: `code` (public verify code), `vin`, `buyer_email`, `user_id?`,
 
 - `api/_payments.ts` — Lemon Squeezy-backed `createCheckout` +
   `verifyAndParseWebhook` (plain fetch + crypto, no SDK).
+- `src/data/financingCompanies.ts` — the curated IČO → leasing/fleet/rental list.
+  Published at `/leasingove-spolecnosti`; the PDF's "Leasing a financování"
+  section links there, so the list must stay public and in one place.
+- `api/_financingCompanies.ts` — `buildFinancing()` over that list. Feeds the
+  "Leasing a financování" section (paid detail; the free lookup gets a yes/no
+  teaser). See `docs/VEHICLE_HISTORY_PANEL.md`.
 - `api/_certificatePdf.ts` — `renderCertificatePdf` via `@react-pdf/renderer`
   (dynamic-imported; ESM-only) + `qrcode`. Renders from the frozen snapshot.
 - `api/_certificate.ts` — code/token generation, price + base-URL config, VIN mask.
