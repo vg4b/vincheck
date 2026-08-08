@@ -55,6 +55,13 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 				<li>
 					<Icon name='check' size={15} /> Historie STK
 				</li>
+				{/* Static, unlike the mileage bullets: the certificate answers this in
+				    all cases including "nic jsme nenašli", and a bullet that appeared
+				    only for financed cars would leak the paid answer into the card. */}
+				<li>
+					<Icon name='check' size={15} /> Leasing a financování v historii
+					vlastníků
+				</li>
 				{mileageAvailable !== false && (
 					<li>
 						<Icon name='check' size={15} /> Historie stavu tachometru (může
@@ -106,8 +113,13 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 				<li>
 					<Icon name='check' size={15} /> Záznamy o nehodách a poškození
 				</li>
+				{/* Deliberately NOT "Zástavy a leasing": we now sell a leasing check of
+				    our own, and the two answer different questions. Ours is "kdo vozidlo
+				    vlastnil" (registr vozidel), theirs is "je na něm zástava" (rejstřík
+				    zástav) — which we genuinely cannot do. */}
 				<li>
-					<Icon name='check' size={15} /> Zástavy a leasing
+					<Icon name='check' size={15} /> Zástavy a právní vady (rejstřík
+					zástav)
 				</li>
 				<li>
 					<Icon name='check' size={15} /> Tachometr z více zdrojů (i ze zahraničí)

@@ -237,9 +237,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 			// dates (already public via STK history) and the rollback flag. The full
 			// figures live server-side and are frozen into the certificate snapshot
 			// for the PDF.
-			const { mileage, ...restHistory } = cached.history
+			//
+			// Financing is the same deal: the free view gets the yes/no plus the
+			// "currently owned by a financier" warning (withholding that from a buyer
+			// would be user-hostile, and the IČOs are already public in the timeline),
+			// while WHICH company, WHEN and the verdict stay in the certificate.
+			const { mileage, financing, ...restHistory } = cached.history
 			const publicHistory = {
 				...restHistory,
+				financing: {
+					hasHistory: financing?.hasHistory ?? false,
+					active: financing?.active ?? false,
+					count: financing?.records.length ?? 0,
+					// The kind ships free because the badge would otherwise mislabel the
+					// vehicle — an ex-rental is not "leasing". Which company and when
+					// stay paid.
+					kinds: [...new Set((financing?.records ?? []).map((r) => r.kind))]
+				},
 				mileage: {
 					count: mileage.readings.length,
 					rollbackSuspected: mileage.rollbackSuspected,

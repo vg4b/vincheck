@@ -6,6 +6,7 @@ import BrandModelStatsPage from './pages/BrandModelStatsPage'
 import CertificateLandingPage from './pages/CertificateLandingPage'
 import CertificatePage from './pages/CertificatePage'
 import ClientZonePage from './pages/ClientZonePage'
+import FinancingCompaniesPage from './pages/FinancingCompaniesPage'
 import FleetPage from './pages/FleetPage'
 import FleetSearchPage from './pages/FleetSearchPage'
 import HavarijniPojisteniPage from './pages/HavarijniPojisteniPage'
@@ -56,6 +57,10 @@ function App() {
 				<Route path='/tp/:code' element={<VehicleDetailPage type='tp' />} />
 				<Route path='/orv/:code' element={<VehicleDetailPage type='orv' />} />
 				<Route path='/s/:code' element={<VehicleDetailPage type='share' />} />
+				<Route
+					path='/leasingove-spolecnosti'
+					element={<FinancingCompaniesPage />}
+				/>
 				<Route path='/firma' element={<FleetSearchPage />} />
 				<Route path='/firma/:ico' element={<FleetPage />} />
 				<Route path='/znacky' element={<ZnackyHubPage />} />

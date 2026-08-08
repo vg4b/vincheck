@@ -134,6 +134,33 @@ export interface VehicleHistory {
 		}>
 		flags: Record<EquipmentFlag, boolean>
 	}
+	/** Leasing / fleet / rental subjects in the owner history, matched by IČO
+	 *  against our curated list. The public lookup carries only the TEASER
+	 *  (hasHistory/active/count); `records` is paid detail and is present only when
+	 *  rendering a certificate snapshot.
+	 *
+	 *  An OWNERSHIP fact from the registry, never a claim about debt: an úvěr never
+	 *  appears here and a zástavní právo lives in a different register. Copy must
+	 *  never invert `hasHistory: false` into "vozidlo není zatíženo".
+	 *
+	 *  Optional: absent from snapshots frozen before this shipped, and from the
+	 *  live-API fallback. */
+	financing?: {
+		hasHistory: boolean
+		active: boolean
+		count: number
+		/** Which kinds occur, so a badge never mislabels an ex-rental as "leasing". */
+		kinds?: Array<'leasing' | 'fleet' | 'rental'>
+		records?: Array<{
+			ico: string
+			name: string
+			kind: 'leasing' | 'fleet' | 'rental'
+			relation: OwnerRelation
+			from: string | null
+			to: string | null
+			current: boolean
+		}>
+	}
 	/** Odometer/mileage TEASER from the official STK/emission inspections (ISTP).
 	 *  Exact km are a paid feature and are NOT sent to the client — only the
 	 *  reading count, the inspection dates (already public via the STK history),

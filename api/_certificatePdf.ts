@@ -16,6 +16,12 @@
 import path from 'node:path'
 import QRCode from 'qrcode'
 import { createElement as e, type ReactNode } from 'react'
+import { getPublicBaseUrl } from './_certificate'
+import {
+	buildFinancing,
+	EMPTY_FINANCING,
+	type FinancingKind
+} from './_financingCompanies'
 import type { VehicleCacheResult } from './_vehicleCache'
 import { buildTechnicalGroups, resolveBrandModel } from './_vehicleFieldLabels'
 
@@ -117,6 +123,19 @@ const styles = {
 	tlMain: { width: '46%' },
 	tlLink: { width: '46%', color: BRAND, textDecoration: 'none' },
 	tlTag: { width: '20%', textAlign: 'right', color: MUTED },
+	// The financing rows carry a company name AND a two-part tag ("vlastník ·
+	// operativní leasing"), so they need a wider tag column than the owner
+	// timeline or the tag wraps onto three lines.
+	finDate: { width: '28%', color: MUTED },
+	finLink: { width: '44%', color: BRAND, textDecoration: 'none' },
+	finTag: { width: '28%', textAlign: 'right', color: MUTED },
+	// Odometer rows carry an official protocol number ("CZ-570703-18-02-0026",
+	// 20 chars). At the shared 20% tag width it ran past the right edge, so the
+	// column gets its own wider, smaller-type style.
+	milDate: { width: '26%', color: MUTED },
+	// Left-aligned and tight to the date, like every other table in the document.
+	milKm: { width: '30%' },
+	milProto: { width: '44%', textAlign: 'right', fontSize: 8.5, color: MUTED },
 	tlRowZebra: { backgroundColor: '#f8fafc' },
 	flag: {
 		padding: 6,
@@ -127,6 +146,18 @@ const styles = {
 		fontWeight: 700
 	},
 	muted: { color: MUTED },
+	// Amber sibling of `flag`, for a notable FACT rather than a defect (current
+	// leasing ownership). Red is reserved for stolen / deregistered / rollback.
+	notice: {
+		padding: 6,
+		marginBottom: 4,
+		borderRadius: 3,
+		backgroundColor: '#fffbeb',
+		color: '#92400e',
+		fontWeight: 700
+	},
+	// Link inside a `note` — must match its size, or the line height jumps.
+	noteLink: { fontSize: 8.5, color: BRAND, textDecoration: 'none' },
 	// Explanatory note under a table/list — needs breathing room above and below.
 	note: {
 		fontSize: 8.5,
@@ -211,9 +242,21 @@ const RELATION_LABEL: Record<string, string> = {
 	other: 'jiný vztah'
 }
 
+/** Public list of the IČOs we match against — the certificate points buyers here
+ *  so the check is auditable rather than a black box. Route in src/App.tsx. */
+const FINANCING_LIST_URL = `${getPublicBaseUrl()}/leasingove-spolecnosti`
+
+const FINANCING_KIND_LABEL: Record<FinancingKind, string> = {
+	leasing: 'leasing / úvěr',
+	fleet: 'operativní leasing',
+	rental: 'půjčovna'
+}
+
 // Official public-registers search (justice ministry) for a given IČO. We never
-// show the entity's name on the certificate (GDPR — OSVČ names are personal
-// data); the reader can look it up here from the public identifier instead.
+// show a name taken from the REGISTRY row (GDPR — an OSVČ's nazev is their own
+// name); the reader can look it up here from the public identifier instead. The
+// leasing section is the one exception, and only because the name there comes
+// from our curated allowlist of vetted companies, not from the registry data.
 function registryUrl(ico: string): string {
 	return `https://verejnerejstriky.msp.gov.cz/vysledky?resultsType=search&hledanyText=${encodeURIComponent(
 		ico
@@ -279,6 +322,10 @@ export async function renderCertificatePdf(
 				{ src: path.join(dir, 'DejaVuSans-Bold.ttf'), fontWeight: 700 }
 			]
 		})
+		// Disable hyphenation. The library's default hyphenator applies ENGLISH
+		// rules, which mangle Czech: a leasing company wrapped as "Česká re-publika"
+		// (correct Czech would be "re-pu-b-li-ka"). Long words wrap whole instead.
+		Font.registerHyphenationCallback((word: string) => [word])
 		fontsRegistered = true
 	}
 
@@ -344,6 +391,16 @@ export async function renderCertificatePdf(
 			])
 		])
 	)
+
+	// Snapshots frozen before the financing check shipped carry no `financing` key
+	// — but they DO carry the owner timeline it is derived from, so recompute
+	// rather than fall back to "nothing found". Printing a not-found statement we
+	// never actually computed would be a false claim on every old certificate.
+	const financing =
+		history.financing ??
+		(history.owners?.timeline
+			? buildFinancing(history.owners.timeline)
+			: EMPTY_FINANCING)
 
 	// Notable flags — wording matches the web (VehicleHistoryPanel buildFlags).
 	const flagNodes: ReactNode[] = []
@@ -434,6 +491,13 @@ export async function renderCertificatePdf(
 		)
 	if (history.imports.length > 0)
 		chips.push(chip('Dovoz', 'neutral', 'g-import'))
+	// Financing verdict at a glance. The "no record" chip is deliberately absent:
+	// a green "Bez leasingu" pill would read as a clean-title guarantee we cannot
+	// give (an úvěr and a zástava are invisible here). The section below says it
+	// in words instead, with the caveat attached.
+	if (financing.active) chips.push(chip('Aktivní leasing', 'warn', 'g-fin'))
+	else if (financing.hasHistory)
+		chips.push(chip('Leasing v historii', 'neutral', 'g-fin'))
 	children.push(e(View, { key: 'glance', style: styles.glance }, chips))
 
 	// Vehicle identity.
@@ -509,6 +573,94 @@ export async function renderCertificatePdf(
 			)
 		)
 	}
+
+	// Leasing / financing — an ownership statement, so it sits right after the
+	// owner timeline it is derived from. The paid detail the web view withholds:
+	// which company, which period and owner vs operator.
+	children.push(secTitle('Leasing a financování', 'fin-t'))
+	if (financing.records.length > 0) {
+		if (financing.active) {
+			// Amber, not the red `flag` style used for stolen/deregistered: this is a
+			// current ownership fact, not a defect. And it says only what the registry
+			// records — we have no idea who is selling the vehicle, only that the
+			// registered owner and operator are different subjects.
+			children.push(
+				e(
+					Text,
+					{ style: styles.notice, key: 'fin-a' },
+					// No claim about the operator: on an operating lease the same company is
+				// registered as owner AND operator, so "vlastník a provozovatel nejsou
+				// tentýž subjekt" is simply false for those vehicles. The rows below
+				// show the relation per company and period.
+				'Vozidlo je podle registru ve vlastnictví leasingové nebo finanční společnosti.'
+				)
+			)
+		}
+		children.push(
+			e(
+				View,
+				{ key: 'fin-l', style: { marginTop: 4 } },
+				financing.records.map((r, i) =>
+					e(
+						View,
+						{
+							style: i % 2 ? [styles.tlRow, styles.tlRowZebra] : styles.tlRow,
+							key: `fin-${i}`,
+							wrap: false
+						},
+						[
+							e(
+								Text,
+								{ style: styles.finDate, key: 'd' },
+								`${fmtDate(r.from)} – ${r.current ? 'dosud' : fmtDate(r.to)}`
+							),
+							// The company name comes from our curated list, not from the
+							// registry row, and links to the public registers.
+							e(
+								Link,
+								{ style: styles.finLink, key: 'm', src: registryUrl(r.ico) },
+								// Non-breaking space: long company names wrap this cell, and
+								// "IČO" must not end up on a different line from its number.
+								`${r.name} (IČO ${r.ico})`
+							),
+							e(
+								Text,
+								{ style: styles.finTag, key: 't' },
+								`${RELATION_LABEL[r.relation] ?? r.relation} · ${FINANCING_KIND_LABEL[r.kind]}`
+							)
+						]
+					)
+				)
+			)
+		)
+		// No advice and no interpretation here on purpose — the certificate states
+		// what the registry records. What an active or historic record means, and
+		// what to check before buying, lives on the public list page instead.
+	} else {
+		children.push(
+			e(
+				Text,
+				{ style: styles.muted, key: 'fin-none' },
+				'V historii vlastníků a provozovatelů jsme nenašli žádnou ze sledovaných leasingových či úvěrových společností ani autopůjčoven.'
+			)
+		)
+	}
+	// Never omit the second sentence — it is the difference between a true
+	// statement and a clean-title guarantee we are not able to give.
+	children.push(
+		e(Text, { style: styles.note, key: 'fin-n' }, [
+			'Vychází z registru silničních vozidel a z našeho seznamu sledovaných společností ',
+			// The brackets belong INSIDE the link text. Split across two chunks, the
+			// layout engine treats "(" as the head of a hyphenatable word and prints
+			// a stray hyphen when the line breaks right after it.
+			e(
+				Link,
+				{ style: styles.noteLink, key: 'l', src: FINANCING_LIST_URL },
+				`(${FINANCING_LIST_URL.replace(/^https?:\/\//, '')})`
+			),
+			'. Nejedná se o potvrzení, že vozidlo není zatíženo úvěrem či zástavou.'
+		])
+	)
 
 	// STK inspection history.
 	children.push(secTitle('Historie STK', 'stk-t'))
@@ -604,9 +756,9 @@ export async function renderCertificatePdf(
 							wrap: false
 						},
 						[
-							e(Text, { style: styles.tlDate, key: 'd' }, fmtDate(r.date)),
-							e(Text, { style: styles.tlMain, key: 'm' }, `${fmtKm(r.km)} km`),
-							e(Text, { style: styles.tlTag, key: 'p' }, r.protocol ?? '')
+							e(Text, { style: styles.milDate, key: 'd' }, fmtDate(r.date)),
+							e(Text, { style: styles.milKm, key: 'm' }, `${fmtKm(r.km)} km`),
+							e(Text, { style: styles.milProto, key: 'p' }, r.protocol ?? '')
 						]
 					)
 				)
@@ -762,7 +914,7 @@ export async function renderCertificatePdf(
 				// Honesty: absence of an item is NOT evidence the vehicle lacks it.
 				// (Dates are omitted where the registry holds none — a fact about the
 				// dataset, not about this vehicle, so it stays out of the buyer's copy.)
-				'Seznam nemusí být úplný — chybějící položka neznamená, že ji vozidlo nemá.'
+				'Seznam nemusí být úplný – chybějící položka neznamená, že ji vozidlo nemá.'
 			)
 		)
 	}
@@ -809,8 +961,13 @@ export async function renderCertificatePdf(
 		return runs
 	}
 	if (techGroups.length > 0) {
+		// A group MUST be allowed to wrap: some vehicles (e.g. a Mercedes van with a
+		// long "Rozměry a hmotnosti" block) have groups taller than a page, and a
+		// `wrap: false` node that doesn't fit is rendered OVERFLOWING — rows print
+		// on top of each other. `minPresenceAhead` keeps the group heading from
+		// stranding at the bottom of a page instead.
 		const renderTechGroup = (group: (typeof techGroups)[number]) =>
-			e(View, { key: `techg-${group.label}`, wrap: false }, [
+			e(View, { key: `techg-${group.label}`, minPresenceAhead: 48 }, [
 				grpTitle(group.label, 'gt'),
 				...group.fields.map((f, i) =>
 					// Composite fields render as labelled parts; a long free-text dump
@@ -868,8 +1025,9 @@ export async function renderCertificatePdf(
 			])
 		// Bind the section title to its first group so it never orphans at
 		// a page break (blank gap while its content flows to the next page).
+		// Same rule as above: allow wrapping, just demand room for a few rows.
 		children.push(
-			e(View, { key: 'tech-head', wrap: false }, [
+			e(View, { key: 'tech-head', minPresenceAhead: 72 }, [
 				secTitle('Technické údaje', 'tech-t'),
 				renderTechGroup(techGroups[0])
 			])
@@ -882,10 +1040,14 @@ export async function renderCertificatePdf(
 	// Footer disclaimer — must not imply state authority. The "neobsahuje" list
 	// drops "stav tachometru" when this certificate actually includes it (from the
 	// STK/emission inspection data), so the footer never contradicts the content.
+	// "leasing" deliberately dropped from the exclusion list: the certificate now
+	// HAS a leasing section (from the owner history), so claiming otherwise would
+	// contradict the document. Zástavy remain excluded — those are a different
+	// register we do not hold.
 	const excludes =
 		history.mileage.readings.length > 0
-			? 'záznamy o nehodách ani zástavy/leasing'
-			: 'stav tachometru, záznamy o nehodách ani zástavy/leasing'
+			? 'záznamy o nehodách ani zástavy'
+			: 'stav tachometru, záznamy o nehodách ani zástavy'
 	// Full-bleed footer bar on every page: disclaimer on the left, page number on
 	// the right, both baseline-aligned to the bottom of the bar.
 	const footer = e(View, { style: styles.footer, fixed: true, key: 'footer' }, [
