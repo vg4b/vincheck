@@ -40,13 +40,6 @@ const CATEGORY_ICONS: Record<VehicleFieldCategoryId, IconName> = {
 	ostatni: 'info'
 }
 
-// Categories most readers care about stay open; the long tail collapses.
-const DEFAULT_OPEN_CATEGORIES = new Set<VehicleFieldCategoryId>([
-	'doklady_evidence',
-	'motor_palivo_spotreba',
-	'karoserie'
-])
-
 interface VehicleInfoProps {
 	data: VehicleDataArray
 	vinCode: string
@@ -213,28 +206,29 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 		[filteredData]
 	)
 
-	// Which spec groups are expanded. Seeded from the default-open set; each
-	// <details> is controlled so a single button can expand/collapse them all.
-	const [openGroups, setOpenGroups] = useState<Set<VehicleFieldCategoryId>>(
-		() => new Set(DEFAULT_OPEN_CATEGORIES)
-	)
+	// All spec groups start expanded; we track only the ones the reader closed,
+	// so groups that appear for a different vehicle are open too. Each <details>
+	// is controlled so a single button can expand/collapse them all.
+	const [collapsedGroups, setCollapsedGroups] = useState<
+		Set<VehicleFieldCategoryId>
+	>(() => new Set())
 	const [showCertModal, setShowCertModal] = useState(false)
 	const allExpanded =
 		groupedData.length > 0 &&
-		groupedData.every((g) => openGroups.has(g.categoryId))
+		groupedData.every((g) => !collapsedGroups.has(g.categoryId))
 
 	const toggleAllGroups = () => {
-		setOpenGroups(
-			allExpanded ? new Set() : new Set(groupedData.map((g) => g.categoryId))
+		setCollapsedGroups(
+			allExpanded ? new Set(groupedData.map((g) => g.categoryId)) : new Set()
 		)
 	}
 
 	const setGroupOpen = (id: VehicleFieldCategoryId, open: boolean) => {
-		setOpenGroups((prev) => {
-			if (prev.has(id) === open) return prev
+		setCollapsedGroups((prev) => {
+			if (prev.has(id) === !open) return prev
 			const next = new Set(prev)
-			if (open) next.add(id)
-			else next.delete(id)
+			if (open) next.delete(id)
+			else next.add(id)
 			return next
 		})
 	}
@@ -561,7 +555,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 			{/* Promo section (if provided) */}
 			{promoSection}
 
-			{/* Technical specs — grouped, with the long tail collapsed by default. */}
+			{/* Technical specs — grouped, all expanded by default. */}
 			{filteredData.length > 0 && (
 				<div className='mt-4'>
 					<div className='d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3'>
@@ -581,7 +575,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 							<details
 								key={group.categoryId}
 								className='spec-group'
-								open={openGroups.has(group.categoryId)}
+								open={!collapsedGroups.has(group.categoryId)}
 								onToggle={(e) =>
 									setGroupOpen(group.categoryId, e.currentTarget.open)
 								}
