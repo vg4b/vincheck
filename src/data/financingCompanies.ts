@@ -97,6 +97,15 @@ export const FINANCING_COMPANIES: Record<string, FinancingCompany> = {
 	'65006658': { name: 'IMPULS-Leasing-AUSTRIA s.r.o.', kind: 'leasing' },
 	'60851252': { name: 'AGRO LEASING J.Hradec s.r.o.', kind: 'leasing' },
 	'2315980': { name: 'PACCAR Financial CZ s.r.o.', kind: 'leasing' },
+	// Found by the 2026-08 refresh; the entity only started registering vehicles
+	// on 2026-03-25. Owner on all 362 rows and operator on none — the finance-lease
+	// signature — and the captive-finance sibling of Mercedes-Benz Financial
+	// Services and TRATON, both already listed. (ARES lists no 77110/64910 for it
+	// yet, which is why the owner/operator split decides here, not the NACE code.)
+	'21538735': {
+		name: 'Daimler Truck Financial Services Česká republika s.r.o.',
+		kind: 'leasing'
+	},
 	'8112312': {
 		name: 'BMW Financial Services Czech Republic s.r.o.',
 		kind: 'leasing'
