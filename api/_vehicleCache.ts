@@ -212,6 +212,40 @@ function ownerRelation(vztah: unknown): OwnerRelation {
 	return 'other'
 }
 
+/** Notable values of `vehicle_registry.ucel_vozidla`. Ordinary operation and
+ *  blanks map to null — we only speak up when the registry says something. */
+export type VehicleUsageKind =
+	| 'taxi'
+	| 'emergency'
+	| 'rental'
+	| 'haulage'
+	| 'publicTransport'
+
+export type VehicleUsage = {
+	/** The registry's own wording, so the certificate can quote it verbatim. */
+	label: string | null
+	kind: VehicleUsageKind | null
+}
+
+/**
+ * Map the registry's purpose text to a kind. Matching is on a distinctive
+ * substring rather than the whole string: the values are long ("Provozování
+ * silniční dopravy pro cizí potřeby jeho provozovatelem") and the registry has
+ * changed their wording before.
+ */
+function vehicleUsage(raw: unknown): VehicleUsage {
+	const label = nullIfEmpty(raw)
+	if (!label) return { label: null, kind: null }
+	const v = label.toLowerCase()
+	let kind: VehicleUsageKind | null = null
+	if (v.includes('taxi')) kind = 'taxi'
+	else if (v.includes('předností práva')) kind = 'emergency'
+	else if (v.includes('půjčovna')) kind = 'rental'
+	else if (v.includes('linkové dopravy')) kind = 'publicTransport'
+	else if (v.includes('cizí potřeby')) kind = 'haulage'
+	return { label, kind }
+}
+
 type SubjectType = 'company' | 'private' | 'unknown'
 
 // vehicle_owners.typ_subjektu: 1 individual (ROB), 2 legal entity (ROS), 3 unidentified.
@@ -327,6 +361,21 @@ export type VehicleHistory = {
 	 *  before this shipped have no such key, so readers fall back to
 	 *  EMPTY_FINANCING. */
 	financing?: VehicleFinancing
+	/** Registered PURPOSE of the vehicle (`ucel_vozidla`). Present in the registry
+	 *  for every vehicle but easy to miss — until now it rendered as one more row
+	 *  in the technical table, at the same weight as the wheelbase.
+	 *
+	 *  It is the plainest statement of how a vehicle is used that the registry
+	 *  makes: 16,573 taxis, 12,959 priority vehicles, 2,599 rentals. `kind` is set
+	 *  only for the notable values; ordinary "Běžný provoz" and blanks leave it
+	 *  null so nothing is surfaced.
+	 *
+	 *  CURRENT state, not history — a taxi deregistered before sale reverts to
+	 *  "Běžný provoz" and we can no longer see it. Copy must therefore say what
+	 *  the registry records TODAY, never "bylo taxi".
+	 *
+	 *  Optional: absent from snapshots frozen before this shipped. */
+	usage?: VehicleUsage
 	/** Odometer/mileage history from the ISTP inspection open data
 	 *  (vehicle_inspection_odometer), one reading per inspection date (same-day
 	 *  STK+emission protocols collapsed). Empty when we have no readings for the
@@ -734,6 +783,7 @@ export async function lookupVehicleFromCache(
 		},
 		// Pure derivation over the timeline we already built — no extra query.
 		financing: buildFinancing(timeline),
+		usage: vehicleUsage(row.ucel_vozidla),
 		inspections: {
 			total: Number(insp.total ?? 0),
 			failed: Number(insp.failed ?? 0),
