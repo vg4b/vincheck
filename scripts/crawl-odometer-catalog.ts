@@ -34,7 +34,17 @@ const SERIES_IRI =
 	'https://data.gov.cz/zdroj/datové-sady/66003008/9c95ebdba1dc7a2fbcfc5b6c07d25705'
 
 const PAGE_SIZE = 2000
-const MAX_RETRIES = 4
+/**
+ * Retry budget for the SPARQL endpoint. Four attempts with a 0.5s-based backoff
+ * gave up after ~7 seconds total, which is not enough to ride out a blip on a
+ * government portal: on 2026-08-10 the weekly ingest died on an ETIMEDOUT that
+ * had cleared long before anyone looked at it (8 prior runs had passed). Six
+ * attempts with a capped exponential backoff spans ~1 minute instead.
+ */
+const MAX_RETRIES = 6
+const MAX_BACKOFF_MS = 30_000
+/** Per-attempt ceiling, so one hung socket cannot eat the whole retry budget. */
+const REQUEST_TIMEOUT_MS = 30_000
 const USER_AGENT = 'vininfo-odometer-crawler (+https://vininfo.cz)'
 
 interface ManifestEntry {
@@ -66,7 +76,8 @@ async function sparql(query: string): Promise<SparqlBinding[]> {
 					Accept: 'application/sparql-results+json',
 					'User-Agent': USER_AGENT
 				},
-				body
+				body,
+				signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
 			})
 			if (!res.ok) {
 				throw new Error(`SPARQL HTTP ${res.status}: ${await res.text()}`)
@@ -76,7 +87,7 @@ async function sparql(query: string): Promise<SparqlBinding[]> {
 		} catch (err) {
 			lastErr = err
 			if (attempt < MAX_RETRIES) {
-				const backoff = 2 ** attempt * 500
+				const backoff = Math.min(2 ** attempt * 1000, MAX_BACKOFF_MS)
 				console.warn(
 					`  SPARQL attempt ${attempt} failed (${String(err)}); retrying in ${backoff}ms`
 				)
