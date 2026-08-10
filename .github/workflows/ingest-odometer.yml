@@ -100,3 +100,22 @@ jobs:
           --dir odometer-data/xml
           --from ${{ steps.win.outputs.from }}
           --throttle 25
+
+      # A stalled upstream feed is invisible from the outside: the crawl still
+      # succeeds, there is simply nothing newer to fetch, the overlap window is
+      # re-ingested and the job goes green. That is exactly how ISTP publishing
+      # nothing after 2026-07-03 went unnoticed for five weeks — every weekly run
+      # in between passed. Compare the newest published day against the run date
+      # and fail loudly. The ingest above has already completed by this point;
+      # this step changes no data and only raises the flag.
+      - name: Check the upstream feed is still publishing
+        env:
+          MAX_LAG_DAYS: '21'
+        run: |
+          NEWEST=$(node -e "const fs=require('fs');const m=JSON.parse(fs.readFileSync('odometer-data/manifest.json','utf8'));console.log(m.map(e=>e.date).sort().pop())")
+          LAG=$(( ( $(date -u +%s) - $(date -u -d "$NEWEST" +%s) ) / 86400 ))
+          echo "Newest day published by ISTP: $NEWEST ($LAG days ago, threshold $MAX_LAG_DAYS)"
+          if [ "$LAG" -gt "$MAX_LAG_DAYS" ]; then
+            echo "::error::ISTP has published no inspection data since $NEWEST — $LAG days ago. Vehicles inspected since then carry no odometer reading in the certificate. The ingest itself succeeded; this is an upstream stall, not a failure of this job."
+            exit 1
+          fi
