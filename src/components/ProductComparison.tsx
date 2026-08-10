@@ -62,6 +62,10 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 					<Icon name='check' size={15} /> Leasing a financování v historii
 					vlastníků
 				</li>
+				<li>
+					<Icon name='check' size={15} /> Účel vozidla podle registru (taxi,
+					půjčovna, vozidlo s právem přednosti)
+				</li>
 				{mileageAvailable !== false && (
 					<li>
 						<Icon name='check' size={15} /> Historie stavu tachometru (může

@@ -66,6 +66,24 @@ type Flag = { label: string; severe: boolean }
 
 type FinancingBadge = { label: string; className: string }
 
+/**
+ * Registered purpose, as a badge. The registry states this plainly for every
+ * vehicle, but it used to render as one more row in the technical table at the
+ * same weight as the wheelbase — a taxi says more about a car's wear than any
+ * spec on that list.
+ *
+ * Neutral styling, like the equipment-derived signals: it is recorded usage, not
+ * a defect. And it is CURRENT state, so the wording is "registr eviduje", never
+ * "bylo taxi" — a taxi deregistered before the sale reads as ordinary again.
+ */
+const USAGE_BADGE: Record<string, string> = {
+	taxi: 'Registr: TAXI',
+	emergency: 'Registr: vozidlo s právem přednosti v jízdě',
+	rental: 'Registr: půjčovna',
+	haulage: 'Registr: silniční doprava pro cizí potřeby',
+	publicTransport: 'Registr: veřejná linková doprava'
+}
+
 /** Accusative, so the kinds slot into "…jsme našli X a Y." */
 const FINANCING_KIND_ACC: Record<'leasing' | 'fleet' | 'rental', string> = {
 	leasing: 'leasingovou nebo úvěrovou společnost',
@@ -198,6 +216,8 @@ const VehicleHistoryPanel: FC<{
 	// live-API fallback.
 	const financing = history.financing
 	const finBadges = financingBadges(history)
+	const usageKind = history.usage?.kind
+	const usageBadge = usageKind ? USAGE_BADGE[usageKind] : null
 	const cleanVin = vinCode.replace(/[^a-zA-Z0-9]/g, '')
 	// Mileage is a paid-certificate feature — shown only behind the cert flag and
 	// only when we actually have readings. Free view = blurred values + unlock CTA.
@@ -218,8 +238,13 @@ const VehicleHistoryPanel: FC<{
 					<Icon name='chevron-right' size={18} className='spec-chevron' />
 				</summary>
 				<div className='spec-body'>
-					{(flags.length > 0 || finBadges.length > 0) && (
+					{(flags.length > 0 || finBadges.length > 0 || usageBadge) && (
 						<div className='d-flex flex-wrap gap-2 mb-3'>
+							{usageBadge && (
+								<span className='badge rounded-pill text-bg-light border'>
+									<Icon name='info' size={12} /> {usageBadge}
+								</span>
+							)}
 							{flags.map((f) => (
 								<span
 									key={f.label}
@@ -262,8 +287,8 @@ const VehicleHistoryPanel: FC<{
 							    provozovatel nejsou tentýž subjekt" is false for those
 							    vehicles. The timeline below shows the actual relations. */}
 							<strong>
-								Vozidlo je podle registru ve vlastnictví leasingové nebo finanční
-								společnosti.
+								Vozidlo je podle registru ve vlastnictví leasingové nebo
+								finanční společnosti.
 							</strong>
 						</div>
 					)}

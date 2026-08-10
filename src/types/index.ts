@@ -161,6 +161,19 @@ export interface VehicleHistory {
 			current: boolean
 		}>
 	}
+	/** Registered purpose of the vehicle (`Účel vozidla`). `kind` is set only for
+	 *  the notable values — taxi, priority vehicle, rental, haulage, public
+	 *  transport; ordinary operation leaves it null.
+	 *
+	 *  CURRENT state: a taxi deregistered before sale reads as ordinary again, so
+	 *  copy says what the registry records now and never "bylo taxi".
+	 *
+	 *  Optional: absent from snapshots frozen before this shipped, and from the
+	 *  live-API fallback. */
+	usage?: {
+		label: string | null
+		kind: 'taxi' | 'emergency' | 'rental' | 'haulage' | 'publicTransport' | null
+	}
 	/** Odometer/mileage TEASER from the official STK/emission inspections (ISTP).
 	 *  Exact km are a paid feature and are NOT sent to the client — only the
 	 *  reading count, the inspection dates (already public via the STK history),

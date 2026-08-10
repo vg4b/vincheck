@@ -58,6 +58,37 @@ Columns: `typ` (`P…` regular / `E…` evidence), `stav` (`A` pass / `B` defect
 - **statusLabel** = `status` (already mapped to `StatusNazev`)
 - **deregistrations[]** = `{ from, to, reason }`, newest first
 
+### Usage / účel vozidla — `vehicle_registry.ucel_vozidla` (added 2026-08-08)
+
+The registry's own statement of what the vehicle is used for. It was always in
+the payload, but rendered as one more row in the technical table at the same
+weight as the wheelbase — so nobody saw it. Measured on the 2026-07 snapshot:
+
+| Value | Vehicles |
+|---|---|
+| Běžný provoz | 10,172,944 |
+| *(blank)* | 9,083,064 |
+| **Taxi** | **16,573** |
+| **Vozidlo s předností práva v jízdě** | **12,959** |
+| Provozování silniční dopravy pro cizí potřeby | 2,973 |
+| **Půjčovna** | **2,599** |
+| Vozidlo určené k provozování veřejné linkové dopravy | 45 |
+
+- `usage.kind` is set only for the notable values (`taxi`, `emergency`,
+  `rental`, `haulage`, `publicTransport`); ordinary operation and blanks leave it
+  null so nothing is rendered. Matching is on a distinctive substring, since the
+  values are long and the registry has reworded them before.
+- `usage.label` keeps the registry's own wording so the certificate can quote it
+  verbatim ("Účel vozidla: Taxi") rather than paraphrase.
+- **Free**, like the equipment signals — it is a hook for the certificate, not a
+  paid figure. Badge on the detail page, glance chip + identity row in the PDF.
+- **CURRENT state, not history.** A taxi deregistered before sale reverts to
+  "Běžný provoz" and becomes invisible to us, so copy says what the registry
+  records now ("Registr: TAXI") and never "bylo taxi".
+- Complements, does not duplicate: `Půjčovna` here is an independent second
+  source for rental use that does not depend on the IČO allowlist, and
+  `Vozidlo s předností práva` corroborates the blue-beacon equipment flag.
+
 ### Financing — derived from the owner timeline (added 2026-08-06)
 
 No new query: `buildFinancing()` in `api/_financingCompanies.ts` matches the

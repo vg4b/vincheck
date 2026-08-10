@@ -246,6 +246,16 @@ const RELATION_LABEL: Record<string, string> = {
  *  so the check is auditable rather than a black box. Route in src/App.tsx. */
 const FINANCING_LIST_URL = `${getPublicBaseUrl()}/leasingove-spolecnosti`
 
+// Registered purpose worth putting in the glance strip. "Běžný provoz" and blank
+// map to no kind upstream, so nothing shows for an ordinary vehicle.
+const USAGE_CHIP: Record<string, string> = {
+	taxi: 'Taxi',
+	emergency: 'Vozidlo s právem přednosti',
+	rental: 'Půjčovna',
+	haulage: 'Silniční doprava pro cizí potřeby',
+	publicTransport: 'Veřejná linková doprava'
+}
+
 const FINANCING_KIND_LABEL: Record<FinancingKind, string> = {
 	leasing: 'leasing / úvěr',
 	fleet: 'operativní leasing',
@@ -491,6 +501,13 @@ export async function renderCertificatePdf(
 		)
 	if (history.imports.length > 0)
 		chips.push(chip('Dovoz', 'neutral', 'g-import'))
+	// Registered purpose — the registry's own statement of how the vehicle is
+	// used, and for a taxi the single most consequential line in the document.
+	// Neutral, not `warn`: red is reserved for defects (stolen, rollback). A taxi
+	// is recorded usage — prominent because it matters, not because it is wrong.
+	const usageKind = history.usage?.kind
+	if (usageKind && USAGE_CHIP[usageKind])
+		chips.push(chip(USAGE_CHIP[usageKind], 'neutral', 'g-usage'))
 	// Financing verdict at a glance. The "no record" chip is deliberately absent:
 	// a green "Bez leasingu" pill would read as a clean-title guarantee we cannot
 	// give (an úvěr and a zástava are invisible here). The section below says it
@@ -511,7 +528,13 @@ export async function renderCertificatePdf(
 				'První registrace',
 				fmtDate(dataValue(data, 'DatumPrvniRegistrace', ''))
 			),
-			row('Stav vozidla', history.flags.statusLabel ?? '—')
+			row('Stav vozidla', history.flags.statusLabel ?? '—'),
+			// Quoted verbatim from the registry rather than reworded: this is the
+			// field's own wording, and for a taxi or a priority vehicle it belongs
+			// next to the identity, not buried in the technical table.
+			...(history.usage?.label
+				? [row('Účel vozidla', history.usage.label)]
+				: [])
 		])
 	)
 
@@ -589,10 +612,10 @@ export async function renderCertificatePdf(
 					Text,
 					{ style: styles.notice, key: 'fin-a' },
 					// No claim about the operator: on an operating lease the same company is
-				// registered as owner AND operator, so "vlastník a provozovatel nejsou
-				// tentýž subjekt" is simply false for those vehicles. The rows below
-				// show the relation per company and period.
-				'Vozidlo je podle registru ve vlastnictví leasingové nebo finanční společnosti.'
+					// registered as owner AND operator, so "vlastník a provozovatel nejsou
+					// tentýž subjekt" is simply false for those vehicles. The rows below
+					// show the relation per company and period.
+					'Vozidlo je podle registru ve vlastnictví leasingové nebo finanční společnosti.'
 				)
 			)
 		}
