@@ -53,7 +53,7 @@ const FleetPage: FC = () => {
 					setError('Pro toto IČO nebyla v registru nalezena žádná vozidla.')
 				} else {
 					setData(res)
-					document.title = `Vozidla — ${res.nazev ?? `IČO ${ico}`} | VIN Info.cz`
+					document.title = `Vozidla – ${res.nazev ?? `IČO ${ico}`} | VIN Info.cz`
 				}
 			} catch (err) {
 				if (err instanceof DOMException && err.name === 'AbortError') return
@@ -122,7 +122,7 @@ const FleetPage: FC = () => {
 						<p>
 							{data.nazev && (
 								<>
-									<strong>{data.nazev}</strong> —{' '}
+									<strong>{data.nazev}</strong> –{' '}
 								</>
 							)}
 							{data.countCapped ? `${data.count}+` : data.count}{' '}

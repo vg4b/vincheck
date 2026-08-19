@@ -135,7 +135,7 @@ export async function sendEmail(params: SendEmailParams): Promise<boolean> {
 }
 
 export function generateVerificationEmailHtml(code: string): string {
-	const preheader = 'Dokončete registraci na VINInfo.cz — váš ověřovací kód uvnitř.'
+	const preheader = 'Dokončete registraci na VINInfo.cz – váš ověřovací kód uvnitř.'
 	return `<!DOCTYPE html>
 <html lang="cs">
 <head>
@@ -202,7 +202,7 @@ export function generateVerificationEmailText(code: string): string {
 		'',
 		'Pokud jste se u nás neregistrovali, tento email můžete ignorovat.',
 		'',
-		'— VINInfo.cz (https://www.vininfo.cz)'
+		'– VINInfo.cz (https://www.vininfo.cz)'
 	].join('\n')
 }
 
@@ -272,7 +272,7 @@ export function generateCertificateEmailHtml(
 					<tr>
 						<td class="email-surface email-pad email-border" style="background-color: #ffffff; padding: 30px; border-left: 1px solid #e9ecef; border-right: 1px solid #e9ecef;">
 							<h2 class="email-h2" style="color: #333; margin: 0 0 16px; font-size: 20px;">Děkujeme za nákup!</h2>
-							<p class="email-text" style="color: #555; margin: 0 0 16px;">Váš certifikát historie vozidla pro VIN <strong>${vin}</strong> — zpracovaný z dat registru silničních vozidel ČR — je připravený.</p>
+							<p class="email-text" style="color: #555; margin: 0 0 16px;">Váš certifikát historie vozidla pro VIN <strong>${vin}</strong> – zpracovaný z dat registru silničních vozidel ČR – je připravený.</p>
 							<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 25px 0;">
 								<tr>
 									<td class="email-tint" style="background-color: #eaf4eb; padding: 20px; border-radius: 8px; text-align: center;">
@@ -303,7 +303,7 @@ export function generateCertificateEmailHtml(
 								<tr>
 									<td style="border-top: 1px solid #e9ecef; padding-top: 16px;">
 										<p class="email-text" style="color: #333; font-weight: 600; margin: 0 0 8px; font-size: 15px;">Bylo vše v pořádku?</p>
-										<p class="email-text-muted" style="color: #777; font-size: 14px; margin: 0;">Dejte nám vědět — stačí odpovědět na tento e-mail nebo napsat na <a href="mailto:vininfo@mail.vininfo.cz" style="color: #2e7d32;">vininfo@mail.vininfo.cz</a>. Každá zpětná vazba nám pomáhá službu vylepšovat.</p>
+										<p class="email-text-muted" style="color: #777; font-size: 14px; margin: 0;">Dejte nám vědět – stačí odpovědět na tento e-mail nebo napsat na <a href="mailto:vininfo@mail.vininfo.cz" style="color: #2e7d32;">vininfo@mail.vininfo.cz</a>. Každá zpětná vazba nám pomáhá službu vylepšovat.</p>
 									</td>
 								</tr>
 							</table>
@@ -343,7 +343,7 @@ export function generateCertificateEmailText(
 	return [
 		'Děkujeme za nákup!',
 		'',
-		`Váš certifikát historie vozidla pro VIN ${params.vin} — zpracovaný z dat registru silničních vozidel ČR — je připravený.`,
+		`Váš certifikát historie vozidla pro VIN ${params.vin} – zpracovaný z dat registru silničních vozidel ČR – je připravený.`,
 		'',
 		`Číslo certifikátu: ${params.code}`,
 		'',
@@ -356,7 +356,7 @@ export function generateCertificateEmailText(
 		'Vytvořte si zdarma účet a mějte svá vozidla přehledně na jednom místě. Můžete si u nich nastavit e-mailová upozornění na blížící se STK a konec pojištění: https://www.vininfo.cz/registrace',
 		'',
 		'Bylo vše v pořádku?',
-		'Dejte nám vědět — stačí odpovědět na tento e-mail nebo napsat na vininfo@mail.vininfo.cz. Každá zpětná vazba nám pomáhá službu vylepšovat.',
+		'Dejte nám vědět – stačí odpovědět na tento e-mail nebo napsat na vininfo@mail.vininfo.cz. Každá zpětná vazba nám pomáhá službu vylepšovat.',
 		'',
 		'Doklad o zaplacení',
 		'Položka: Certifikát historie vozidla',
@@ -366,7 +366,7 @@ export function generateCertificateEmailText(
 		`Prodávající: ${SELLER_NAME}, ${SELLER_ADDRESS}, IČO ${SELLER_ICO}`,
 		'Fyzická osoba zapsaná v živnostenském rejstříku. Nejsme plátci DPH.',
 		'',
-		'— VINInfo.cz (https://www.vininfo.cz)'
+		'– VINInfo.cz (https://www.vininfo.cz)'
 	].join('\n')
 }
 
@@ -375,7 +375,7 @@ export async function sendCertificateEmail(
 ): Promise<boolean> {
 	return sendEmail({
 		to: params.to,
-		subject: `Váš certifikát ${params.code} — VINInfo.cz`,
+		subject: `Váš certifikát ${params.code} – VINInfo.cz`,
 		html: generateCertificateEmailHtml(params),
 		text: generateCertificateEmailText(params)
 	})

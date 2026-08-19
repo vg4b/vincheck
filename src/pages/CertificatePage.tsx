@@ -75,7 +75,7 @@ const CertificatePage: React.FC = () => {
 		<>
 			<Navigation />
 			<main className='container py-5' style={{ maxWidth: 640 }}>
-				{/* Cancelled — nothing charged, offer a retry. */}
+				{/* Cancelled – nothing charged, offer a retry. */}
 				{isCancelled && (
 					<div className='text-center'>
 						<h1 className='h4 mb-3'>Platba nebyla dokončena</h1>
@@ -89,7 +89,7 @@ const CertificatePage: React.FC = () => {
 					</div>
 				)}
 
-				{/* Pending — the payment wasn't completed. Show the outcome right away
+				{/* Pending – the payment wasn't completed. Show the outcome right away
 				    (no long spinner); we keep polling in the background, so if a bank
 				    transfer settles this flips to the success screen. */}
 				{!isCancelled && !ready && isPending && (
@@ -106,7 +106,7 @@ const CertificatePage: React.FC = () => {
 					</div>
 				)}
 
-				{/* Paid — waiting for the webhook to issue the certificate. */}
+				{/* Paid – waiting for the webhook to issue the certificate. */}
 				{!isCancelled && !ready && !isPending && !timedOut && (
 					<div className='text-center'>
 						<div className='spinner-border text-primary mb-3' role='status' />

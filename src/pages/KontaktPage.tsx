@@ -14,7 +14,7 @@ const KontaktPage: React.FC = () => {
 		if (metaDescription) {
 			metaDescription.setAttribute(
 				'content',
-				'Kontaktní údaje provozovatele služby VIN Info.cz — telefon, e-mail, sídlo a IČO.'
+				'Kontaktní údaje provozovatele služby VIN Info.cz – telefon, e-mail, sídlo a IČO.'
 			)
 		}
 		return restoreRobots

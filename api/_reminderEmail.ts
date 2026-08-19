@@ -93,7 +93,7 @@ export function generateReminderEmailHtml(params: ReminderEmailParams): string {
 	const { vehicleName, reminderType, dueDate, note, unsubscribeUrl, baseUrl } =
 		params
 	const promoBlock = getPromoBlockHtml(params)
-	const preheader = `${reminderType} pro ${vehicleName} — termín ${dueDate}.`
+	const preheader = `${reminderType} pro ${vehicleName} – termín ${dueDate}.`
 
 	return `<!DOCTYPE html>
 <html lang="cs">
@@ -178,7 +178,7 @@ export function generateReminderEmailText(params: ReminderEmailParams): string {
 		'',
 		`Přejít do Moje VINInfo: ${baseUrl}/klientska-zona`,
 		'',
-		'— VINInfo.cz (https://www.vininfo.cz)',
+		'– VINInfo.cz (https://www.vininfo.cz)',
 		`Odhlásit se z odběru notifikací: ${unsubscribeUrl}`
 	)
 	return lines.join('\n')

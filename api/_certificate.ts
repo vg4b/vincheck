@@ -132,7 +132,16 @@ export function buildSampleSnapshot(): VehicleCacheResult {
 						administrative: false,
 						// One of each fallback tier, so the sample exercises the whole
 						// display path: catalog hit, catalog miss, pre-2018 numeric.
+						// Severity C leads deliberately: it is the only one rendered in
+						// red, and a sample without it would never show a prospect what
+						// a dangerous defect looks like in the document they are buying.
 						defects: [
+							{
+								code: '4.1.1.1.1',
+								severity: 'C',
+								text: 'Na vozidle nesvítí žádný potkávací světlomet.',
+								group: 'osvětlení'
+							},
 							{
 								code: '1.1.12.2.1',
 								severity: 'B',

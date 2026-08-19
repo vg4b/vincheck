@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	// `Authorization: Bearer <CRON_SECRET>` automatically when the env var is set.
 	const cronSecret = process.env.CRON_SECRET
 	if (!cronSecret) {
-		console.error('CRON_SECRET is not configured — refusing to run send-reminders.')
+		console.error('CRON_SECRET is not configured – refusing to run send-reminders.')
 		return res.status(500).json({ error: 'Server misconfigured' })
 	}
 	if (req.headers.authorization !== `Bearer ${cronSecret}`) {

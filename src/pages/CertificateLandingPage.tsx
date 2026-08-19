@@ -11,7 +11,7 @@ import { isCertificateEnabled } from '../config/featureFlags'
 const PRICE_CZK = 99
 
 const PAGE_TITLE = `Certifikát historie vozidla z registru ČR za ${PRICE_CZK} Kč | VIN Info.cz`
-const PAGE_DESCRIPTION = `Přehledný certifikát historie vozidla zpracovaný z dat registru silničních vozidel ČR a STK — vlastníci, leasing a financování, STK, stav tachometru, dovoz a stav vozidla. Ihned, v ověřitelném PDF, za ${PRICE_CZK} Kč.`
+const PAGE_DESCRIPTION = `Přehledný certifikát historie vozidla zpracovaný z dat registru silničních vozidel ČR a STK – vlastníci, leasing a financování, STK, stav tachometru, dovoz a stav vozidla. Ihned, v ověřitelném PDF, za ${PRICE_CZK} Kč.`
 const CANONICAL_URL = 'https://www.vininfo.cz/overeny-vypis-vozidla'
 
 const CertificateLandingPage: React.FC = () => {
@@ -118,10 +118,10 @@ const CertificateLandingPage: React.FC = () => {
 							Přehled historie vozidla z registru ČR za {PRICE_CZK} Kč
 						</h1>
 						<p className='lead mb-4'>
-							Data z registru silničních vozidel ČR a STK jsou špatně čitelná —
+							Data z registru silničních vozidel ČR a STK jsou špatně čitelná –
 							my je za vás zpracujeme do srozumitelného přehledu: vlastníci,
 							leasing a financování, STK, stav tachometru, dovoz a stav vozidla.
-							Ihned, v ověřitelném PDF — podklad pro koupi i prodej vozidla.
+							Ihned, v ověřitelném PDF – podklad pro koupi i prodej vozidla.
 						</p>
 						<form onSubmit={handleSubmit}>
 							<label htmlFor='landing-vin' className='form-label fw-semibold'>
@@ -175,36 +175,36 @@ const CertificateLandingPage: React.FC = () => {
 								<h3 className='h6 text-uppercase text-muted-ink mb-3'>Vždy</h3>
 								<ul className='product-features'>
 									<li>
-										<Icon name='check' size={15} /> Identifikace vozidla — VIN,
+										<Icon name='check' size={15} /> Identifikace vozidla – VIN,
 										značka, model, první registrace, stav a účel vozidla
 									</li>
 									<li>
-										<Icon name='check' size={15} /> Vlastníci a provozovatelé —
+										<Icon name='check' size={15} /> Vlastníci a provozovatelé –
 										počty a časová osa držby
 									</li>
 									<li>
 										<Icon name='check' size={15} /> Leasing a financování v
-										historii vlastníků — včetně jasné odpovědi, když nic
+										historii vlastníků – včetně jasné odpovědi, když nic
 										nenajdeme
 									</li>
 									<li>
-										<Icon name='check' size={15} /> Historie STK — každá
+										<Icon name='check' size={15} /> Historie STK – každá
 										prohlídka, výsledek, druh a stanice
 									</li>
 									<li>
 										<Icon name='check' size={15} /> Konkrétní závady z protokolů
-										STK — oficiální znění podle vyhlášky, včetně závažnosti
+										STK – oficiální znění podle vyhlášky, včetně závažnosti
 									</li>
 									<li>
-										<Icon name='check' size={15} /> Historie stavu tachometru —
+										<Icon name='check' size={15} /> Historie stavu tachometru –
 										všechny odečty ze STK s čísly protokolů
 									</li>
 									<li>
-										<Icon name='check' size={15} /> Původ vozidla — zda šlo o
+										<Icon name='check' size={15} /> Původ vozidla – zda šlo o
 										dovoz, nebo první registraci v ČR
 									</li>
 									<li>
-										<Icon name='check' size={15} /> Technické údaje — motor,
+										<Icon name='check' size={15} /> Technické údaje – motor,
 										rozměry, hmotnosti, kola a výbava
 									</li>
 								</ul>
@@ -215,25 +215,25 @@ const CertificateLandingPage: React.FC = () => {
 								</h3>
 								<ul className='product-features'>
 									<li>
-										<Icon name='chart' size={15} /> Odhad současného nájezdu —
+										<Icon name='chart' size={15} /> Odhad současného nájezdu –
 										dopočítaný z tempa mezi prohlídkami. Potřebuje aspoň dva
 										odečty a nezobrazuje se tam, kde je podezření na stočení.
 									</li>
 									<li>
 										<Icon name='info' size={15} /> Upozornění na nesrovnalost v
-										tachometru — když pozdější odečet je nižší než dřívější
+										tachometru – když pozdější odečet je nižší než dřívější
 									</li>
 									<li>
-										<Icon name='info' size={15} /> Detail dovozu — země a datum,
+										<Icon name='info' size={15} /> Detail dovozu – země a datum,
 										pokud vozidlo přišlo ze zahraničí
 									</li>
 									<li>
-										<Icon name='info' size={15} /> Závady u starších prohlídek —
+										<Icon name='info' size={15} /> Závady u starších prohlídek –
 										u prohlídek před rokem 2009 je registr neeviduje
 									</li>
 								</ul>
 								<p className='small text-muted-ink mt-3 mb-0'>
-									Co v datech není, v certifikátu nepředstíráme — místo mlčení
+									Co v datech není, v certifikátu nepředstíráme – místo mlčení
 									uvidíte, že údaj chybí.
 								</p>
 							</div>
@@ -241,7 +241,7 @@ const CertificateLandingPage: React.FC = () => {
 					</div>
 				</section>
 
-				{/* Why us, not just "why a certificate" — these are the things a buyer
+				{/* Why us, not just "why a certificate" – these are the things a buyer
 				    cannot get from the free preview or from a competitor. */}
 				<section className='py-5' style={{ backgroundColor: 'var(--surface)' }}>
 					<div className='container' style={{ maxWidth: 760 }}>
@@ -254,7 +254,7 @@ const CertificateLandingPage: React.FC = () => {
 								<p className='small mb-0'>
 									Porovnáváme historii vlastníků se seznamem leasingových a
 									úvěrových společností a autopůjčoven. Zjistíte, že vůz jezdil
-									na leasing nebo v půjčovně — což z inzerátu nepoznáte.
+									na leasing nebo v půjčovně – což z inzerátu nepoznáte.
 								</p>
 							</div>
 							<div className='col-md-6'>
@@ -272,7 +272,7 @@ const CertificateLandingPage: React.FC = () => {
 									<Icon name='search' size={16} /> Závady z protokolů STK
 								</h3>
 								<p className='small mb-0'>
-									Nejen „prospěl / neprospěl“, ale i na čem vozidlo propadlo —
+									Nejen „prospěl / neprospěl“, ale i na čem vozidlo propadlo –
 									oficiální znění závady a její závažnost. Je rozdíl mezi
 									povrchovou korozí a nefunkční brzdou.
 								</p>
@@ -290,7 +290,7 @@ const CertificateLandingPage: React.FC = () => {
 					</div>
 				</section>
 
-				{/* Which product when — same comparison as the vehicle detail page. */}
+				{/* Which product when – same comparison as the vehicle detail page. */}
 				<section className='py-5' id='porovnani'>
 					<div className='container' style={{ maxWidth: 760 }}>
 						<h2 className='h4 mb-4'>Který produkt si vybrat</h2>
@@ -326,14 +326,14 @@ const CertificateLandingPage: React.FC = () => {
 								cena).
 							</li>
 							<li>
-								Certifikát v PDF dostanete e-mailem a ke stažení — s QR kódem
+								Certifikát v PDF dostanete e-mailem a ke stažení – s QR kódem
 								pro ověření pravosti.
 							</li>
 						</ol>
 					</div>
 				</section>
 
-				{/* Reasons to buy, framed around the two real audiences — a buyer
+				{/* Reasons to buy, framed around the two real audiences – a buyer
 				    deciding, and a seller proving. */}
 				<section className='py-5'>
 					<div className='container' style={{ maxWidth: 760 }}>
@@ -344,7 +344,7 @@ const CertificateLandingPage: React.FC = () => {
 								<ul className='product-features'>
 									<li>
 										<Icon name='check' size={15} /> Ověříte si, co prodávající
-										tvrdí — počet majitelů, nájezd i výsledky STK
+										tvrdí – počet majitelů, nájezd i výsledky STK
 									</li>
 									<li>
 										<Icon name='check' size={15} /> Uvidíte, jestli nájezd v
@@ -384,7 +384,7 @@ const CertificateLandingPage: React.FC = () => {
 						</div>
 						<p className='small text-muted-ink mt-4 mb-0'>
 							Certifikát pracuje s tím, co o vozidle vedou české úřady.
-							Nenajdete v něm záznamy o nehodách ani zástavy — na to{' '}
+							Nenajdete v něm záznamy o nehodách ani zástavy – na to{' '}
 							<a href='#porovnani'>v porovnání výše</a> doporučujeme partnerskou
 							prověrku.
 						</p>

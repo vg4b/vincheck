@@ -23,7 +23,7 @@ function fmtDate(iso: string): string {
 
 const KIND_NOTE: Record<FinancingKind, string> = {
 	leasing:
-		'Financování, kde je společnost zapsána jako vlastník vozidla a řidič jako provozovatel — typicky finanční leasing nebo úvěr se zajištěním.',
+		'Financování, kde je společnost zapsána jako vlastník vozidla a řidič jako provozovatel – typicky finanční leasing nebo úvěr se zajištěním.',
 	fleet:
 		'Operativní leasing a správa vozových parků. Společnost bývá zapsána jako vlastník i provozovatel; jde zpravidla o firemní vozidlo.',
 	rental:
@@ -80,30 +80,30 @@ const FinancingCompaniesPage: React.FC = () => {
 				<div className='p-3 border rounded small'>
 					<p className='mb-2'>
 						<strong>Jak seznam používáme.</strong> Porovnáváme výhradně{' '}
-						<strong>IČO</strong>, nikoli názvy — díky tomu nemůže dojít k záměně
+						<strong>IČO</strong>, nikoli názvy – díky tomu nemůže dojít k záměně
 						s autobazarem, dovozcem nebo firmou s podobným jménem. Název
 						společnosti uvádíme podle aktuálního zápisu k danému IČO. Pokud
 						společnost dříve podnikala v jiném oboru, počítáme jen záznamy od
-						data, kdy začala působit v současném oboru — viz sloupec „Záznamy
+						data, kdy začala působit v současném oboru – viz sloupec „Záznamy
 						sledujeme od“.
 					</p>
 					<p className='mb-0'>
 						<strong>Co seznam neznamená.</strong> Není to přehled zástav ani
 						úvěrů. Úvěr ani zástavní právo se do registru vozidel nezapisují, a
-						seznam nemusí být úplný — pokud v historii vozidla žádnou z těchto
+						seznam nemusí být úplný – pokud v historii vozidla žádnou z těchto
 						společností nenajdeme, neznamená to, že vozidlo není zatížené.
 					</p>
 				</div>
 
 				<p className='text-muted-ink small'>
 					Celkem sledujeme {total} společností. Zaniklé společnosti (v
-					likvidaci) v seznamu zůstávají — stále se objevují v historii starších
+					likvidaci) v seznamu zůstávají – stále se objevují v historii starších
 					vozidel.
 				</p>
 
 				{/* The certificate itself states only what the registry records. The
-				    interpretation — what an active or historic record means, and what to
-				    check before buying — lives here, so the document stays factual. */}
+				    interpretation – what an active or historic record means, and what to
+				    check before buying – lives here, so the document stays factual. */}
 				<section className='mt-5'>
 					<h2 className='h5'>Co znamená záznam v historii vozidla</h2>
 
@@ -114,7 +114,7 @@ const FinancingCompaniesPage: React.FC = () => {
 						Vozidlo je stále zapsané na leasingovou nebo finanční společnost.
 						Provozovatelem bývá uživatel vozidla, u operativního leasingu je ale
 						často zapsaná jako vlastník i provozovatel táž společnost. Než dojde
-						k prodeji, obvykle se leasing doplácí a vlastnictví se převádí — do
+						k prodeji, obvykle se leasing doplácí a vlastnictví se převádí – do
 						té doby vozidlo prodávajícímu nepatří.
 					</p>
 					<p className='mb-2'>Na co se před koupí zeptat:</p>
@@ -130,7 +130,7 @@ const FinancingCompaniesPage: React.FC = () => {
 						</li>
 					</ul>
 					<p className='text-muted-ink small'>
-						Registr nemusí být vždy aktuální — část záznamů o vlastnictví je
+						Registr nemusí být vždy aktuální – část záznamů o vlastnictví je
 						starší než deset let, takže zápis nemusí odpovídat skutečnému stavu
 						financování.
 					</p>
@@ -140,7 +140,7 @@ const FinancingCompaniesPage: React.FC = () => {
 					</h3>
 					<p>
 						Vozidlo bylo v minulosti financované nebo šlo o firemní vůz. Samo o
-						sobě to není závada — u firemních vozidel a vozidel z operativního
+						sobě to není závada – u firemních vozidel a vozidel z operativního
 						leasingu bývá naopak pravidelný servis. U vozidel z autopůjčoven a
 						sdílení naopak počítejte s vyšším nájezdem a větším počtem řidičů.
 					</p>
@@ -152,7 +152,7 @@ const FinancingCompaniesPage: React.FC = () => {
 						<strong>
 							Není to potvrzení, že vozidlo není zatížené úvěrem ani zástavou
 						</strong>{' '}
-						— úvěr ani zástavní právo se do registru silničních vozidel
+						– úvěr ani zástavní právo se do registru silničních vozidel
 						nezapisují a zástavy je potřeba ověřit v Rejstříku zástav Notářské
 						komory ČR.
 					</p>
@@ -179,7 +179,7 @@ const FinancingCompaniesPage: React.FC = () => {
 									{group.companies.map((c) => (
 										<tr key={c.ico}>
 											<th scope='row' className='fw-normal'>
-												{/* Our own fleet page for the IČO — every company here has
+												{/* Our own fleet page for the IČO – every company here has
 												    one, and it is the natural next click. */}
 												<Link to={`/firma/${c.ico}`}>{c.ico}</Link>
 											</th>

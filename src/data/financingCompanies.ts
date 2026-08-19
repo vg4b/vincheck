@@ -71,7 +71,7 @@ export const FINANCING_COMPANIES: Record<string, FinancingCompany> = {
 	'62912691': {
 		name: 'SPEED LEASE a.s.',
 		kind: 'leasing',
-		since: '2003-08-13' /* dříve Charouz Rent Car s.r.o. — půjčovna */
+		since: '2003-08-13' /* dříve Charouz Rent Car s.r.o. – půjčovna */
 	},
 	'26737442': { name: 'PSA FINANCE ČESKÁ REPUBLIKA, s.r.o.', kind: 'leasing' },
 	'6208991': { name: 'SAFE Lease s.r.o.', kind: 'leasing' },
@@ -313,7 +313,7 @@ export const FINANCING_COMPANIES: Record<string, FinancingCompany> = {
 		name: 'CAR4WAY a.s.',
 		kind: 'rental',
 		since:
-			'2013-10-03' /* dříve AUTOSALON LOUDA automobilová a.s. — autosalon */
+			'2013-10-03' /* dříve AUTOSALON LOUDA automobilová a.s. – autosalon */
 	},
 	'45770603': {
 		name: 'Avis Autovermietung GmbH - organizační složka',
@@ -412,7 +412,7 @@ export const FINANCING_COMPANIES: Record<string, FinancingCompany> = {
 	'25277324': {
 		name: 'AUTOPŮJČOVNA OLFIN a.s.',
 		kind: 'rental',
-		since: '2016-03-05' /* dříve HRADUBICKÁ / OLFIN Car Hradubická — prodejce */
+		since: '2016-03-05' /* dříve HRADUBICKÁ / OLFIN Car Hradubická – prodejce */
 	},
 	'7672802': { name: 'GreenGo Car Czech s.r.o.', kind: 'rental' },
 	'25110799': { name: 'CZECH RENT A CAR s.r.o.', kind: 'rental' },
