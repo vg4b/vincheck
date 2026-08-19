@@ -481,6 +481,13 @@ async function main(): Promise<void> {
 	console.log(
 		`defects:         ${defectTotal} across ${withDefects} records (A ${defectA} · B ${defectB} · C ${defectC})`
 	)
+	// Machine-readable counterpart to the summary above. The weekly workflow's
+	// defect guard parses THIS line rather than the prose, so rewording the
+	// human-readable output above cannot silently break CI. Keep the key=value
+	// shape and the `stats:` prefix; see .github/workflows/ingest-odometer.yml.
+	console.log(
+		`stats: records=${records} with_defects=${withDefects} defects=${defectTotal}`
+	)
 	console.log('sample records:')
 	for (const s of samples) console.log('  ', JSON.stringify(s))
 }
