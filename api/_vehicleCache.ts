@@ -1,4 +1,5 @@
 import { Pool } from 'pg'
+import { type ResolvedDefect, resolveDefects } from './_defects'
 import { buildFinancing, type VehicleFinancing } from './_financingCompanies'
 import { buildEquipment, type VehicleEquipment } from './_vehicleEquipment'
 
@@ -187,8 +188,29 @@ function plausibleDate(s: string | null): string | null {
 }
 
 type StkResult = 'pass' | 'defects' | 'unfit' | 'unknown'
+/** Which source produced a verdict. Mirrors src/types/index.ts. */
+type StkResultSource = 'istp' | 'registry' | 'none'
+type VehicleDefect = ResolvedDefect
 
 // vehicle_inspections.stav: A = passed, B = defects, C = unfit, else unknown.
+/**
+ * ISTP `VysledekCelkovy` → verdict. Same three-way meaning as the registry's
+ * A/B/C, but populated far more reliably: the registry leaves `stav` as
+ * 'Nezjištěno' on a large share of rows, including real pravidelná inspections.
+ */
+function resultCodeToResult(code: unknown): StkResult {
+	switch (nullIfEmpty(code)) {
+		case '1':
+			return 'pass'
+		case '2':
+			return 'defects'
+		case '3':
+			return 'unfit'
+		default:
+			return 'unknown'
+	}
+}
+
 function stavToResult(stav: unknown): StkResult {
 	switch (nullIfEmpty(stav)?.toUpperCase()) {
 		case 'A':
@@ -299,11 +321,16 @@ export type VehicleHistory = {
 		history: Array<{
 			date: string | null
 			result: StkResult
+			/** Which source produced `result`. */
+			resultSource: StkResultSource
 			nazevStk: string | null
 			typ: string | null
 			/** Synthetic administrative record (kod_stk '9999', e.g. a new
 			 *  vehicle's initial validity) — not a real inspection. */
 			administrative: boolean
+			/** null = no ISTP record for this inspection ("závady neuvedeny");
+			 *  [] = recorded with zero defects. The two are NOT the same. */
+			defects: VehicleDefect[] | null
 		}>
 	}
 	flags: {
@@ -472,6 +499,115 @@ function buildPrediction(
  *   - flag a rollback if any reading falls below the running max of earlier ones,
  *   - estimate average km/year over the observed span.
  */
+interface IstpRow {
+	d: string
+	km: unknown
+	protocol?: unknown
+	result_code?: unknown
+	zavady_a?: unknown
+	zavady_kody?: unknown
+	zavady_zavaznosti?: unknown
+}
+
+interface IstpInspection {
+	result: StkResult
+	defects: VehicleDefect[]
+	/** False when every contributing row had a NULL code array — i.e. we hold the
+	 *  inspection but no defect record for it. */
+	hasDefectRecord: boolean
+}
+
+const asStringArray = (v: unknown): string[] | null =>
+	Array.isArray(v) ? v.map((x) => String(x ?? '')) : null
+
+/**
+ * Index the ISTP rows so a registry inspection can be enriched from them.
+ *
+ * Two lookups, because one physical inspection can appear as several ISTP
+ * records: the STK protocol and, for vehicles with an emission test, a separate
+ * emission-station protocol under its own number (e.g. CZ-3715-22-06-0434 and
+ * CZ-470202-22-06-0153 on the same day). Group-8 defects live on the latter, so
+ * matching on the protocol number alone would lose them.
+ *
+ * Resolution order at the call site: exact protocol first, then every sibling
+ * sharing that inspection date, unioned.
+ */
+function indexIstpInspections(rows: IstpRow[]): {
+	byProtocol: Map<string, IstpRow>
+	byDate: Map<string, IstpRow[]>
+} {
+	const byProtocol = new Map<string, IstpRow>()
+	const byDate = new Map<string, IstpRow[]>()
+	for (const r of rows) {
+		const protocol = nullIfEmpty(r.protocol)
+		if (protocol) byProtocol.set(protocol, r)
+		if (r.d) {
+			const bucket = byDate.get(r.d)
+			if (bucket) bucket.push(r)
+			else byDate.set(r.d, [r])
+		}
+	}
+	return { byProtocol, byDate }
+}
+
+/**
+ * Merge the ISTP rows belonging to one inspection into a single verdict +
+ * defect list. Returns null when ISTP has no record of it at all, which the UI
+ * must render as "závady neuvedeny" rather than "bez závad".
+ */
+function mergeIstpInspection(rows: IstpRow[]): IstpInspection | null {
+	if (rows.length === 0) return null
+
+	const seen = new Set<string>()
+	const defects: VehicleDefect[] = []
+	let hasDefectRecord = false
+	// Worst verdict across the siblings wins: failing the emission part fails the
+	// inspection, whatever the technical part said.
+	let result: StkResult = 'unknown'
+
+	for (const r of rows) {
+		// The COUNT is what says "we have a record" — `zavady_kody` is NULL both
+		// for a clean inspection and for one we never backfilled, so it cannot
+		// carry that distinction on its own (see migration 007).
+		if (r.zavady_a !== null && r.zavady_a !== undefined) hasDefectRecord = true
+		const codes = asStringArray(r.zavady_kody)
+		if (codes) {
+			const severities =
+				typeof r.zavady_zavaznosti === 'string' ? r.zavady_zavaznosti : null
+			for (const d of resolveDefects(codes, severities)) {
+				// Siblings can repeat a code; show it once.
+				const key = `${d.code}|${d.severity}`
+				if (seen.has(key)) continue
+				seen.add(key)
+				defects.push(d)
+			}
+		}
+		const rowResult = resultCodeToResult(r.result_code)
+		if (STK_SEVERITY[rowResult] > STK_SEVERITY[result]) result = rowResult
+	}
+
+	defects.sort(
+		(a, b) =>
+			DEFECT_SEVERITY_RANK[a.severity] - DEFECT_SEVERITY_RANK[b.severity]
+	)
+	return { result, defects, hasDefectRecord }
+}
+
+/** Ordering for "worst wins" merges. `unknown` must never beat a real verdict. */
+const STK_SEVERITY: Record<StkResult, number> = {
+	unknown: 0,
+	pass: 1,
+	defects: 2,
+	unfit: 3
+}
+
+const DEFECT_SEVERITY_RANK: Record<VehicleDefect['severity'], number> = {
+	C: 0,
+	B: 1,
+	A: 2,
+	unknown: 3
+}
+
 function computeMileage(
 	rows: Array<{ d: string; km: unknown; protocol?: unknown }>
 ): VehicleHistory['mileage'] {
@@ -623,7 +759,8 @@ export async function lookupVehicleFromCache(
 			// context, flagged via kod_stk so the UI marks them as administrative
 			// rather than a real pravidelná inspection. Capped high enough to cover
 			// any real vehicle.
-			`SELECT platnost_od, platnost_do, stav, nazev_stk, typ, kod_stk
+			`SELECT platnost_od, platnost_do, stav, nazev_stk, typ, kod_stk,
+              cislo_protokolu
        FROM vehicle_inspections
        WHERE pcv = $1
        ORDER BY platnost_od DESC NULLS LAST
@@ -663,17 +800,33 @@ export async function lookupVehicleFromCache(
 				// Odometer history by VIN (ISTP open data). Same fault-tolerance as
 				// imports: degrade to "no readings" if the table isn't migrated yet
 				// (42P01) or the read-only user lacks the grant (42501).
-				`SELECT inspection_date::text AS d, odometer_km AS km, cislo_protokolu AS protocol
+				// NOTE: deliberately NOT filtered on `odometer_km IS NOT NULL`. ~6% of
+				// records carry no reading, and emission-station siblings routinely
+				// carry none — but they do carry defects and a result code. Dropping
+				// them here would silently lose that. computeMileage() already skips
+				// non-positive/implausible readings, so the mileage list is unaffected.
+				`SELECT inspection_date::text AS d, odometer_km AS km,
+              cislo_protokolu AS protocol, result_code, zavady_a, zavady_kody,
+              zavady_zavaznosti
        FROM vehicle_inspection_odometer
-       WHERE vin = $1 AND odometer_km IS NOT NULL
+       WHERE vin = $1
        ORDER BY inspection_date ASC`,
 				[String(row.vin ?? '')]
 			)
 			.catch((e: { code?: string }) => {
-				if (e?.code === '42P01' || e?.code === '42501') {
+				// 42703 (undefined_column) matters as much as 42P01 here: this query
+				// reads the defect columns from migration 007, so a deploy that lands
+				// before the migration is applied MUST degrade to "no readings"
+				// rather than break every lookup.
+				if (e?.code === '42P01' || e?.code === '42501' || e?.code === '42703') {
 					if (e.code === '42501') {
 						console.warn(
 							'vehicle_inspection_odometer: permission denied for vincheck_api'
+						)
+					}
+					if (e.code === '42703') {
+						console.warn(
+							'vehicle_inspection_odometer: migration 007 not applied yet — no defect data'
 						)
 					}
 					return { rows: [] as Array<Record<string, unknown>> }
@@ -784,25 +937,70 @@ export async function lookupVehicleFromCache(
 		// Pure derivation over the timeline we already built — no extra query.
 		financing: buildFinancing(timeline),
 		usage: vehicleUsage(row.ucel_vozidla),
-		inspections: {
-			total: Number(insp.total ?? 0),
-			failed: Number(insp.failed ?? 0),
-			distinctStations,
-			latest: latestRow
-				? {
-						result: stavToResult(latestRow.stav),
-						platnostDo: nullIfEmpty(latestRow.platnost_do),
-						nazevStk: nullIfEmpty(latestRow.nazev_stk)
-					}
-				: null,
-			history: recentRows.map((r) => ({
-				date: nullIfEmpty(r.platnost_od),
-				result: stavToResult(r.stav),
-				nazevStk: nullIfEmpty(r.nazev_stk),
-				typ: nullIfEmpty(r.typ),
-				administrative: nullIfEmpty(r.kod_stk) === '9999'
-			}))
-		},
+		inspections: (() => {
+			const istp = indexIstpInspections(
+				mileageRows.rows as unknown as IstpRow[]
+			)
+
+			/** Registry row + everything ISTP knows about the same inspection. */
+			const enrich = (r: Record<string, unknown>) => {
+				const protocol = nullIfEmpty(r.cislo_protokolu)
+				const date = nullIfEmpty(r.platnost_od)
+				// Union the exact protocol match with any same-day siblings (the
+				// emission-station protocol carries its own number).
+				const rows: IstpRow[] = []
+				const exact = protocol ? istp.byProtocol.get(protocol) : undefined
+				if (exact) rows.push(exact)
+				for (const sibling of (date && istp.byDate.get(date)) || []) {
+					if (sibling !== exact) rows.push(sibling)
+				}
+				const merged = mergeIstpInspection(rows)
+
+				// U5 precedence: ISTP first, registry fallback, then unknown.
+				const registryResult = stavToResult(r.stav)
+				let result: StkResult = 'unknown'
+				let resultSource: StkResultSource = 'none'
+				if (merged && merged.result !== 'unknown') {
+					result = merged.result
+					resultSource = 'istp'
+				} else if (registryResult !== 'unknown') {
+					result = registryResult
+					resultSource = 'registry'
+				}
+
+				return {
+					date,
+					result,
+					resultSource,
+					nazevStk: nullIfEmpty(r.nazev_stk),
+					typ: nullIfEmpty(r.typ),
+					administrative: nullIfEmpty(r.kod_stk) === '9999',
+					defects: merged?.hasDefectRecord ? merged.defects : null
+				}
+			}
+
+			const history = recentRows.map(enrich)
+			return {
+				total: Number(insp.total ?? 0),
+				// Derived from the resolved history rather than the SQL count, so the
+				// summary can never disagree with the badges below it. The history
+				// query is capped at 100 rows, which covers any real vehicle.
+				failed: history.filter(
+					(h) =>
+						!h.administrative &&
+						(h.result === 'defects' || h.result === 'unfit')
+				).length,
+				distinctStations,
+				latest: latestRow
+					? {
+							result: enrich(latestRow).result,
+							platnostDo: nullIfEmpty(latestRow.platnost_do),
+							nazevStk: nullIfEmpty(latestRow.nazev_stk)
+						}
+					: null,
+				history
+			}
+		})(),
 		flags: {
 			stolen: deregReasons.includes('Odcizeno'),
 			exported: status === 'VÝVOZ',

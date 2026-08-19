@@ -126,16 +126,37 @@ export function buildSampleSnapshot(): VehicleCacheResult {
 					{
 						date: '2024-05-01',
 						result: 'defects',
+						resultSource: 'istp',
 						nazevStk: 'STK Brno',
 						typ: 'P',
-						administrative: false
+						administrative: false,
+						// One of each fallback tier, so the sample exercises the whole
+						// display path: catalog hit, catalog miss, pre-2018 numeric.
+						defects: [
+							{
+								code: '1.1.12.2.1',
+								severity: 'B',
+								text: 'Brzdová hadice na povrchu odřená, popraskaná.',
+								group: 'brzdy'
+							},
+							{
+								code: '5.3.3.2.1',
+								severity: 'A',
+								text: null,
+								group: 'nápravy, kola a pneumatiky'
+							}
+						]
 					},
 					{
 						date: '2022-05-01',
 						result: 'pass',
+						resultSource: 'registry',
 						nazevStk: 'STK Praha',
 						typ: 'P',
-						administrative: false
+						administrative: false,
+						// Registry-only row: we hold the inspection but no ISTP defect
+						// record, which must render as "závady neuvedeny".
+						defects: null
 					}
 				]
 			},

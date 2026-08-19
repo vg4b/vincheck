@@ -13,6 +13,21 @@ export interface VehicleData {
 export type VehicleDataArray = VehicleDataItem[]
 
 export type StkResult = 'pass' | 'defects' | 'unfit' | 'unknown'
+
+/** Where an inspection's verdict came from. ISTP is authoritative; the registry
+ *  is the fallback for rows ISTP has no record of. */
+export type StkResultSource = 'istp' | 'registry' | 'none'
+
+export type DefectSeverity = 'A' | 'B' | 'C' | 'unknown'
+
+/** One defect from an STK protocol, resolved against the vyhláška catalog.
+ *  `text` and `group` are null when the code predates the current catalog. */
+export interface VehicleDefect {
+	code: string
+	severity: DefectSeverity
+	text: string | null
+	group: string | null
+}
 export type OwnerRelation = 'owner' | 'operator' | 'other'
 export type SubjectType = 'company' | 'private' | 'unknown'
 
@@ -68,11 +83,20 @@ export interface VehicleHistory {
 		history: Array<{
 			date: string | null
 			result: StkResult
+			/** Which source produced `result` — see StkResultSource. */
+			resultSource: StkResultSource
 			nazevStk: string | null
 			typ: string | null
 			/** Synthetic administrative record (e.g. new-vehicle initial validity),
 			 *  not a real inspection — shown but not marked as a pravidelná STK. */
 			administrative: boolean
+			/** Defects recorded at this inspection, most severe first.
+			 *
+			 *  null  = no ISTP record for this inspection (not backfilled, or the
+			 *          feed carries none) — the UI must say "závady neuvedeny".
+			 *  []    = the inspection was recorded and had zero defects.
+			 *  Never conflate the two. */
+			defects: VehicleDefect[] | null
 		}>
 	}
 	flags: {

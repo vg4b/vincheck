@@ -1137,6 +1137,37 @@ img {
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
+	/* The defect list must never join the date/station flex row — official
+	   defect texts are full sentences and need the width. */
+	.stk-defects {
+		flex: 0 0 100%;
+	}
+}
+
+/* Defects recorded at an inspection. Official texts from the vyhláška are full
+   sentences, so they wrap rather than truncate — the list is capped by count
+   instead, which keeps long histories readable without hiding the wording. */
+.stk-defects {
+	font-size: 0.8rem;
+	/* A subtle rail ties the list to the inspection above it — without it the
+	   defects sit flush left and read as a detached block. */
+	margin: 0.3rem 0 0 0.15rem;
+	padding-left: 0.6rem;
+	border-left: 2px solid rgba(0, 0, 0, 0.1);
+	list-style: none;
+}
+.stk-defect {
+	display: flex;
+	gap: 0.4rem;
+	align-items: baseline;
+	margin-top: 0.15rem;
+}
+.stk-defect-sev {
+	flex: 0 0 auto;
+	font-weight: 600;
+}
+.stk-defect-text {
+	min-width: 0;
 }
 .stat-tile-value a {
 	color: inherit;
