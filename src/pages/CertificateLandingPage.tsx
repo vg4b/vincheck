@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import Navigation from '../components/Navigation'
 import Footer from '../components/Footer'
+import Icon from '../components/Icon'
+import Navigation from '../components/Navigation'
 import ProductComparison from '../components/ProductComparison'
 import { cebia } from '../config/affiliateCampaigns'
 import { isCertificateEnabled } from '../config/featureFlags'
@@ -108,16 +109,19 @@ const CertificateLandingPage: React.FC = () => {
 			<Navigation />
 			<main>
 				{/* Hero */}
-				<section className='py-5' style={{ backgroundColor: 'var(--brand-50)' }}>
+				<section
+					className='py-5'
+					style={{ backgroundColor: 'var(--brand-50)' }}
+				>
 					<div className='container' style={{ maxWidth: 760 }}>
 						<h1 className='h2 mb-3'>
 							Přehled historie vozidla z registru ČR za {PRICE_CZK} Kč
 						</h1>
 						<p className='lead mb-4'>
-							Data z registru silničních vozidel ČR a STK jsou špatně čitelná — my
-							je za vás zpracujeme do srozumitelného přehledu: vlastníci, leasing a
-							financování, STK, stav tachometru, dovoz a stav vozidla. Ihned, v
-							ověřitelném PDF — podklad pro koupi i prodej vozidla.
+							Data z registru silničních vozidel ČR a STK jsou špatně čitelná —
+							my je za vás zpracujeme do srozumitelného přehledu: vlastníci,
+							leasing a financování, STK, stav tachometru, dovoz a stav vozidla.
+							Ihned, v ověřitelném PDF — podklad pro koupi i prodej vozidla.
 						</p>
 						<form onSubmit={handleSubmit}>
 							<label htmlFor='landing-vin' className='form-label fw-semibold'>
@@ -160,8 +164,134 @@ const CertificateLandingPage: React.FC = () => {
 					</div>
 				</section>
 
-				{/* Which product when — same comparison as the vehicle detail page. */}
+				{/* What the document contains. Split into "always" and "when the data
+				    allows" on purpose: promising a mileage prediction we cannot always
+				    produce would be a refund request waiting to happen. */}
 				<section className='py-5'>
+					<div className='container' style={{ maxWidth: 760 }}>
+						<h2 className='h4 mb-4'>Co certifikát obsahuje</h2>
+						<div className='row g-4'>
+							<div className='col-md-6'>
+								<h3 className='h6 text-uppercase text-muted-ink mb-3'>Vždy</h3>
+								<ul className='product-features'>
+									<li>
+										<Icon name='check' size={15} /> Identifikace vozidla — VIN,
+										značka, model, první registrace, stav a účel vozidla
+									</li>
+									<li>
+										<Icon name='check' size={15} /> Vlastníci a provozovatelé —
+										počty a časová osa držby
+									</li>
+									<li>
+										<Icon name='check' size={15} /> Leasing a financování v
+										historii vlastníků — včetně jasné odpovědi, když nic
+										nenajdeme
+									</li>
+									<li>
+										<Icon name='check' size={15} /> Historie STK — každá
+										prohlídka, výsledek, druh a stanice
+									</li>
+									<li>
+										<Icon name='check' size={15} /> Konkrétní závady z protokolů
+										STK — oficiální znění podle vyhlášky, včetně závažnosti
+									</li>
+									<li>
+										<Icon name='check' size={15} /> Historie stavu tachometru —
+										všechny odečty ze STK s čísly protokolů
+									</li>
+									<li>
+										<Icon name='check' size={15} /> Původ vozidla — zda šlo o
+										dovoz, nebo první registraci v ČR
+									</li>
+									<li>
+										<Icon name='check' size={15} /> Technické údaje — motor,
+										rozměry, hmotnosti, kola a výbava
+									</li>
+								</ul>
+							</div>
+							<div className='col-md-6'>
+								<h3 className='h6 text-uppercase text-muted-ink mb-3'>
+									Když to data umožňují
+								</h3>
+								<ul className='product-features'>
+									<li>
+										<Icon name='chart' size={15} /> Odhad současného nájezdu —
+										dopočítaný z tempa mezi prohlídkami. Potřebuje aspoň dva
+										odečty a nezobrazuje se tam, kde je podezření na stočení.
+									</li>
+									<li>
+										<Icon name='info' size={15} /> Upozornění na nesrovnalost v
+										tachometru — když pozdější odečet je nižší než dřívější
+									</li>
+									<li>
+										<Icon name='info' size={15} /> Detail dovozu — země a datum,
+										pokud vozidlo přišlo ze zahraničí
+									</li>
+									<li>
+										<Icon name='info' size={15} /> Závady u starších prohlídek —
+										u prohlídek před rokem 2009 je registr neeviduje
+									</li>
+								</ul>
+								<p className='small text-muted-ink mt-3 mb-0'>
+									Co v datech není, v certifikátu nepředstíráme — místo mlčení
+									uvidíte, že údaj chybí.
+								</p>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				{/* Why us, not just "why a certificate" — these are the things a buyer
+				    cannot get from the free preview or from a competitor. */}
+				<section className='py-5' style={{ backgroundColor: 'var(--surface)' }}>
+					<div className='container' style={{ maxWidth: 760 }}>
+						<h2 className='h4 mb-4'>Čím se náš certifikát liší</h2>
+						<div className='row g-4'>
+							<div className='col-md-6'>
+								<h3 className='h6 mb-2'>
+									<Icon name='car' size={16} /> Leasing a financování
+								</h3>
+								<p className='small mb-0'>
+									Porovnáváme historii vlastníků se seznamem leasingových a
+									úvěrových společností a autopůjčoven. Zjistíte, že vůz jezdil
+									na leasing nebo v půjčovně — což z inzerátu nepoznáte.
+								</p>
+							</div>
+							<div className='col-md-6'>
+								<h3 className='h6 mb-2'>
+									<Icon name='shield' size={16} /> Ověřitelnost
+								</h3>
+								<p className='small mb-0'>
+									Každý certifikát má QR kód a veřejnou ověřovací stránku.
+									Kupující si tak sám potvrdí, že dokument je pravý a že jste
+									údaje neupravili.
+								</p>
+							</div>
+							<div className='col-md-6'>
+								<h3 className='h6 mb-2'>
+									<Icon name='search' size={16} /> Závady z protokolů STK
+								</h3>
+								<p className='small mb-0'>
+									Nejen „prospěl / neprospěl“, ale i na čem vozidlo propadlo —
+									oficiální znění závady a její závažnost. Je rozdíl mezi
+									povrchovou korozí a nefunkční brzdou.
+								</p>
+							</div>
+							<div className='col-md-6'>
+								<h3 className='h6 mb-2'>
+									<Icon name='lock' size={16} /> Oficiální data, žádné odhady
+								</h3>
+								<p className='small mb-0'>
+									Vše pochází z registru silničních vozidel ČR a z otevřených
+									dat o technických prohlídkách. U každého údaje víte, odkud je.
+								</p>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				{/* Which product when — same comparison as the vehicle detail page. */}
+				<section className='py-5' id='porovnani'>
 					<div className='container' style={{ maxWidth: 760 }}>
 						<h2 className='h4 mb-4'>Který produkt si vybrat</h2>
 						<ProductComparison
@@ -196,10 +326,68 @@ const CertificateLandingPage: React.FC = () => {
 								cena).
 							</li>
 							<li>
-								Certifikát v PDF dostanete e-mailem a ke stažení — s QR kódem pro
-								ověření pravosti.
+								Certifikát v PDF dostanete e-mailem a ke stažení — s QR kódem
+								pro ověření pravosti.
 							</li>
 						</ol>
+					</div>
+				</section>
+
+				{/* Reasons to buy, framed around the two real audiences — a buyer
+				    deciding, and a seller proving. */}
+				<section className='py-5'>
+					<div className='container' style={{ maxWidth: 760 }}>
+						<h2 className='h4 mb-4'>Kdy se certifikát vyplatí</h2>
+						<div className='row g-4'>
+							<div className='col-md-6'>
+								<h3 className='h6 mb-2'>Kupujete ojeté auto</h3>
+								<ul className='product-features'>
+									<li>
+										<Icon name='check' size={15} /> Ověříte si, co prodávající
+										tvrdí — počet majitelů, nájezd i výsledky STK
+									</li>
+									<li>
+										<Icon name='check' size={15} /> Uvidíte, jestli nájezd v
+										čase sedí, nebo někde klesl
+									</li>
+									<li>
+										<Icon name='check' size={15} /> Opakované závady na stejné
+										části jsou vyjednávací argument o ceně
+									</li>
+									<li>
+										<Icon name='check' size={15} /> Za {PRICE_CZK} Kč zjistíte
+										to, co může stát desítky tisíc na opravách
+									</li>
+								</ul>
+							</div>
+							<div className='col-md-6'>
+								<h3 className='h6 mb-2'>Prodáváte vozidlo</h3>
+								<ul className='product-features'>
+									<li>
+										<Icon name='check' size={15} /> Doložíte historii sami, dřív
+										než se zeptá kupující
+									</li>
+									<li>
+										<Icon name='check' size={15} /> Ověřitelné PDF s QR kódem
+										působí věrohodněji než ústní ujištění
+									</li>
+									<li>
+										<Icon name='check' size={15} /> Poctivě servisovaný vůz se
+										snáz odliší od těch ostatních
+									</li>
+									<li>
+										<Icon name='check' size={15} /> Certifikát přiložíte k
+										inzerátu i k předávacímu protokolu
+									</li>
+								</ul>
+							</div>
+						</div>
+						<p className='small text-muted-ink mt-4 mb-0'>
+							Certifikát pracuje s tím, co o vozidle vedou české úřady.
+							Nenajdete v něm záznamy o nehodách ani zástavy — na to{' '}
+							<a href='#porovnani'>v porovnání výše</a> doporučujeme partnerskou
+							prověrku.
+						</p>
 					</div>
 				</section>
 
