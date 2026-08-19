@@ -6,6 +6,7 @@
  * row table — the heavy aggregation is done at precompute time, never here.
  */
 import { Pool } from 'pg'
+import { parsePostgresUrl } from './_utils'
 
 const CACHE_URL = process.env.VEHICLE_CACHE_DATABASE_URL
 
@@ -17,7 +18,7 @@ let pool: Pool | null = null
 function getPool(): Pool | null {
 	if (!CACHE_URL) return null
 	if (!pool) {
-		const url = new URL(CACHE_URL)
+		const url = parsePostgresUrl(CACHE_URL)
 		const needsSsl = url.searchParams.has('sslmode')
 		url.searchParams.delete('sslmode')
 		pool = new Pool({
