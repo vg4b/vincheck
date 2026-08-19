@@ -37,6 +37,7 @@ import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createGunzip } from 'node:zlib'
 import { Pool, type PoolClient } from 'pg'
+import { parsePostgresUrl } from '../api/_utils'
 
 const ENV_KEY = 'DATABASE_URL'
 
@@ -381,7 +382,7 @@ async function main(): Promise<void> {
 			)
 			process.exit(1)
 		}
-		const url = new URL(raw)
+		const url = parsePostgresUrl(raw)
 		const needsSsl = url.searchParams.has('sslmode')
 		url.searchParams.delete('sslmode')
 		pool = new Pool({

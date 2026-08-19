@@ -1,6 +1,7 @@
 import { Pool } from 'pg'
 import { type ResolvedDefect, resolveDefects } from './_defects'
 import { buildFinancing, type VehicleFinancing } from './_financingCompanies'
+import { parsePostgresUrl } from './_utils'
 import { buildEquipment, type VehicleEquipment } from './_vehicleEquipment'
 
 /**
@@ -31,7 +32,7 @@ function getPool(): Pool | null {
 		// first: newer pg-connection-string maps sslmode=require to verify-full,
 		// which forces CA verification and would override the ssl option below
 		// (-> "self-signed certificate" connection error).
-		const url = new URL(CACHE_URL)
+		const url = parsePostgresUrl(CACHE_URL)
 		const needsSsl = url.searchParams.has('sslmode')
 		url.searchParams.delete('sslmode')
 		pool = new Pool({
