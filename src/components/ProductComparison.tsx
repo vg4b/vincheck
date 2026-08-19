@@ -41,7 +41,7 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 	hasPrediction
 }) => (
 	<div className='product-choice'>
-		{/* Our product — official registry data. */}
+		{/* Our product – official registry data. */}
 		<div className='product-card product-card--featured'>
 			<span className='product-badge'>Nejoblíbenější</span>
 			<div className='product-card-head'>
@@ -53,7 +53,8 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 					<Icon name='check' size={15} /> Vlastníci a provozovatelé
 				</li>
 				<li>
-					<Icon name='check' size={15} /> Historie STK
+					<Icon name='check' size={15} /> Historie STK včetně konkrétních závad
+					z protokolů
 				</li>
 				{/* Static, unlike the mileage bullets: the certificate answers this in
 				    all cases including "nic jsme nenašli", and a bullet that appeared
@@ -87,7 +88,7 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 			</ul>
 			<p className='product-when'>
 				Přehledný a ověřitelný PDF výpis s nejdůležitějšími údaji o vozidle z
-				registru a STK ČR — ideální podklad při prodeji i koupi nebo pro vlastní
+				registru a STK ČR – ideální podklad při prodeji i koupi nebo pro vlastní
 				evidenci.
 			</p>
 			<div className='mt-auto d-flex flex-column'>
@@ -103,7 +104,7 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 			</div>
 		</div>
 
-		{/* Affiliate — the data the registry can't provide. */}
+		{/* Affiliate – the data the registry can't provide. */}
 		<div className='product-card'>
 			<div className='product-card-head'>
 				<h3 className='h6 mb-1'>Kompletní prověření</h3>
@@ -120,13 +121,14 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 				{/* Deliberately NOT "Zástavy a leasing": we now sell a leasing check of
 				    our own, and the two answer different questions. Ours is "kdo vozidlo
 				    vlastnil" (registr vozidel), theirs is "je na něm zástava" (rejstřík
-				    zástav) — which we genuinely cannot do. */}
+				    zástav) – which we genuinely cannot do. */}
 				<li>
 					<Icon name='check' size={15} /> Zástavy a právní vady (rejstřík
 					zástav)
 				</li>
 				<li>
-					<Icon name='check' size={15} /> Tachometr z více zdrojů (i ze zahraničí)
+					<Icon name='check' size={15} /> Tachometr z více zdrojů (i ze
+					zahraničí)
 				</li>
 				<li>
 					<Icon name='check' size={15} /> Historie ze zahraničí
@@ -134,7 +136,7 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 			</ul>
 			<p className='product-when'>
 				Vyberte, když kupujete ojetinu nebo dovoz a chcete prověřit nehody,
-				zástavy a původ ze zahraničí — data, která registr nemá.
+				zástavy a původ ze zahraničí – data, která registr nemá.
 			</p>
 			{cebiaCta}
 		</div>

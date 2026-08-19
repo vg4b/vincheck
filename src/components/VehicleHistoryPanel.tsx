@@ -74,7 +74,7 @@ const MAX_SHOWN_DEFECTS = 6
  */
 function defectLabel(d: VehicleDefect): string {
 	if (d.text) return d.text
-	if (d.group) return `závada — ${d.group}`
+	if (d.group) return `závada – ${d.group}`
 	return `závada ${d.code}`
 }
 
@@ -213,15 +213,15 @@ function usageNotes(h: VehicleHistory): string[] {
 	const notes: string[] = []
 	if (eq.drivingSchool)
 		notes.push(
-			'Evidováno dvojí ovládání — vozidlo mohlo sloužit jako autoškola.'
+			'Evidováno dvojí ovládání – vozidlo mohlo sloužit jako autoškola.'
 		)
 	if (eq.emergency)
 		notes.push(
-			'Evidován maják (modrý/červený) — vozidlo mohlo sloužit u složek IZS.'
+			'Evidován maják (modrý/červený) – vozidlo mohlo sloužit u složek IZS.'
 		)
 	if (eq.utility)
 		notes.push(
-			'Evidován oranžový maják — vozidlo mohlo sloužit jako služební/údržbové.'
+			'Evidován oranžový maják – vozidlo mohlo sloužit jako služební/údržbové.'
 		)
 	if (eq.heavyDuty)
 		notes.push(
@@ -299,7 +299,7 @@ const VehicleHistoryPanel: FC<{
 						</div>
 					)}
 
-					{/* Financing. State what the registry records and nothing more — never
+					{/* Financing. State what the registry records and nothing more – never
 					    a claim about debt (an úvěr never shows up here, and a stale
 					    un-transferred lease looks identical to a live one) and never a
 					    guess about who is selling the vehicle. What it means and what to
@@ -308,8 +308,8 @@ const VehicleHistoryPanel: FC<{
 					    print "vozidlo není zatíženo". */}
 					{/* Deliberately NOT an `.alert`: the badge above already flags this, and
 					    the site's alert styling (icon + accent stripe) reads as a defect.
-					    This is a registry fact — and one that is stale on a noticeable share
-					    of vehicles — so it gets the same weight as the historic case. */}
+					    This is a registry fact – and one that is stale on a noticeable share
+					    of vehicles – so it gets the same weight as the historic case. */}
 					{financing?.active && (
 						<div className='small mb-3 d-flex gap-2 align-items-start'>
 							<Icon
@@ -421,7 +421,7 @@ const VehicleHistoryPanel: FC<{
 					      2. the registry holds no import record.
 					    We deliberately do NOT claim "historie je kompletní". A vehicle first
 					    registered here, later exported and then re-imported WITHOUT the
-					    re-import being recorded is undetectable in our data — the registry
+					    re-import being recorded is undetectable in our data – the registry
 					    keeps no export history (vehicle_deregistration has no export reason,
 					    and `status` only reflects the CURRENT state). That case is ~0.1% of
 					    the vehicles this note fires on. Saying what the registry records
@@ -440,7 +440,7 @@ const VehicleHistoryPanel: FC<{
 						</div>
 					)}
 
-					{/* External legal/financing check. Temporarily hidden — flip to re-enable. */}
+					{/* External legal/financing check. Temporarily hidden – flip to re-enable. */}
 					{SHOW_CHECKLEASE_LINK && cleanVin.length === 17 && (
 						<div className='small mt-3'>
 							<a
@@ -470,7 +470,7 @@ const VehicleHistoryPanel: FC<{
 				</div>
 			</details>
 
-			{/* STK inspection history — its own card */}
+			{/* STK inspection history – its own card */}
 			<details id='stk-historie' className='spec-group mt-3' open>
 				<summary className='spec-summary'>
 					<Icon name='shield-check' size={18} className='text-brand' />
@@ -614,7 +614,7 @@ const VehicleHistoryPanel: FC<{
 				</div>
 			</details>
 
-			{/* Equipment & modifications — its own card. Usage signals live here
+			{/* Equipment & modifications – its own card. Usage signals live here
 			    rather than in the registry card's warning badges: they're notable
 			    history, not defects. */}
 			{equipment.length > 0 && (
@@ -631,7 +631,7 @@ const VehicleHistoryPanel: FC<{
 						    It is doplňkové vybavení recorded in the RSV, with from/to dates. */}
 						<div className='small text-muted-ink mb-3'>
 							Vybavení a úpravy, které byly na vozidlo dodatečně namontovány a
-							zapsány do registru silničních vozidel — nejde o výbavu vozu z
+							zapsány do registru silničních vozidel – nejde o výbavu vozu z
 							výroby.
 						</div>
 
@@ -675,17 +675,17 @@ const VehicleHistoryPanel: FC<{
 						{/* Honesty: the registry's record can be incomplete, so a missing
 						    item is NOT evidence the vehicle lacks it. Never phrase this as
 						    "vozidlo nemá…". Dates are simply omitted when the registry holds
-						    none (~65% of rows) — that's a fact about the dataset, not about
+						    none (~65% of rows) – that's a fact about the dataset, not about
 						    the vehicle, so it doesn't belong in the buyer's copy. */}
 						<div className='text-muted-ink' style={{ fontSize: '0.75rem' }}>
-							Seznam nemusí být úplný — chybějící položka neznamená, že ji
+							Seznam nemusí být úplný – chybějící položka neznamená, že ji
 							vozidlo nemá.
 						</div>
 					</div>
 				</details>
 			)}
 
-			{/* Mileage / odometer — paid-certificate teaser. The structure (how many
+			{/* Mileage / odometer – paid-certificate teaser. The structure (how many
 			    readings, the year range) and any rollback suspicion are shown to hook
 			    the buyer; the exact km values stay blurred until they buy. */}
 			{showMileage && (
@@ -703,7 +703,7 @@ const VehicleHistoryPanel: FC<{
 								najdete v certifikátu.
 							</div>
 						)}
-						{/* The predicted current mileage is our one genuinely unique number —
+						{/* The predicted current mileage is our one genuinely unique number –
 						    derived from the official STK/emissions readings, and nowhere else
 						    on the market. It leads the panel: it is the single strongest
 						    reason to buy, so it gets the size and contrast to match. */}
@@ -734,7 +734,7 @@ const VehicleHistoryPanel: FC<{
 									className='text-muted-ink mt-1'
 									style={{ fontSize: '0.75rem' }}
 								>
-									Odhad podle ověřené historie nájezdu — přesné číslo najdete v
+									Odhad podle ověřené historie nájezdu – přesné číslo najdete v
 									certifikátu.
 								</div>
 							</div>

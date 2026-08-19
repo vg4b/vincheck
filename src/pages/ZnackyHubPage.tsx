@@ -121,7 +121,7 @@ const ZnackyHubPage: React.FC = () => {
 				{state === 'ok' && (
 					<>
 						{/* CSS multi-column (masonry) so brands pack tightly regardless of
-						    how many models each has — no fixed-height grid gaps. Each brand
+						    how many models each has – no fixed-height grid gaps. Each brand
 						    block stays intact across the column break. */}
 						<style>{`
 							.znacky-cols{column-gap:2rem}

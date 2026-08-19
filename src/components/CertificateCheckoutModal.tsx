@@ -84,7 +84,7 @@ const CertificateCheckoutModal: React.FC<CertificateCheckoutModalProps> = ({
 						<div className='modal-body'>
 							<p className='mb-2'>
 								Přehled historie vozidla pro VIN <strong>{vin}</strong>{' '}
-								zpracovaný z dat registru silničních vozidel ČR a STK — vlastníci,
+								zpracovaný z dat registru silničních vozidel ČR a STK – vlastníci,
 								historie STK, stav tachometru, dovoz a stav vozidla v ověřitelném
 								PDF.
 							</p>
@@ -144,7 +144,7 @@ const CertificateCheckoutModal: React.FC<CertificateCheckoutModalProps> = ({
 								registru a STK a neobsahuje záznamy o nehodách ani zástavy.
 							</p>
 							<p className='text-muted-ink small mt-2 mb-0'>
-								🔒 Zabezpečená platba přes Comgate — certifikát v PDF ihned po
+								🔒 Zabezpečená platba přes Comgate – certifikát v PDF ihned po
 								zaplacení, s QR ověřením pravosti.
 							</p>
 						</div>

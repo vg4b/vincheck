@@ -201,7 +201,7 @@ async function handleCreate(req: VercelRequest, res: VercelResponse) {
 	const code = generateCode()
 	const downloadToken = generateDownloadToken()
 	const amountCzk = getCertificatePriceCzk()
-	const userId = getUserFromToken(req) // optional — links the cert if logged in
+	const userId = getUserFromToken(req) // optional – links the cert if logged in
 
 	const base = getPublicBaseUrl()
 	let checkout: { url: string; ref: string | null }
@@ -307,7 +307,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 			ref: parsed.ref
 		})
 		await sendOperatorAlert('Platba bez VIN (přímý checkout)', [
-			'Přišla platba bez kontextu certifikátu — zřejmě přímé otevření platební brány.',
+			'Přišla platba bez kontextu certifikátu – zřejmě přímé otevření platební brány.',
 			`Provider ref: ${parsed.ref ?? '?'}`,
 			'Certifikát nelze vystavit. Vyřešte ručně: vraťte platbu, nebo si od zákazníka vyžádejte VIN.'
 		])
@@ -342,7 +342,7 @@ async function handleWebhook(req: VercelRequest, res: VercelResponse) {
 				'Platební brána potvrdila platbu, ale neznáme odpovídající certifikát.',
 				`Kód: ${parsed.certificateCode}`,
 				`Provider ref: ${parsed.ref ?? '?'}`,
-				'Zákazník zaplatil, ale certifikát nelze doručit — zkontrolujte ručně.'
+				'Zákazník zaplatil, ale certifikát nelze doručit – zkontrolujte ručně.'
 			])
 		}
 		return ackWebhook(res)

@@ -76,7 +76,7 @@ export const CebiaRemindersModal: React.FC<CebiaRemindersModalProps> = ({
 							<p className='mb-3'>
 								{introLead}{' '}
 								Zde na VIN Info si mezitím můžete zdarma nastavit <strong>e-mailové připomínky</strong> na STK,
-								pojištění, servis a další termíny — v <strong>Moje VINInfo</strong>. Mezi taby můžete libovolně
+								pojištění, servis a další termíny – v <strong>Moje VINInfo</strong>. Mezi taby můžete libovolně
 								přepínat; toto okno zůstane otevřené, dokud ho sami nezavřete.
 							</p>
 							<ul className='small mb-3'>

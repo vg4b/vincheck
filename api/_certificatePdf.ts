@@ -357,7 +357,7 @@ function defectLabel(d: {
 	code: string
 }): string {
 	if (d.text) return d.text
-	if (d.group) return `závada — ${d.group}`
+	if (d.group) return `závada – ${d.group}`
 	return `závada ${d.code}`
 }
 
@@ -966,7 +966,7 @@ export async function renderCertificatePdf(
 					e(
 						Text,
 						{ style: styles.predictionNote, key: 'n' },
-						`Odhad z tempa ~${fmtKm(m.prediction.perYearKm)} km/rok (${m.prediction.fromYear}–${m.prediction.toYear}). Jde o odhad, ne ověřený údaj — skutečný nájezd se může lišit, vozidlo nemusí jezdit rovnoměrně.`
+						`Odhad z tempa ~${fmtKm(m.prediction.perYearKm)} km/rok (${m.prediction.fromYear}–${m.prediction.toYear}). Jde o odhad, ne ověřený údaj – skutečný nájezd se může lišit, vozidlo nemusí jezdit rovnoměrně.`
 					)
 				])
 			)
@@ -1033,7 +1033,7 @@ export async function renderCertificatePdf(
 			e(
 				Text,
 				{ style: styles.note, key: 'eq-intro' },
-				'Vybavení a úpravy, které byly na vozidlo dodatečně namontovány a zapsány do registru silničních vozidel — nejde o výbavu vozu z výroby.'
+				'Vybavení a úpravy, které byly na vozidlo dodatečně namontovány a zapsány do registru silničních vozidel – nejde o výbavu vozu z výroby.'
 			)
 		)
 
@@ -1044,15 +1044,15 @@ export async function renderCertificatePdf(
 		const notes: string[] = []
 		if (eqFlags?.drivingSchool)
 			notes.push(
-				'Evidováno dvojí ovládání — vozidlo mohlo sloužit jako autoškola.'
+				'Evidováno dvojí ovládání – vozidlo mohlo sloužit jako autoškola.'
 			)
 		if (eqFlags?.emergency)
 			notes.push(
-				'Evidován maják (modrý/červený) — vozidlo mohlo sloužit u složek IZS.'
+				'Evidován maják (modrý/červený) – vozidlo mohlo sloužit u složek IZS.'
 			)
 		if (eqFlags?.utility)
 			notes.push(
-				'Evidován oranžový maják — vozidlo mohlo sloužit jako služební/údržbové.'
+				'Evidován oranžový maják – vozidlo mohlo sloužit jako služební/údržbové.'
 			)
 		if (eqFlags?.heavyDuty)
 			notes.push(

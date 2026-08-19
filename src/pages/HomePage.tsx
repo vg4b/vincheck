@@ -602,7 +602,7 @@ const HomePage: React.FC = () => {
 											className='btn btn-sm btn-outline-danger'
 											onClick={focusActiveSearchField}
 										>
-											Zkusit znovu — upravit zadání
+											Zkusit znovu – upravit zadání
 										</button>
 									</div>
 								</div>
@@ -815,7 +815,7 @@ const HomePage: React.FC = () => {
 						</div>
 					)}
 
-					{/* VIN guide — long-form SEO content */}
+					{/* VIN guide – long-form SEO content */}
 					<article className='section border-top'>
 						<div className='row justify-content-center'>
 							<div className='col-lg-10'>

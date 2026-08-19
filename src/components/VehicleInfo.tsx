@@ -295,7 +295,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 
 	return (
 		<div className='mt-4 mb-5'>
-			{/* Notable registry flags — promoted above the fold. */}
+			{/* Notable registry flags – promoted above the fold. */}
 			{heroFlags.length > 0 && (
 				<div className='d-flex flex-column gap-2 mb-4'>
 					{heroFlags.map((f) => (
@@ -311,7 +311,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 			)}
 
 			{/* Strongest buyer trigger, promoted above the fold and aimed at our own
-			    certificate — its STK mileage history is exactly what answers it. */}
+			    certificate – its STK mileage history is exactly what answers it. */}
 			{rollbackSuspected && (
 				<div
 					className='alert alert-danger alert--icon-center d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4'
@@ -326,7 +326,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 						className='btn btn-danger text-nowrap'
 						onClick={() => openCertModal('rollback_hero')}
 					>
-						Ověřit stav tachometru — {CERTIFICATE_PRICE_CZK} Kč ➜
+						Ověřit stav tachometru – {CERTIFICATE_PRICE_CZK} Kč ➜
 					</button>
 				</div>
 			)}
@@ -442,7 +442,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 					</div>
 
 					{/* Stav tachometru. With the certificate enabled we have the full
-					    mileage history (from STK/emission inspections) — point to that
+					    mileage history (from STK/emission inspections) – point to that
 					    section. Otherwise fall back to the partner CTA. */}
 					<div className='stat-tile stat-tile--gap'>
 						<span className='stat-tile-label'>
@@ -470,7 +470,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 				</div>
 			</div>
 
-			{/* Public share — create a short /s/<token> link + social buttons. */}
+			{/* Public share – create a short /s/<token> link + social buttons. */}
 			<VehicleShareBar
 				vin={cleanVin.length === 17 ? cleanVin : undefined}
 				tp={getDataValue(data, 'CisloTp', '') || undefined}
@@ -486,7 +486,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 			)}
 
 			{/* The history panel comes FIRST, deliberately. Its blurred odometer is what
-			    the certificate is for — show the thing worth paying for before naming a
+			    the certificate is for – show the thing worth paying for before naming a
 			    price, rather than opening with a product/price table. */}
 			{history && (
 				<VehicleHistoryPanel
@@ -500,7 +500,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 				/>
 			)}
 
-			{/* Two distinct products, side by side — they do different jobs, so the
+			{/* Two distinct products, side by side – they do different jobs, so the
 			    user self-selects by need rather than choosing between buttons:
 			    our certificate = the registry record + official STK mileage history
 			    (99 Kč, instant); Cebia = what neither registry nor STK shows
@@ -555,7 +555,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 			{/* Promo section (if provided) */}
 			{promoSection}
 
-			{/* Technical specs — grouped, all expanded by default. */}
+			{/* Technical specs – grouped, all expanded by default. */}
 			{filteredData.length > 0 && (
 				<div className='mt-4'>
 					<div className='d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3'>
@@ -740,20 +740,20 @@ function buildCebiaPitch(args: {
 	const { isImported, importCountry, ownersTotal, failedStk } = args
 	if (isImported) {
 		return {
-			title: `Dovezené vozidlo${importCountry ? ` z ${importCountry}` : ''} — prověřte zahraniční historii`,
+			title: `Dovezené vozidlo${importCountry ? ` z ${importCountry}` : ''} – prověřte zahraniční historii`,
 			body: 'Český registr nezná historii ze země původu. Stav tachometru, záznamy o nehodách a původ z ciziny prověříte v externí zprávě.'
 		}
 	}
 	if (failedStk > 0) {
 		return {
-			title: 'V historii je neúspěšná STK — prověřte stav vozu',
+			title: 'V historii je neúspěšná STK – prověřte stav vozu',
 			body: 'Neúspěšná technická prohlídka může signalizovat vážnější závadu nebo následky nehody. Kompletní historii nájezdu i záznamy o nehodách najdete jen v externí zprávě.'
 		}
 	}
 	if (ownersTotal != null && ownersTotal >= MANY_OWNERS_THRESHOLD) {
 		const word = ownersTotal >= 5 ? 'majitelů' : 'majitele'
 		return {
-			title: `Vozidlo vystřídalo ${ownersTotal} ${word} — kolik reálně najelo?`,
+			title: `Vozidlo vystřídalo ${ownersTotal} ${word} – kolik reálně najelo?`,
 			body: 'Častá obměna majitelů zvyšuje riziko stočeného tachometru i zamlčené nehody. Stav tachometru a záznamy o nehodách najdete v externí zprávě.'
 		}
 	}

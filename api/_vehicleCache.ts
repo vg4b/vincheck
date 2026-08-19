@@ -827,7 +827,7 @@ export async function lookupVehicleFromCache(
 					}
 					if (e.code === '42703') {
 						console.warn(
-							'vehicle_inspection_odometer: migration 007 not applied yet — no defect data'
+							'vehicle_inspection_odometer: migration 007 not applied yet – no defect data'
 						)
 					}
 					return { rows: [] as Array<Record<string, unknown>> }

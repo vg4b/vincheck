@@ -193,10 +193,12 @@ const KompletniHistorieVozuPage: React.FC = () => {
 								<p>
 									Náš <strong>certifikát historie vozidla</strong> zpracuje data
 									z registru silničních vozidel ČR a STK do přehledného PDF
-									(majitelé a provozovatelé, historie STK, oficiální stav
-									tachometru pro odhalení stočení, dovoz). Pro záznamy, které
-									registr nemá — nehody, zástavy a leasing, historie ze
-									zahraničí — využijte kompletní prověření u našeho partnera.
+									(majitelé a provozovatelé, historie STK včetně konkrétních
+									závad, leasing a financování v historii vlastníků, oficiální
+									stav tachometru pro odhalení stočení, dovoz). Pro záznamy,
+									které registr nemá – nehody, zástavy v rejstříku zástav,
+									historie ze zahraničí – využijte kompletní prověření u našeho
+									partnera.
 								</p>
 								<ProductComparison
 									priceCzk={PRICE_CZK}

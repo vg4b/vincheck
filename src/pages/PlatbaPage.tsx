@@ -10,7 +10,7 @@ const PlatbaPage: React.FC = () => {
 		if (metaDescription) {
 			metaDescription.setAttribute(
 				'content',
-				'Informace o online platbách na VIN Info.cz — platba kartou a platebními tlačítky bank přes platební bránu Comgate a elektronické doručení produktu.'
+				'Informace o online platbách na VIN Info.cz – platba kartou a platebními tlačítky bank přes platební bránu Comgate a elektronické doručení produktu.'
 			)
 		}
 	}, [])
@@ -83,7 +83,7 @@ const PlatbaPage: React.FC = () => {
 					<section className='mb-5'>
 						<h2 className='h4'>Doručení</h2>
 						<p>
-							Produkt je digitální a doručuje se elektronicky — ihned po připsání
+							Produkt je digitální a doručuje se elektronicky – ihned po připsání
 							platby jej zpřístupníme ke stažení a zašleme na zadaný e-mail.
 							Nejde o fyzické zboží, žádná doprava se proto neúčtuje.
 						</p>
@@ -110,7 +110,7 @@ const PlatbaPage: React.FC = () => {
 						</ul>
 						<p className='text-muted-ink small mb-0'>
 							Reklamace samotného produktu i dotazy k obchodu vyřizuje
-							provozovatel — viz <Link to='/kontakt'>Kontakt</Link>.
+							provozovatel – viz <Link to='/kontakt'>Kontakt</Link>.
 						</p>
 					</section>
 
