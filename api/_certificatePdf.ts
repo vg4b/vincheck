@@ -137,6 +137,32 @@ const styles = {
 	milKm: { width: '30%' },
 	milProto: { width: '44%', textAlign: 'right', fontSize: 8.5, color: MUTED },
 	tlRowZebra: { backgroundColor: '#f8fafc' },
+	// STK rows are two-part: a header line (date · verdict · station) with the
+	// defect list underneath, so the row itself stacks instead of being a
+	// single flex row like the other timelines.
+	stkRow: {
+		paddingVertical: 3,
+		borderBottomWidth: 1,
+		borderBottomColor: BORDER
+	},
+	stkHead: { flexDirection: 'row' },
+	// Indented under the verdict, with a rule on the left so the defects read
+	// as belonging to the inspection above them rather than as their own rows.
+	stkDefects: {
+		marginTop: 2,
+		marginLeft: '34%',
+		paddingLeft: 5,
+		borderLeftWidth: 1,
+		borderLeftColor: BORDER
+	},
+	stkDefect: { flexDirection: 'row', marginBottom: 1 },
+	// Wide enough for the longest label ('nebezpečná') plus a gap — at 52 it
+	// overflowed and ran into the defect text with no space between them.
+	stkDefectSev: { width: 64, paddingRight: 4, fontSize: 8, fontWeight: 700 },
+	stkDefectText: { flex: 1, fontSize: 8, color: MUTED },
+	// No italic: the embedded DejaVuSans subset has no italic face, and asking
+	// for one aborts the render outright rather than falling back.
+	stkDefectNote: { fontSize: 8, color: MUTED },
 	flag: {
 		padding: 6,
 		marginBottom: 4,
@@ -290,34 +316,58 @@ const STK_LABEL: Record<string, string> = {
  * former means we hold no ISTP defect record for that inspection, and must
  * never be presented as a clean result.
  */
-function defectSuffix(h: {
-	defects?: Array<{ group: string | null; code: string }> | null
-}): string {
-	if (h.defects === null || h.defects === undefined)
-		return ' · závady neuvedeny'
-	if (h.defects.length === 0) return ''
-	const areas: string[] = []
-	for (const d of h.defects) {
-		const area = d.group ? (SHORT_GROUP[d.group] ?? d.group) : 'jiné'
-		if (!areas.includes(area)) areas.push(area)
-	}
-	const shown = areas.slice(0, 2).join(', ')
-	const rest = areas.length - 2
-	return rest > 0 ? ` · ${shown} +${rest}` : ` · ${shown}`
+/**
+ * Inspection-type label, mirroring the web panel: the registry stores
+ * "Pravidelná" / "Evidenční kontrola" and occasionally a dashed compound.
+ */
+function inspTypeLabel(typ: string | null): string | null {
+	if (!typ) return null
+	const code = typ.trim().charAt(0).toUpperCase()
+	if (code === 'P') return 'pravidelná'
+	if (code === 'E') return 'evidenční'
+	const dash = typ.indexOf('-')
+	const rest = dash >= 0 ? typ.slice(dash + 1).trim() : typ.trim()
+	return rest ? rest.toLowerCase() : null
+}
+
+const DEFECT_SEVERITY_LABEL: Record<string, string> = {
+	A: 'lehká',
+	B: 'vážná',
+	C: 'nebezpečná',
+	unknown: '—'
+}
+
+// Amber for A/B, red for C — same palette as the web panel, resolved to hex
+// because the PDF renderer has no CSS custom properties.
+const DEFECT_SEVERITY_COLOR: Record<string, string> = {
+	A: '#b8860b',
+	B: '#b8860b',
+	C: '#c02434',
+	unknown: MUTED
 }
 
 /**
- * Shorter group names for the PDF's narrow inspection column — the web panel's
- * full labels ("nápravy, kola a pneumatiky") clip mid-word here.
+ * What we can say about one defect, in order of how much we know: the official
+ * text from the vyhláška, else the inspection area, else the raw code. Same
+ * ladder as the web panel's defectLabel().
  */
-const SHORT_GROUP: Record<string, string> = {
-	'nápravy, kola a pneumatiky': 'kola a nápravy',
-	'podvozek a karoserie': 'karoserie',
-	'obtěžování okolí': 'emise a hluk',
-	'identifikace vozidla': 'identifikace',
-	'doplňkové kontroly': 'doplňkové',
-	'ostatní výbava': 'výbava'
+function defectLabel(d: {
+	text: string | null
+	group: string | null
+	code: string
+}): string {
+	if (d.text) return d.text
+	if (d.group) return `závada — ${d.group}`
+	return `závada ${d.code}`
 }
+
+/**
+ * How many defects to print per inspection before collapsing the rest into a
+ * count. The certificate is a paid document, so this is more generous than the
+ * web panel's 6 — but still bounded, because a single inspection can carry
+ * dozens and one row must not run over a page.
+ */
+const MAX_PDF_DEFECTS = 10
 
 function fmtDate(s: string | null): string {
 	if (!s) return '—'
@@ -753,27 +803,84 @@ export async function renderCertificatePdf(
 				View,
 				{ key: 'stk-h', style: { marginTop: 4 } },
 				// Oldest → newest, consistent with the owner timeline and mileage list.
-				[...history.inspections.history].reverse().map((h, i) =>
-					e(
+				[...history.inspections.history].reverse().map((h, i) => {
+					const typ = h.administrative ? null : inspTypeLabel(h.typ)
+					const verdict = h.administrative
+						? 'nové vozidlo'
+						: `${STK_LABEL[h.result] ?? h.result}${typ ? ` · ${typ}` : ''}`
+					// Administrative records carry no inspection, so no defect line
+					// belongs on them.
+					const shown = h.administrative ? null : h.defects
+					const rest = shown ? shown.length - MAX_PDF_DEFECTS : 0
+					return e(
 						View,
 						{
-							style: i % 2 ? [styles.tlRow, styles.tlRowZebra] : styles.tlRow,
+							style: i % 2 ? [styles.stkRow, styles.tlRowZebra] : styles.stkRow,
 							key: `stk-${i}`,
 							wrap: false
 						},
 						[
-							e(Text, { style: styles.tlDate, key: 'd' }, fmtDate(h.date)),
-							e(
-								Text,
-								{ style: styles.tlMain, key: 'm' },
-								h.administrative
-									? 'nové vozidlo'
-									: `${STK_LABEL[h.result] ?? h.result}${defectSuffix(h)}`
-							),
-							e(Text, { style: styles.tlTag, key: 's' }, h.nazevStk ?? '')
+							e(View, { style: styles.stkHead, key: 'h' }, [
+								e(Text, { style: styles.tlDate, key: 'd' }, fmtDate(h.date)),
+								e(Text, { style: styles.tlMain, key: 'm' }, verdict),
+								e(Text, { style: styles.tlTag, key: 's' }, h.nazevStk ?? '')
+							]),
+							// null = we hold the inspection but no defect record for it.
+							// That is NOT "no defects" and must never be worded that way.
+							h.administrative
+								? null
+								: e(
+										View,
+										{ style: styles.stkDefects, key: 'df' },
+										shown === null
+											? e(
+													Text,
+													{ style: styles.stkDefectNote },
+													'závady neuvedeny'
+												)
+											: shown.length === 0
+												? e(Text, { style: styles.stkDefectNote }, 'bez závad')
+												: [
+														...shown.slice(0, MAX_PDF_DEFECTS).map((d, di) =>
+															e(
+																View,
+																{ style: styles.stkDefect, key: `d${di}` },
+																[
+																	e(
+																		Text,
+																		{
+																			style: [
+																				styles.stkDefectSev,
+																				{
+																					color:
+																						DEFECT_SEVERITY_COLOR[d.severity] ??
+																						MUTED
+																				}
+																			],
+																			key: 'sv'
+																		},
+																		DEFECT_SEVERITY_LABEL[d.severity] ?? '—'
+																	),
+																	e(
+																		Text,
+																		{ style: styles.stkDefectText, key: 'tx' },
+																		defectLabel(d)
+																	)
+																]
+															)
+														),
+														rest > 0
+															? e(
+																	Text,
+																	{ style: styles.stkDefectNote, key: 'more' },
+																	`a ${rest} ${rest === 1 ? 'další závada' : rest < 5 ? 'další závady' : 'dalších závad'}`
+																)
+															: null
+													]
+									)
 						]
 					)
-				)
+				})
 			)
 		)
 	} else {

@@ -108,15 +108,20 @@ jobs:
           --from ${{ steps.win.outputs.from }}
           --concurrency 6
 
+      # Output is teed to a file so the defect guard below can assert on the
+      # counts this run actually produced. `pipefail` is required: without it
+      # the step's exit status would come from `tee` and a failed ingest would
+      # pass.
       - name: Ingest into Scaleway
         env:
           DATABASE_URL: ${{ secrets.SCALEWAY_ADMIN_DATABASE_URL }}
-        run: >
-          npx tsx scripts/ingest-odometer.ts
-          --apply-schema
-          --dir odometer-data/xml
-          --from ${{ steps.win.outputs.from }}
-          --throttle 25
+        run: |
+          set -o pipefail
+          npx tsx scripts/ingest-odometer.ts \
+            --apply-schema \
+            --dir odometer-data/xml \
+            --from ${{ steps.win.outputs.from }} \
+            --throttle 25 | tee ingest.log
 
       # A stalled upstream feed is invisible from the outside: the crawl still
       # succeeds, there is simply nothing newer to fetch, the overlap window is
@@ -149,7 +154,16 @@ jobs:
       # moving it out of <Vysledek> — would NOT fail anything: the regex would
       # simply match nothing and every new row would get zero defects while the
       # job stayed green and the site quietly showed "bez závad" for cars that
-      # failed their inspection. Assert against the window we just ingested.
+      # failed their inspection.
+      #
+      # Asserted from the ingest's own `stats:` line rather than by querying the
+      # database. The DB has no index on inspection_date, so the equivalent
+      # query is a sequential scan of all 91.9M rows (~24 GB, measured at 2m25s
+      # against a 5m26s ingest) on the shared production node, every week, to
+      # recompute a number the parser already reported. Both answers come from
+      # the same UPSERTed rows, and a write that failed would fail the step
+      # above, so the cheap one carries the same signal.
+      #
       # The share of inspections carrying defects has stepped DOWN twice as the
       # rules changed — 56% (2016-17) → 35% (2018-23, after vyhláška 211/2018)
       # → 25% (2024+) — so the floor is deliberately well below today's 25%
@@ -157,29 +171,21 @@ jobs:
       # parser produces 0%, which this still catches decisively.
       - name: Check defect data is still being parsed
         env:
-          DATABASE_URL: ${{ secrets.SCALEWAY_ADMIN_DATABASE_URL }}
           MIN_DEFECT_PCT: '10'
         run: |
-          # Assign from a plain variable rather than `read <<<"$(...)"`: the
-          # herestring form mis-parses the nested quotes on bash 3.2 (macOS),
-          # so it cannot be reproduced locally before it ships.
-          OUT=$(psql "$DATABASE_URL" -tAF' ' -c \
-            "SELECT count(*),
-                    coalesce(round(100.0 * count(*) FILTER (WHERE zavady_kody IS NOT NULL)
-                                   / nullif(count(*), 0)), 0)
-               FROM vehicle_inspection_odometer
-              WHERE inspection_date >= '${{ steps.win.outputs.from }}'")
-          ROWS=$(echo "$OUT" | awk '{print $1}')
-          PCT=$(echo "$OUT" | awk '{print $2}')
-          if [ -z "$ROWS" ] || [ -z "$PCT" ]; then
-            echo "::error::Could not read defect coverage from the database (psql returned: '$OUT')."
+          LINE=$(grep -o 'stats: records=[0-9]* with_defects=[0-9]* defects=[0-9]*' ingest.log | tail -1)
+          if [ -z "$LINE" ]; then
+            echo "::error::The ingest printed no machine-readable 'stats:' line. Either it did not complete, or that line was removed from scripts/ingest-odometer.ts without updating this guard."
             exit 1
           fi
-          echo "Window from ${{ steps.win.outputs.from }}: $ROWS rows, $PCT% carry defects (floor $MIN_DEFECT_PCT%)"
+          ROWS=$(echo "$LINE" | sed -E 's/.*records=([0-9]*).*/\1/')
+          WITH=$(echo "$LINE" | sed -E 's/.*with_defects=([0-9]*).*/\1/')
           if [ "$ROWS" -eq 0 ]; then
-            echo "No rows in the window — nothing to assert (upstream stall is reported by the step above)."
+            echo "No records in the window — nothing to assert (an upstream stall is reported by the step above)."
             exit 0
           fi
+          PCT=$(( 100 * WITH / ROWS ))
+          echo "Window from ${{ steps.win.outputs.from }}: $ROWS records, $WITH with defects = $PCT% (floor $MIN_DEFECT_PCT%)"
           if [ "$PCT" -lt "$MIN_DEFECT_PCT" ]; then
             echo "::error::Only $PCT% of the $ROWS inspections ingested since ${{ steps.win.outputs.from }} carry defect codes (expected ~25%). The defect parser in scripts/ingest-odometer.ts has most likely stopped matching — check whether ISTP changed the <Zavada> element. Odometer data is unaffected."
             exit 1
