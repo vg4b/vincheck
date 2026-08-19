@@ -281,6 +281,44 @@ const STK_LABEL: Record<string, string> = {
 	unknown: 'Neuvedeno'
 }
 
+/**
+ * Compact defect note for one STK row. The PDF column is narrow, so this shows
+ * the inspection areas rather than the full vyhláška sentences (which the web
+ * panel renders in full).
+ *
+ * "závady neuvedeny" and "no defects" are deliberately different outcomes: the
+ * former means we hold no ISTP defect record for that inspection, and must
+ * never be presented as a clean result.
+ */
+function defectSuffix(h: {
+	defects?: Array<{ group: string | null; code: string }> | null
+}): string {
+	if (h.defects === null || h.defects === undefined)
+		return ' · závady neuvedeny'
+	if (h.defects.length === 0) return ''
+	const areas: string[] = []
+	for (const d of h.defects) {
+		const area = d.group ? (SHORT_GROUP[d.group] ?? d.group) : 'jiné'
+		if (!areas.includes(area)) areas.push(area)
+	}
+	const shown = areas.slice(0, 2).join(', ')
+	const rest = areas.length - 2
+	return rest > 0 ? ` · ${shown} +${rest}` : ` · ${shown}`
+}
+
+/**
+ * Shorter group names for the PDF's narrow inspection column — the web panel's
+ * full labels ("nápravy, kola a pneumatiky") clip mid-word here.
+ */
+const SHORT_GROUP: Record<string, string> = {
+	'nápravy, kola a pneumatiky': 'kola a nápravy',
+	'podvozek a karoserie': 'karoserie',
+	'obtěžování okolí': 'emise a hluk',
+	'identifikace vozidla': 'identifikace',
+	'doplňkové kontroly': 'doplňkové',
+	'ostatní výbava': 'výbava'
+}
+
 function fmtDate(s: string | null): string {
 	if (!s) return '—'
 	const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
@@ -479,16 +517,22 @@ export async function renderCertificatePdf(
 				'g-oper'
 			)
 		)
-	if (history.inspections.total > 0)
+	if (history.inspections.total > 0) {
+		// "bez závady" was previously claimed whenever `failed === 0`, which the
+		// data cannot support: a vehicle passes with A-severity defects recorded,
+		// and for inspections we hold no ISTP record for we know nothing at all.
+		// Say only what the counts actually prove.
+		const passed = history.inspections.total - history.inspections.failed
 		chips.push(
 			chip(
 				history.inspections.failed > 0
 					? `STK: ${history.inspections.failed}× neúspěšná`
-					: `STK: ${history.inspections.total}× bez závady`,
+					: `STK: ${passed}× způsobilé`,
 				history.inspections.failed > 0 ? 'warn' : 'good',
 				'g-stk'
 			)
 		)
+	}
 	if (history.mileage.readings.length > 0)
 		chips.push(
 			chip(
@@ -724,7 +768,7 @@ export async function renderCertificatePdf(
 								{ style: styles.tlMain, key: 'm' },
 								h.administrative
 									? 'nové vozidlo'
-									: (STK_LABEL[h.result] ?? h.result)
+									: `${STK_LABEL[h.result] ?? h.result}${defectSuffix(h)}`
 							),
 							e(Text, { style: styles.tlTag, key: 's' }, h.nazevStk ?? '')
 						]

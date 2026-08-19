@@ -37,3 +37,6 @@ curl.txt
 TODO
 # Build artifact: SPA shell copied for the /znacky SSR renderer (copy-shell.ts)
 api/_shell.html
+
+# Backfill progress marker (scripts/backfill-defects.sh) — run state, not source
+scripts/.backfill-defects.state

@@ -148,6 +148,37 @@ A Node/tsx script (not bash — XML):
 - Concurrency-limited fetch with retries; stamp a `cache_meta` row
   (`dataset='odometer'`, latest covered day) for staleness tracking.
 
+## Step 2b — STK defects (migration 007, 2026-08-19)
+
+The same parser pass now also fills the defect columns added by
+`scripts/migrations/007_inspection_defects.sql`: `zavady_a/b/c` (counts by
+severity), `zavady_kody` (codes in document order), `zavady_zavaznosti` (one
+severity letter per code, positionally aligned), plus `rozsah` and
+`emisni_system`. Full design in
+`docs/plans/2026-08-17-001-feat-stk-defect-codes-plan.md`.
+
+**Nothing extra to run.** `--apply-schema` applies 004 and 007 in order, and the
+weekly workflow already passes it, so new days arrive with defects automatically.
+
+**Reading the NULLs.** `zavady_a IS NULL` means "no ISTP record"; `zavady_a = 0`
+with a NULL `zavady_kody` means "recorded, no defects". The code array cannot
+carry that distinction on its own, because a clean inspection stores NULL rather
+than an empty array — that choice cut the payload from 7.5 GB to ~4.5 GB across
+91.9 M rows, and the counts are what carry record-existence.
+
+**Backfill (done 2026-08-19).** All 91 936 384 rows, 100 % coverage, run in 47
+date slices by `scripts/backfill-defects.sh`; the DB went 65.0 → 70.6 GB. The
+slicing exists because every UPSERT leaves a dead tuple: an unsliced rewrite
+would have grown the volume by the whole table before anything could be
+reclaimed. Speed is bound by `shared_buffers` vs. the 6.3 GB primary index —
+measured 558 rows/s on DB-DEV-S (450 MB) against 2 293 rows/s on DB-GP-XS
+(3 800 MB), a 4.1x difference on identical work.
+
+**Defect share drifts with the rules**, so any monitoring threshold must sit well
+below the current rate rather than near it: 56 % of inspections carried defects
+in 2016-17, 35 % from 2018 (vyhláška 211/2018), 25 % from 2024. The weekly job's
+guard uses a 10 % floor for that reason.
+
 ## Step 3 — Cadence
 
 - **Monthly:** RSV CSVs via the existing skill (unchanged).

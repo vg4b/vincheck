@@ -1,13 +1,19 @@
 name: Ingest odometer (ISTP)
 
 # Keeps the odometer cache (vehicle_inspection_odometer) current from the ISTP
-# open data. The source publishes each day's file with a ~2–3 week lag (and can
+# open data. The source publishes each day's file with a ~2-3 week lag (and can
 # stall far longer — it went dark 2026-06-06 → mid-July), so a daily run would
 # add no freshness while multiplying DB load. Instead we run WEEKLY and resume
 # from the newest day we already hold (see "Compute window start"), which absorbs
 # a lag of any length. The load is idempotent (download skips existing within a
 # run; ingest UPSERTs on cislo_protokolu) and never touches the other cache
 # tables.
+#
+# Since migration 007 each record also carries its STK defect list (codes +
+# severities + A/B/C counts) plus RozsahProhlidky / EmisniSystem, so this job
+# keeps the DEFECT history current too — the parser fills those columns on every
+# UPSERT. Nothing extra to run; the guard at the end fails the job if they ever
+# stop arriving.
 #
 # Required secret: SCALEWAY_ADMIN_DATABASE_URL — the admin connection string
 #   (postgres://<admin>:<pw>@<host>:<port>/rdb?sslmode=require). Read+write.
@@ -80,8 +86,19 @@ jobs:
           echo "from=$FROM" >> "$GITHUB_OUTPUT"
           echo "Ingesting from $FROM"
 
+      # Retry: the catalogue lives on data.gov.cz's public SPARQL endpoint, which
+      # returns transient errors often enough to matter — it took the scheduled
+      # 2026-08-10 run down after 16s and needed a manual re-dispatch. A weekly
+      # job should absorb a blip rather than page a human for one.
       - name: Crawl catalog
-        run: npx tsx scripts/crawl-odometer-catalog.ts --out odometer-data/manifest.json
+        run: |
+          for attempt in 1 2 3; do
+            npx tsx scripts/crawl-odometer-catalog.ts --out odometer-data/manifest.json && exit 0
+            echo "crawl attempt $attempt failed; retrying in $((attempt * 30))s"
+            sleep $((attempt * 30))
+          done
+          echo "::error::Catalogue crawl failed three times — data.gov.cz SPARQL endpoint is likely down."
+          exit 1
 
       - name: Download new files
         run: >
@@ -110,12 +127,60 @@ jobs:
       # this step changes no data and only raises the flag.
       - name: Check the upstream feed is still publishing
         env:
-          MAX_LAG_DAYS: '21'
+          # 28, not 21. ISTP publishes in bursts, so the lag sawtooths rather
+          # than sitting at a constant: the healthy 2026-08-17 run measured 20
+          # days (one day short of failing), and two days later the same feed
+          # measured 12. A 21-day threshold is the documented *normal* lag, so
+          # it fires on ordinary operation. 28 keeps a week of headroom and
+          # still catches a real stall long before it matters — the 2026-06/07
+          # outage ran five weeks.
+          MAX_LAG_DAYS: '28'
         run: |
           NEWEST=$(node -e "const fs=require('fs');const m=JSON.parse(fs.readFileSync('odometer-data/manifest.json','utf8'));console.log(m.map(e=>e.date).sort().pop())")
           LAG=$(( ( $(date -u +%s) - $(date -u -d "$NEWEST" +%s) ) / 86400 ))
           echo "Newest day published by ISTP: $NEWEST ($LAG days ago, threshold $MAX_LAG_DAYS)"
           if [ "$LAG" -gt "$MAX_LAG_DAYS" ]; then
             echo "::error::ISTP has published no inspection data since $NEWEST — $LAG days ago. Vehicles inspected since then carry no odometer reading in the certificate. The ingest itself succeeded; this is an upstream stall, not a failure of this job."
+            exit 1
+          fi
+
+      # The defect columns (migration 007) are filled by the same parser pass as
+      # the odometer, so a schema change upstream — ISTP renaming <Zavada>, or
+      # moving it out of <Vysledek> — would NOT fail anything: the regex would
+      # simply match nothing and every new row would get zero defects while the
+      # job stayed green and the site quietly showed "bez závad" for cars that
+      # failed their inspection. Assert against the window we just ingested.
+      # The share of inspections carrying defects has stepped DOWN twice as the
+      # rules changed — 56% (2016-17) → 35% (2018-23, after vyhláška 211/2018)
+      # → 25% (2024+) — so the floor is deliberately well below today's 25%
+      # rather than near it: another step-down must not page anyone. A broken
+      # parser produces 0%, which this still catches decisively.
+      - name: Check defect data is still being parsed
+        env:
+          DATABASE_URL: ${{ secrets.SCALEWAY_ADMIN_DATABASE_URL }}
+          MIN_DEFECT_PCT: '10'
+        run: |
+          # Assign from a plain variable rather than `read <<<"$(...)"`: the
+          # herestring form mis-parses the nested quotes on bash 3.2 (macOS),
+          # so it cannot be reproduced locally before it ships.
+          OUT=$(psql "$DATABASE_URL" -tAF' ' -c \
+            "SELECT count(*),
+                    coalesce(round(100.0 * count(*) FILTER (WHERE zavady_kody IS NOT NULL)
+                                   / nullif(count(*), 0)), 0)
+               FROM vehicle_inspection_odometer
+              WHERE inspection_date >= '${{ steps.win.outputs.from }}'")
+          ROWS=$(echo "$OUT" | awk '{print $1}')
+          PCT=$(echo "$OUT" | awk '{print $2}')
+          if [ -z "$ROWS" ] || [ -z "$PCT" ]; then
+            echo "::error::Could not read defect coverage from the database (psql returned: '$OUT')."
+            exit 1
+          fi
+          echo "Window from ${{ steps.win.outputs.from }}: $ROWS rows, $PCT% carry defects (floor $MIN_DEFECT_PCT%)"
+          if [ "$ROWS" -eq 0 ]; then
+            echo "No rows in the window — nothing to assert (upstream stall is reported by the step above)."
+            exit 0
+          fi
+          if [ "$PCT" -lt "$MIN_DEFECT_PCT" ]; then
+            echo "::error::Only $PCT% of the $ROWS inspections ingested since ${{ steps.win.outputs.from }} carry defect codes (expected ~25%). The defect parser in scripts/ingest-odometer.ts has most likely stopped matching — check whether ISTP changed the <Zavada> element. Odometer data is unaffected."
             exit 1
           fi

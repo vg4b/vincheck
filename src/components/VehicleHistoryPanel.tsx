@@ -1,7 +1,13 @@
 import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 import { isCertificateEnabled } from '../config/featureFlags'
-import type { OwnerRelation, StkResult, VehicleHistory } from '../types'
+import type {
+	DefectSeverity,
+	OwnerRelation,
+	StkResult,
+	VehicleDefect,
+	VehicleHistory
+} from '../types'
 import Icon from './Icon'
 
 // Temporary kill switch for the Cebia CheckLease link — set to true to restore.
@@ -41,6 +47,35 @@ const STK_LABEL: Record<StkResult, string> = {
 	defects: 'Způsobilé s vadami',
 	unfit: 'Nezpůsobilé',
 	unknown: 'Neuvedeno'
+}
+
+// Defect severity per vyhláška 211/2018 Sb.: A = lehká, B = vážná (must be
+// fixed within 30 days), C = nebezpečná (vehicle is nezpůsobilé).
+const DEFECT_SEVERITY_LABEL: Record<DefectSeverity, string> = {
+	A: 'lehká',
+	B: 'vážná',
+	C: 'nebezpečná',
+	unknown: '—'
+}
+
+const DEFECT_SEVERITY_COLOR: Record<DefectSeverity, string> = {
+	A: '#b8860b',
+	B: '#b8860b',
+	C: 'var(--accent-red)',
+	unknown: '#6c757d'
+}
+
+/** How many defects to list before collapsing the rest into a count. */
+const MAX_SHOWN_DEFECTS = 6
+
+/**
+ * What we can say about one defect, in order of how much we know:
+ * the official text, else the inspection area, else just the raw code.
+ */
+function defectLabel(d: VehicleDefect): string {
+	if (d.text) return d.text
+	if (d.group) return `závada — ${d.group}`
+	return `závada ${d.code}`
 }
 
 const STK_COLOR: Record<StkResult, string> = {
@@ -510,6 +545,56 @@ const VehicleHistoryPanel: FC<{
 												{h.nazevStk}
 											</div>
 										)}
+										{/* Administrative records carry no inspection, so no
+										    defect line belongs on them. */}
+										{!h.administrative &&
+											(h.defects === null ? (
+												// We hold the inspection but no defect record for it.
+												// This is NOT the same as "no defects" and must never
+												// be worded that way.
+												<div className='stk-defects text-muted-ink'>
+													závady neuvedeny
+												</div>
+											) : h.defects.length === 0 ? (
+												<div className='stk-defects text-muted-ink'>
+													bez závad
+												</div>
+											) : (
+												<ul className='stk-defects text-muted-ink'>
+													{h.defects
+														.slice(0, MAX_SHOWN_DEFECTS)
+														.map((d, di) => (
+															<li
+																key={`${d.code}-${di}`}
+																className='stk-defect'
+															>
+																<span
+																	className='stk-defect-sev'
+																	style={{
+																		color: DEFECT_SEVERITY_COLOR[d.severity]
+																	}}
+																>
+																	{DEFECT_SEVERITY_LABEL[d.severity]}
+																</span>
+																<span className='stk-defect-text'>
+																	{defectLabel(d)}
+																</span>
+															</li>
+														))}
+													{h.defects.length > MAX_SHOWN_DEFECTS && (
+														<li className='stk-defect'>
+															<span className='stk-defect-text'>
+																{`a ${h.defects.length - MAX_SHOWN_DEFECTS} ${czPlural(
+																	h.defects.length - MAX_SHOWN_DEFECTS,
+																	'další závada',
+																	'další závady',
+																	'dalších závad'
+																)}`}
+															</span>
+														</li>
+													)}
+												</ul>
+											))}
 									</li>
 								))}
 							</ul>

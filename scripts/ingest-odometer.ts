@@ -5,12 +5,13 @@
  * Pipeline: for each `prohlidky_<date>.xml.gz` (from download-odometer.ts), stream
  * through gunzip, split on `</Prohlidka>`, and extract per record:
  *   CisloProtokolu (PK) · Vin · Vysledek/Odometr (km) · DatumProhlidky (date) ·
- *   DruhProhlidky · VysledekCelkovy · Stanice/Cislo.
+ *   DruhProhlidky · VysledekCelkovy · Stanice/Cislo · RozsahProhlidky ·
+ *   EmisniSystem · and the defect list (ZavadaSeznam → Kod + Zavaznost).
  * Rows are UPSERTed in batches on cislo_protokolu, so re-runs are idempotent and
  * daily deltas accumulate.
  *
  * PRODUCTION SAFETY: this only ever writes the NEW `vehicle_inspection_odometer`
- * table (created with --apply-schema or scripts/migrations/004_vehicle_odometer.sql).
+ * table (created with --apply-schema, which applies migrations 004 and 007).
  * It never touches the existing cache tables/indexes, so the live lookup path is
  * unaffected. The shared DB node can still feel write load — load off-peak,
  * consider scaling the node up (see the refresh-vehicle-cache skill), and use
@@ -58,6 +59,18 @@ interface Record {
 	druh: string | null
 	resultCode: string | null
 	stationKod: string | null
+	zavadyA: number
+	zavadyB: number
+	zavadyC: number
+	/** Defect codes in document order, or null when there were none — an empty
+	 *  array would cost ~16 B on each of the 52.9M clean inspections to say
+	 *  nothing. The counts above carry "we have a record". */
+	zavadyKody: string[] | null
+	/** Severity letters as one string, one char per code, positionally aligned
+	 *  with `zavadyKody`: "BBA" = 1st code B, 2nd B, 3rd A. Null alongside it. */
+	zavadyZavaznosti: string | null
+	rozsah: string | null
+	emisniSystem: string | null
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -118,6 +131,31 @@ const first = (block: string, tag: string): string | null => {
 	return m ? m[1].trim() : null
 }
 
+/**
+ * Every <Zavada> in the record, as [code, severity] pairs.
+ *
+ * The published XSD allows ZavadaSeznam under three parents (Vysledek,
+ * TechnickaCast, TskCast). In the real feed all of them sit under Vysledek —
+ * checked across a 2015 and a 2026 file, 39 005 defects, zero exceptions — but
+ * we deliberately scan the WHOLE record rather than scoping to Vysledek, so a
+ * future ISTP change shows up as extra defects instead of silently dropping
+ * them.
+ */
+const DEFECT_RE =
+	/<Zavada>\s*<Kod\s*>([^<]*)<\/Kod>\s*<Zavaznost\s*>([^<]*)<\/Zavaznost>/g
+function defects(block: string): Array<[string, string]> {
+	const out: Array<[string, string]> = []
+	// The regex is module-level for reuse, so reset lastIndex before each scan.
+	DEFECT_RE.lastIndex = 0
+	let m = DEFECT_RE.exec(block)
+	while (m !== null) {
+		const code = m[1].trim()
+		if (code) out.push([code, m[2].trim().toUpperCase()])
+		m = DEFECT_RE.exec(block)
+	}
+	return out
+}
+
 function toRecord(block: string): Record | null {
 	const cisloProtokolu = first(block, 'CisloProtokolu')
 	const vin = first(block, 'Vin')
@@ -130,6 +168,19 @@ function toRecord(block: string): Record | null {
 	const datum = first(block, 'DatumProhlidky')
 	const inspectionDate = datum ? datum.slice(0, 10) : null
 
+	// Counts are kept alongside the arrays so the read layer can render the badge
+	// without unnesting. An unrecognised severity letter still lands in the
+	// arrays but counts toward none of the three buckets — visible, not dropped.
+	const zavady = defects(block)
+	let zavadyA = 0
+	let zavadyB = 0
+	let zavadyC = 0
+	for (const [, sev] of zavady) {
+		if (sev === 'A') zavadyA++
+		else if (sev === 'B') zavadyB++
+		else if (sev === 'C') zavadyC++
+	}
+
 	return {
 		cisloProtokolu,
 		vin,
@@ -137,7 +188,21 @@ function toRecord(block: string): Record | null {
 		inspectionDate,
 		druh: first(block, 'DruhProhlidky'),
 		resultCode: first(block, 'VysledekCelkovy'),
-		stationKod: first(block, 'Cislo') // first <Cislo> is Stanice/Cislo
+		stationKod: first(block, 'Cislo'), // first <Cislo> is Stanice/Cislo
+		zavadyA,
+		zavadyB,
+		zavadyC,
+		// NULL rather than an empty array/string when the inspection was clean;
+		// zavadyA/B/C being non-null is what says "we have a record".
+		zavadyKody: zavady.length ? zavady.map(([code]) => code) : null,
+		zavadyZavaznosti: zavady.length
+			? zavady.map(([, sev]) => (sev.length === 1 ? sev : '?')).join('')
+			: null,
+		// Both occur at most once per record, so `first` is safe. EmisniSystem
+		// lives inside EmisniCast and is simply absent for EVs and for records
+		// with no emission part.
+		rozsah: first(block, 'RozsahProhlidky'),
+		emisniSystem: first(block, 'EmisniSystem')
 	}
 }
 
@@ -199,13 +264,17 @@ const COLS = [
 	'inspection_date',
 	'druh',
 	'result_code',
-	'station_kod'
+	'station_kod',
+	'zavady_a',
+	'zavady_b',
+	'zavady_c',
+	'zavady_kody',
+	'zavady_zavaznosti',
+	'rozsah',
+	'emisni_system'
 ]
 
-async function upsertBatch(
-	client: PoolClient,
-	rows: Record[]
-): Promise<void> {
+async function upsertBatch(client: PoolClient, rows: Record[]): Promise<void> {
 	// Dedup within the batch — ON CONFLICT can't hit the same key twice in one stmt.
 	const byKey = new Map<string, Record>()
 	for (const r of rows) byKey.set(r.cisloProtokolu, r)
@@ -221,9 +290,16 @@ async function upsertBatch(
 			r.inspectionDate,
 			r.druh,
 			r.resultCode,
-			r.stationKod
+			r.stationKod,
+			r.zavadyA,
+			r.zavadyB,
+			r.zavadyC,
+			r.zavadyKody,
+			r.zavadyZavaznosti,
+			r.rozsah,
+			r.emisniSystem
 		)
-		return `($${b + 1},$${b + 2},$${b + 3},$${b + 4},$${b + 5},$${b + 6},$${b + 7})`
+		return `(${COLS.map((_, k) => `$${b + k + 1}`).join(',')})`
 	})
 
 	await client.query(
@@ -235,21 +311,40 @@ async function upsertBatch(
 		   inspection_date = EXCLUDED.inspection_date,
 		   druh = EXCLUDED.druh,
 		   result_code = EXCLUDED.result_code,
-		   station_kod = EXCLUDED.station_kod`,
+		   station_kod = EXCLUDED.station_kod,
+		   zavady_a = EXCLUDED.zavady_a,
+		   zavady_b = EXCLUDED.zavady_b,
+		   zavady_c = EXCLUDED.zavady_c,
+		   zavady_kody = EXCLUDED.zavady_kody,
+		   zavady_zavaznosti = EXCLUDED.zavady_zavaznosti,
+		   rozsah = EXCLUDED.rozsah,
+		   emisni_system = EXCLUDED.emisni_system`,
 		values
 	)
 }
 
-const SCHEMA_SQL = readFileSafe(
-	resolve(process.cwd(), 'scripts/migrations/004_vehicle_odometer.sql')
-)
-function readFileSafe(p: string): string {
+// --apply-schema runs both migrations in order: 004 creates the table, 007 adds
+// the defect columns. Both are idempotent (IF NOT EXISTS), so re-running is safe.
+const MIGRATIONS = [
+	'scripts/migrations/004_vehicle_odometer.sql',
+	'scripts/migrations/007_inspection_defects.sql'
+]
+// Names of the migrations that could not be read, so --apply-schema can refuse
+// to run a PARTIAL schema. Tolerating a missing file per-migration would be a
+// silent failure: with 004 present and 007 absent (e.g. it was never committed,
+// so the CI checkout has no copy) the concatenation is still non-empty, the
+// table gets created without the defect columns, and the load only fails later
+// with an undefined-column error — or, on a database where the columns already
+// exist, appears to succeed while the schema drifts from the repo.
+const MISSING_MIGRATIONS: string[] = []
+const SCHEMA_SQL = MIGRATIONS.map((f) => {
 	try {
-		return readFileSync(p, 'utf8')
+		return readFileSync(resolve(process.cwd(), f), 'utf8')
 	} catch {
+		MISSING_MIGRATIONS.push(f)
 		return ''
 	}
-}
+}).join('\n')
 
 async function main(): Promise<void> {
 	const args = parseArgs(process.argv.slice(2))
@@ -263,9 +358,16 @@ async function main(): Promise<void> {
 	let odoMax = 0
 	let dateMin: string | null = null
 	let dateMax: string | null = null
+	let defectTotal = 0
+	let defectA = 0
+	let defectB = 0
+	let defectC = 0
+	let withDefects = 0
 	const samples: Record[] = []
 
-	console.log(`${args.dryRun ? 'DRY-RUN (no DB)' : 'LOAD'} · ${files.length} files`)
+	console.log(
+		`${args.dryRun ? 'DRY-RUN (no DB)' : 'LOAD'} · ${files.length} files`
+	)
 
 	let pool: Pool | null = null
 	let client: PoolClient | null = null
@@ -294,8 +396,14 @@ async function main(): Promise<void> {
 		client = await pool.connect()
 		client.on('error', (e) => console.error('pg client error:', e.message))
 		if (args.applySchema) {
-			if (!SCHEMA_SQL) throw new Error('migration 004 SQL not found')
-			console.log('applying schema (CREATE TABLE/index/grant)…')
+			if (MISSING_MIGRATIONS.length) {
+				throw new Error(
+					`migration SQL not found: ${MISSING_MIGRATIONS.join(', ')} — ` +
+						'refusing to apply a partial schema (run from the repo root, ' +
+						'and check the file is committed)'
+				)
+			}
+			console.log('applying schema (migrations 004 + 007)…')
 			await client.query(SCHEMA_SQL)
 		}
 	}
@@ -313,6 +421,11 @@ async function main(): Promise<void> {
 			if (!dateMax || r.inspectionDate > dateMax) dateMax = r.inspectionDate
 		}
 		if (samples.length < 5) samples.push(r)
+		defectTotal += r.zavadyKody?.length ?? 0
+		defectA += r.zavadyA
+		defectB += r.zavadyB
+		defectC += r.zavadyC
+		if (r.zavadyKody) withDefects++
 		if (!args.dryRun) pending.push(r)
 	}
 	const onSkip = () => {
@@ -362,6 +475,11 @@ async function main(): Promise<void> {
 	console.log(`skipped (no key):${skipped}`)
 	if (withOdo) console.log(`odometer range:  ${odoMin} – ${odoMax} km`)
 	console.log(`date range:      ${dateMin} → ${dateMax}`)
+	// Cross-check against the raw XML with:
+	//   gunzip -c <file> | grep -c '<Zavada>'
+	console.log(
+		`defects:         ${defectTotal} across ${withDefects} records (A ${defectA} · B ${defectB} · C ${defectC})`
+	)
 	console.log('sample records:')
 	for (const s of samples) console.log('  ', JSON.stringify(s))
 }
