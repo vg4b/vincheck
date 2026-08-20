@@ -51,6 +51,9 @@ export type ModelStats = {
 	stkInspections: number | null
 	medianKmByAge: Record<string, number> | null
 	colorSplit: Record<string, number> | null
+	/** Engine variants the cohort fold merged, biggest first. Null when the model
+	 *  has only one, so the page shows no breakdown rather than a list of one. */
+	motorisations: Array<{ name: string; count: number }> | null
 	computedAt: string | null
 }
 
@@ -73,13 +76,15 @@ function mapRow(r: Record<string, unknown>): ModelStats {
 		stkInspections: num(r.stk_inspections),
 		medianKmByAge: (r.median_km_by_age as Record<string, number>) ?? null,
 		colorSplit: (r.color_split as Record<string, number>) ?? null,
+		motorisations:
+			(r.motorisations as Array<{ name: string; count: number }>) ?? null,
 		computedAt: r.computed_at ? String(r.computed_at) : null
 	}
 }
 
 const SELECT_COLS = `brand, model, vehicle_count, first_year, last_year,
   avg_age_years, fuel_split, avg_owners, pct_imported, pct_lpg, pct_towbar,
-  stk_fail_pct, stk_inspections, median_km_by_age, color_split,
+  stk_fail_pct, stk_inspections, median_km_by_age, color_split, motorisations,
   computed_at::text AS computed_at`
 
 // Diacritic fold, shared by slugify (JS) and the SQL lookup so a URL slug and a DB
@@ -222,6 +227,161 @@ export async function getAllPublishedModels(): Promise<PublishedModel[]> {
 		return rows.map((r) => ({
 			brandSlug: String(r.brand_slug),
 			modelSlug: String(r.model_slug),
+			lastmod: r.lastmod ? String(r.lastmod) : null
+		}))
+	} catch (e: unknown) {
+		const code = (e as { code?: string })?.code
+		if (code === '42P01' || code === '42501') return []
+		throw e
+	}
+}
+
+export type BrandStats = {
+	brand: string
+	/** The whole brand, including models below the publish floor — so this is
+	 *  larger than the sum of the models listed on the hub. See migration 009. */
+	vehicleCount: number
+	modelCount: number
+	firstYear: number | null
+	lastYear: number | null
+	avgAgeYears: number | null
+	fuelSplit: Record<string, number> | null
+	avgOwners: number | null
+	pctImported: number | null
+	pctLpg: number | null
+	pctTowbar: number | null
+	stkFailPct: number | null
+	stkInspections: number | null
+	medianKmByAge: Record<string, number> | null
+	colorSplit: Record<string, number> | null
+	computedAt: string | null
+}
+
+const BRAND_COLS = `brand, vehicle_count, model_count, first_year, last_year,
+  avg_age_years, fuel_split, avg_owners, pct_imported, pct_lpg, pct_towbar,
+  stk_fail_pct, stk_inspections, median_km_by_age, color_split,
+  computed_at::text AS computed_at`
+
+function mapBrand(r: Record<string, unknown>): BrandStats {
+	const num = (v: unknown): number | null =>
+		v === null || v === undefined ? null : Number(v)
+	return {
+		brand: String(r.brand),
+		vehicleCount: Number(r.vehicle_count),
+		modelCount: Number(r.model_count),
+		firstYear: num(r.first_year),
+		lastYear: num(r.last_year),
+		avgAgeYears: num(r.avg_age_years),
+		fuelSplit: (r.fuel_split as Record<string, number>) ?? null,
+		avgOwners: num(r.avg_owners),
+		pctImported: num(r.pct_imported),
+		pctLpg: num(r.pct_lpg),
+		pctTowbar: num(r.pct_towbar),
+		stkFailPct: num(r.stk_fail_pct),
+		stkInspections: num(r.stk_inspections),
+		medianKmByAge: (r.median_km_by_age as Record<string, number>) ?? null,
+		colorSplit: (r.color_split as Record<string, number>) ?? null,
+		computedAt: r.computed_at ? String(r.computed_at) : null
+	}
+}
+
+export type IndexBrand = {
+	brand: string
+	brandSlug: string
+	vehicleCount: number
+	modelCount: number
+}
+
+/**
+ * Brands for the /znacky hub. Shipped alongside the model index in the same
+ * response so the hub needs one request, not two.
+ */
+export async function getBrandIndex(): Promise<IndexBrand[]> {
+	const p = getPool()
+	if (!p) return []
+	try {
+		const { rows } = await p.query(
+			`SELECT brand, ${slugSql('brand')} AS brand_slug, vehicle_count, model_count
+			 FROM stats_brand ORDER BY vehicle_count DESC`
+		)
+		return rows.map((r) => ({
+			brand: String(r.brand),
+			brandSlug: String(r.brand_slug),
+			vehicleCount: Number(r.vehicle_count),
+			modelCount: Number(r.model_count)
+		}))
+	} catch (e: unknown) {
+		const code = (e as { code?: string })?.code
+		if (code === '42P01' || code === '42501') return []
+		throw e
+	}
+}
+
+/** One brand's stats by URL slug. Same 42P01/42501 tolerance as the model reader. */
+export async function getBrandStatsBySlug(
+	brandSlug: string
+): Promise<BrandStats | null> {
+	const p = getPool()
+	if (!p) return null
+	try {
+		const { rows } = await p.query(
+			`SELECT ${BRAND_COLS} FROM stats_brand
+       WHERE ${slugSql('brand')} = $1 LIMIT 1`,
+			[brandSlug]
+		)
+		return rows[0] ? mapBrand(rows[0]) : null
+	} catch (e: unknown) {
+		const code = (e as { code?: string })?.code
+		if (code === '42P01' || code === '42501') return null
+		throw e
+	}
+}
+
+/** The models listed on a brand hub, biggest first. */
+export async function getModelsForBrand(
+	brandSlug: string
+): Promise<IndexModel[]> {
+	const p = getPool()
+	if (!p) return []
+	try {
+		const { rows } = await p.query(
+			`SELECT brand, model,
+			        ${slugSql('brand')} AS brand_slug,
+			        ${slugSql('model')} AS model_slug,
+			        vehicle_count
+			 FROM stats_model
+			 WHERE ${slugSql('brand')} = $1
+			 ORDER BY vehicle_count DESC`,
+			[brandSlug]
+		)
+		return rows.map((r) => ({
+			brand: String(r.brand),
+			model: String(r.model),
+			brandSlug: String(r.brand_slug),
+			modelSlug: String(r.model_slug),
+			vehicleCount: Number(r.vehicle_count)
+		}))
+	} catch (e: unknown) {
+		const code = (e as { code?: string })?.code
+		if (code === '42P01' || code === '42501') return []
+		throw e
+	}
+}
+
+/** Every brand hub as a slug, for the sitemap. */
+export async function getAllPublishedBrands(): Promise<
+	Array<{ brandSlug: string; lastmod: string | null }>
+> {
+	const p = getPool()
+	if (!p) return []
+	try {
+		const { rows } = await p.query(
+			`SELECT ${slugSql('brand')} AS brand_slug,
+			        computed_at::date::text AS lastmod
+			 FROM stats_brand ORDER BY vehicle_count DESC`
+		)
+		return rows.map((r) => ({
+			brandSlug: String(r.brand_slug),
 			lastmod: r.lastmod ? String(r.lastmod) : null
 		}))
 	} catch (e: unknown) {

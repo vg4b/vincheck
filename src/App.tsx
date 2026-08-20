@@ -3,6 +3,7 @@ import './App.css'
 import GoogleAnalytics from './components/GoogleAnalytics'
 import ScrollToTop from './components/ScrollToTop'
 import BrandModelStatsPage from './pages/BrandModelStatsPage'
+import BrandStatsPage from './pages/BrandStatsPage'
 import CertificateLandingPage from './pages/CertificateLandingPage'
 import CertificatePage from './pages/CertificatePage'
 import ClientZonePage from './pages/ClientZonePage'
@@ -64,6 +65,7 @@ function App() {
 				<Route path='/firma' element={<FleetSearchPage />} />
 				<Route path='/firma/:ico' element={<FleetPage />} />
 				<Route path='/znacky' element={<ZnackyHubPage />} />
+				<Route path='/znacky/:brand' element={<BrandStatsPage />} />
 				<Route path='/znacky/:brand/:model' element={<BrandModelStatsPage />} />
 				<Route
 					path='/overeny-vypis-vozidla'

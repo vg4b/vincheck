@@ -22,6 +22,7 @@ interface ModelStats {
 	stkInspections: number | null
 	medianKmByAge: Record<string, number> | null
 	colorSplit: Record<string, number> | null
+	motorisations: Array<{ name: string; count: number }> | null
 	computedAt: string | null
 }
 
@@ -137,6 +138,25 @@ function StatCard({
 
 type LoadState = 'loading' | 'ok' | 'notfound' | 'error'
 
+/**
+ * Label for one motorisation row.
+ *
+ * Two reasons not to reuse titleCase() here: it lowercases engine designations
+ * ("OCTAVIA 1.9 TDI" becomes "Octavia 1.9 Tdi", which looks like a typo on a
+ * page selling data accuracy), and the model name is already the page heading,
+ * so repeating it in every row is noise. Strip the model prefix and leave the
+ * engine string exactly as the registry has it.
+ */
+function motorisationLabel(variant: string, model: string): string {
+	const v = variant.trim()
+	const m = model.trim()
+	if (v.toUpperCase() === m.toUpperCase()) return 'bez upřesnění motorizace'
+	if (v.toUpperCase().startsWith(`${m.toUpperCase()} `)) {
+		return v.slice(m.length).trim()
+	}
+	return v
+}
+
 const BrandModelStatsPage: React.FC = () => {
 	const { brand: brandSlug = '', model: modelSlug = '' } = useParams<{
 		brand: string
@@ -220,6 +240,9 @@ const BrandModelStatsPage: React.FC = () => {
 		}
 
 		let ld: HTMLScriptElement | null = null
+		// Only true when this effect created the node, so cleanup never removes
+		// the server-rendered one and leaves the crawl-time markup poorer.
+		let ldOwned = false
 
 		if (state === 'ok' && stats) {
 			const descParts = [
@@ -243,9 +266,20 @@ const BrandModelStatsPage: React.FC = () => {
 			canonicalEl.setAttribute('href', canonical)
 			setRobots('index, follow')
 
-			ld = document.createElement('script')
-			ld.type = 'application/ld+json'
-			ld.dataset.statsLd = 'true'
+			// api/stats.ts already emitted this at crawl time. Adopt that element
+			// instead of appending a second one, or every hydrated page ends up
+			// with two Dataset nodes. Only remove it on cleanup if we created it.
+			ld = document.head.querySelector<HTMLScriptElement>(
+				'script[data-stats-ld="true"]'
+			)
+			const ldWasServerRendered = ld !== null
+			if (!ld) {
+				ld = document.createElement('script')
+				ld.type = 'application/ld+json'
+				ld.dataset.statsLd = 'true'
+				document.head.appendChild(ld)
+			}
+			ldOwned = !ldWasServerRendered
 			ld.textContent = JSON.stringify({
 				'@context': 'https://schema.org',
 				'@type': 'Dataset',
@@ -260,7 +294,6 @@ const BrandModelStatsPage: React.FC = () => {
 					? { dateModified: stats.computedAt.slice(0, 10) }
 					: {})
 			})
-			document.head.appendChild(ld)
 		} else if (state === 'notfound') {
 			document.title = 'Stránka nenalezena | VIN Info.cz'
 			setRobots('noindex')
@@ -278,7 +311,7 @@ const BrandModelStatsPage: React.FC = () => {
 			} else {
 				robotsEl?.remove()
 			}
-			ld?.remove()
+			if (ldOwned) ld?.remove()
 		}
 	}, [state, stats, name, canonical])
 
@@ -327,6 +360,16 @@ const BrandModelStatsPage: React.FC = () => {
 
 				{state === 'ok' && stats && (
 					<>
+						{/* Links back up the hierarchy. Every model page used to have a
+						    single inbound link and none outbound, which is part of why
+						    the section is crawled so thinly. */}
+						<nav aria-label='breadcrumb' className='small text-muted-ink mb-3'>
+							<Link to='/znacky'>Značky</Link>
+							{' · '}
+							<Link to={`/znacky/${brandSlug.toLowerCase()}`}>
+								{titleCase(stats.brand)}
+							</Link>
+						</nav>
 						<h1 className='mb-2'>{name}: statistiky a spolehlivost</h1>
 						<p className='text-muted-ink' style={{ fontSize: '1.05rem' }}>
 							Souhrn z veřejného registru silničních vozidel ČR za{' '}
@@ -419,6 +462,34 @@ const BrandModelStatsPage: React.FC = () => {
 							<section className='border-top pt-3 mt-4'>
 								<h2 className='h5'>Výbava a úpravy</h2>
 								<p>Registr eviduje {eqBits.join(' a ')}.</p>
+							</section>
+						)}
+
+						{/* Motorisations live here rather than at their own URL level:
+						    2 180 of the section's urls are already discovered and never
+						    crawled, so another thousand thin pages is the last thing it
+						    needs. Null when the model has only one, so there is no
+						    single-row table. */}
+						{stats.motorisations && stats.motorisations.length > 1 && (
+							<section className='border-top pt-3 mt-4'>
+								<h2 className='h5 mb-3'>Motorizace a verze</h2>
+								<ul className='list-unstyled mb-2'>
+									{stats.motorisations.slice(0, 12).map((m) => (
+										<li
+											key={m.name}
+											className='d-flex justify-content-between border-bottom py-1'
+										>
+											<span>{motorisationLabel(m.name, stats.model)}</span>
+											<span className='text-muted-ink small'>
+												{fmtInt(m.count)} vozidel
+											</span>
+										</li>
+									))}
+								</ul>
+								<p className='small text-muted-ink mb-0'>
+									Označení tak, jak je vedou v registru silničních vozidel —
+									zápis se u stejného vozu může lišit.
+								</p>
 							</section>
 						)}
 

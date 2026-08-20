@@ -386,7 +386,26 @@ from the site. What was missing is the entry point, not the chrome.
 fold on the hub. It stays useful for crawlers and for people who know exactly
 what they want; it just stops being the primary interface.
 
-### S1. Brand hub pages `/znacky/:brand`
+### S1. Brand hub pages `/znacky/:brand` — BUILT 2026-08-20
+
+Implemented as specified, with two notes worth carrying forward.
+
+**Brand rows come from the same scan as model rows,** via `GROUPING SETS` on
+every aggregation block rather than a second pass. A second pass would re-run the
+joins over `vehicle_inspections` (83 M) and `vehicle_inspection_odometer`
+(91.9 M), roughly doubling a 2h12m job. Brand rows are the ones with
+`model IS NULL`; each assemble filters accordingly.
+
+**`scripts/test-compute-stats.sh` exists because of a near miss.** The script
+`TRUNCATE`s `stats_model`, and it was pointed at production as a "quick test"
+with a brand filter on 2026-08-20 — had it committed, it would have published one
+brand and deleted 763. Only the single-transaction design saved it. The harness
+builds a local fixture from the real migrations and exercises every rule in
+seconds: spelling merges, separator merges, engine folds, the body styles and
+BMW letters that must *not* merge, junk-cohort exclusion, aliases, motorisations,
+and that a brand total exceeds the sum of its published models.
+
+
 
 *Depends on: nothing. Biggest single win.*
 

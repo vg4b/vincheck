@@ -30,6 +30,19 @@
 
 BEGIN;
 
+-- SAMPLE_BRAND: restrict the base cohort to one brand, for exercising the script
+-- against a LOCAL fixture database (scripts/test-compute-stats.sh).
+--
+-- NEVER pass this against production. The script TRUNCATEs stats_model, so a run
+-- that commits with a sample filter publishes that brand and deletes every other
+-- one. It is only safe because the whole thing is one transaction — a run killed
+-- partway rolls back, which is what saved production on 2026-08-20 when this was
+-- pointed at it by mistake. Do not rely on that twice.
+\if :{?sample_brand}
+\else
+  \set sample_brand ''
+\endif
+
 -- Base cohort: operated passenger cars (M1*) with a plausible first-registration
 -- year and a non-empty model string. This is the join spine for every metric.
 -- Fold engine/drivetrain variants of the same car into one cohort.
@@ -157,7 +170,8 @@ WHERE status = 'PROVOZOVANÉ'
   AND datum_prvni_registrace ~ '^(19[5-9]\d|20\d\d)' -- plausible year, drops sentinels
   AND substring(datum_prvni_registrace FROM '^(\d{4})')::int
       >= EXTRACT(YEAR FROM now())::int - :max_age_years  -- rolling age window
-  AND btrim(obchodni_oznaceni) <> '';
+  AND btrim(obchodni_oznaceni) <> ''
+  AND (:'sample_brand' = '' OR upper(btrim(tovarni_znacka)) LIKE :'sample_brand' || '%');
 CREATE INDEX ON _base (pcv);
 CREATE INDEX ON _base (vin);
 CREATE INDEX ON _base (brand, model);
@@ -218,7 +232,7 @@ WHERE model ~ '[A-Za-z0-9]'
   AND btrim(regexp_replace(
         regexp_replace(model, '\y[0-9]\.[0-9]+[A-Z]{0,4}\y|\y[0-9]{1,2}V\y', ' ', 'gi'),
         '\s+', ' ', 'g')) <> ''
-GROUP BY brand, model
+GROUP BY GROUPING SETS ((brand, model), (brand))
 HAVING count(*) >= :min_count;
 CREATE INDEX ON _cohort (brand, model);
 
@@ -232,7 +246,7 @@ FROM (
          round(count(*)::numeric / sum(count(*)) OVER (PARTITION BY b.brand, b.model), 3) AS frac
   FROM _base b JOIN _cohort c USING (brand, model)
   WHERE b.fuel <> 'Neuvedeno'
-  GROUP BY b.brand, b.model, b.fuel
+  GROUP BY GROUPING SETS ((b.brand, b.model, b.fuel), (b.brand, b.fuel))
 ) x
 GROUP BY brand, model;
 
@@ -247,7 +261,7 @@ FROM (
            round(count(*)::numeric / sum(count(*)) OVER (PARTITION BY b.brand, b.model), 3) AS frac
     FROM _base b JOIN _cohort c USING (brand, model)
     WHERE b.color IS NOT NULL
-    GROUP BY b.brand, b.model, b.color
+    GROUP BY GROUPING SETS ((b.brand, b.model, b.color), (b.brand, b.color))
   ) y
 ) z
 WHERE rn <= 8
@@ -262,7 +276,7 @@ LEFT JOIN (
   SELECT pcv, count(*) AS n FROM vehicle_owners
   WHERE vztah_k_vozidlu IN ('1','3','4') GROUP BY pcv
 ) oc USING (pcv)
-GROUP BY b.brand, b.model;
+GROUP BY GROUPING SETS ((b.brand, b.model), (b.brand));
 
 -- % imported (per vehicle, not per import row).
 CREATE TEMP TABLE _imp ON COMMIT DROP AS
@@ -270,7 +284,7 @@ SELECT b.brand, b.model,
        round(avg(CASE WHEN im.pcv IS NOT NULL THEN 1 ELSE 0 END)::numeric, 3) AS pct_imported
 FROM _base b
 LEFT JOIN (SELECT DISTINCT pcv FROM vehicle_imports) im USING (pcv)
-GROUP BY b.brand, b.model;
+GROUP BY GROUPING SETS ((b.brand, b.model), (b.brand));
 
 -- % on LPG/CNG, % with a tow bar (per vehicle; whitespace-normalised match, and a
 -- removed tow bar still counts — the fitting happened). ABS/AIRBAG/ASR irrelevant.
@@ -285,7 +299,7 @@ LEFT JOIN (
     bool_or(upper(regexp_replace(typ, '\s+', ' ', 'g')) IN ('TAŽNÉ ZAŘÍZENÍ','ZÁVĚS')) AS tow
   FROM vehicle_equipment GROUP BY pcv
 ) e USING (pcv)
-GROUP BY b.brand, b.model;
+GROUP BY GROUPING SETS ((b.brand, b.model), (b.brand));
 
 -- STK failure rate: share of REAL inspections (excl. synthetic kod_stk 9999)
 -- ending in defects/unfit (stav B/C). Keep the denominator for honesty on the page.
@@ -295,7 +309,7 @@ SELECT b.brand, b.model,
        round(100.0 * count(*) FILTER (WHERE i.stav IN ('B','C') AND coalesce(i.kod_stk,'') <> '9999')
              / nullif(count(*) FILTER (WHERE coalesce(i.kod_stk,'') <> '9999'), 0), 1)       AS stk_fail_pct
 FROM _base b JOIN vehicle_inspections i USING (pcv)
-GROUP BY b.brand, b.model;
+GROUP BY GROUPING SETS ((b.brand, b.model), (b.brand));
 
 -- Median mileage by vehicle age (years since first registration). Only ages with
 -- enough readings (>= 20) so a page never shows a median off 3 cars.
@@ -308,7 +322,7 @@ FROM (
          count(*) AS n
   FROM _base b JOIN vehicle_inspection_odometer o USING (vin)
   WHERE o.odometer_km BETWEEN 1 AND 3000000
-  GROUP BY b.brand, b.model, age
+  GROUP BY GROUPING SETS ((b.brand, b.model, age), (b.brand, age))
 ) a
 WHERE age BETWEEN 1 AND 25 AND n >= 20
 GROUP BY brand, model;
@@ -324,7 +338,7 @@ SELECT
   c.brand, c.model, c.vehicle_count, c.first_year, c.last_year, c.avg_age_years,
   f.fuel_split, o.avg_owners, im.pct_imported, eq.pct_lpg, eq.pct_towbar,
   s.stk_fail_pct, s.stk_inspections, od.median_km_by_age, cl.color_split, now()
-FROM _cohort c
+FROM (SELECT * FROM _cohort WHERE model IS NOT NULL) c
 LEFT JOIN _fuel   f  USING (brand, model)
 LEFT JOIN _owners o  USING (brand, model)
 LEFT JOIN _imp    im USING (brand, model)
@@ -333,22 +347,92 @@ LEFT JOIN _stk    s  USING (brand, model)
 LEFT JOIN _odo    od USING (brand, model)
 LEFT JOIN _color  cl USING (brand, model);
 
--- Record every slug the fold retired, so api/stats.ts can 308 instead of 404.
--- Source rows are the RAW registry strings from the same cohort definition as
--- _base; a row is emitted only when folding actually changed the slug, and only
--- when the target survived the publish floor (an alias pointing at an unpublished
--- cohort would redirect a crawler to a 404, which is worse than the 404 itself).
-TRUNCATE stats_model_alias;
-INSERT INTO stats_model_alias (brand_slug, old_slug, model_slug)
-SELECT DISTINCT
-  pg_temp.slugify(b.brand),
-  pg_temp.slugify(btrim(regexp_replace(r.obchodni_oznaceni, '\s+', ' ', 'g'))),
-  pg_temp.slugify(b.model)
+-- Brand hubs. Every input already carries a brand-level row from its GROUPING
+-- SETS, so this costs a scan of small temp tables rather than a second pass over
+-- the inspection joins.
+-- NOTE on scope: vehicle_count, stk_* and median_km_by_age cover the WHOLE
+-- brand, because their blocks aggregate _base directly. fuel_split and
+-- color_split come from blocks that join _cohort, so at brand level they cover
+-- only the PUBLISHED models. The difference is small and the splits stay
+-- representative, but do not present them as "all vehicles of this brand".
+TRUNCATE stats_brand;
+INSERT INTO stats_brand (
+  brand, vehicle_count, model_count, first_year, last_year, avg_age_years,
+  fuel_split, avg_owners, pct_imported, pct_lpg, pct_towbar,
+  stk_fail_pct, stk_inspections, median_km_by_age, color_split, computed_at
+)
+SELECT
+  c.brand, c.vehicle_count,
+  (SELECT count(*) FROM stats_model m WHERE m.brand = c.brand),
+  c.first_year, c.last_year, c.avg_age_years,
+  f.fuel_split, o.avg_owners, im.pct_imported, eq.pct_lpg, eq.pct_towbar,
+  s.stk_fail_pct, s.stk_inspections, od.median_km_by_age, cl.color_split, now()
+FROM      (SELECT * FROM _cohort WHERE model IS NULL) c
+LEFT JOIN (SELECT * FROM _fuel   WHERE model IS NULL) f  USING (brand)
+LEFT JOIN (SELECT * FROM _owners WHERE model IS NULL) o  USING (brand)
+LEFT JOIN (SELECT * FROM _imp    WHERE model IS NULL) im USING (brand)
+LEFT JOIN (SELECT * FROM _eq     WHERE model IS NULL) eq USING (brand)
+LEFT JOIN (SELECT * FROM _stk    WHERE model IS NULL) s  USING (brand)
+LEFT JOIN (SELECT * FROM _odo    WHERE model IS NULL) od USING (brand)
+LEFT JOIN (SELECT * FROM _color  WHERE model IS NULL) cl USING (brand)
+-- A brand with no published model would be a hub linking to nothing.
+WHERE EXISTS (SELECT 1 FROM stats_model m WHERE m.brand = c.brand);
+
+-- Every raw registry spelling that ended up in a published cohort, counted.
+-- Two things need this and it is a join over the whole base, so compute it once:
+-- the retired-slug aliases below, and the per-model motorisation breakdown that
+-- the model page renders as a section (S5).
+CREATE TEMP TABLE _variants ON COMMIT DROP AS
+SELECT b.brand,
+       b.model,
+       btrim(regexp_replace(r.obchodni_oznaceni, '\s+', ' ', 'g')) AS variant,
+       count(*) AS n
 FROM _base b
 JOIN vehicle_registry r ON r.pcv = b.pcv
 JOIN stats_model sm ON sm.brand = b.brand AND sm.model = b.model
-WHERE pg_temp.slugify(btrim(regexp_replace(r.obchodni_oznaceni, '\s+', ' ', 'g')))
-      <> pg_temp.slugify(b.model)
+GROUP BY 1, 2, 3;
+
+-- The motorisations the fold merged away. The fold decides what gets a URL, not
+-- what gets computed: 2 180 of our urls are already discovered-and-never-crawled,
+-- so a URL per motorisation would add thousands more of exactly what Google is
+-- declining. Rendered inside the model page instead.
+--
+-- Spelling variants are NOT motorisations. Grouping the raw strings directly
+-- would list "i 30 / I 30 / i30" under a heading that says Motorizace, which
+-- reads as broken data rather than detail. Collapse on the same separator-free
+-- slug used for the cohorts, keep the most common spelling as the label, and
+-- emit nothing at all when that leaves a single group — a model with one
+-- motorisation has no breakdown to show.
+UPDATE stats_model m
+SET motorisations = v.j
+FROM (
+  SELECT brand, model, jsonb_agg(obj ORDER BY cnt DESC) AS j
+  FROM (
+    SELECT brand, model,
+           (array_agg(variant ORDER BY n DESC))[1] AS label,
+           sum(n) AS cnt,
+           jsonb_build_object('name', (array_agg(variant ORDER BY n DESC))[1],
+                              'count', sum(n)) AS obj
+    FROM _variants
+    GROUP BY brand, model, replace(pg_temp.slugify(variant), '-', '')
+    HAVING sum(n) >= 20
+  ) grouped
+  GROUP BY brand, model
+  HAVING count(*) > 1
+) v
+WHERE v.brand = m.brand AND v.model = m.model;
+
+-- Record every slug the fold or the canonicalisation retired, so api/stats.ts
+-- can 308 instead of 404. A row is emitted only when the spelling actually
+-- resolves to a different url than its cohort's.
+TRUNCATE stats_model_alias;
+INSERT INTO stats_model_alias (brand_slug, old_slug, model_slug)
+SELECT DISTINCT
+  pg_temp.slugify(brand),
+  pg_temp.slugify(variant),
+  pg_temp.slugify(model)
+FROM _variants
+WHERE pg_temp.slugify(variant) <> pg_temp.slugify(model)
 ON CONFLICT (brand_slug, old_slug) DO NOTHING;
 
 -- Assert the url space is sound before committing. Both checks are inside the

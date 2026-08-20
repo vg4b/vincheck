@@ -15,7 +15,13 @@ const Navigation: React.FC = () => {
 		if (path === '/') {
 			return location.pathname === '/'
 		}
-		return location.pathname === path
+		// Prefix match so a section's child routes keep the parent highlighted —
+		// /znacky/skoda and /firma/12345 previously left the nav looking as if the
+		// user had wandered off the site. The trailing slash keeps /povinne-ruceni
+		// from matching an unrelated /povinne-ruceni-neco.
+		return (
+			location.pathname === path || location.pathname.startsWith(`${path}/`)
+		)
 	}
 
 	const handleLogout = async () => {
@@ -130,6 +136,19 @@ const Navigation: React.FC = () => {
 								onClick={closeMenu}
 							>
 								Historie vozu
+							</Link>
+						</li>
+
+						{/* /znacky had no entry point from anywhere on the site, which is
+						    part of why 2 180 of its urls were discovered and never
+						    crawled. A site-wide link is the cheapest fix available. */}
+						<li className='nav-item'>
+							<Link
+								className={navLinkClass('/znacky')}
+								to='/znacky'
+								onClick={closeMenu}
+							>
+								Statistiky vozů
 							</Link>
 						</li>
 

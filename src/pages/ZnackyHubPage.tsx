@@ -19,18 +19,29 @@ const PAGE_TITLE = 'Statistiky vozidel podle značky a modelu | VIN Info.cz'
 const PAGE_DESCRIPTION =
 	'Přehled statistik vozidel podle značky a modelu z registru silničních vozidel ČR: spolehlivost při STK, obvyklý nájezd, palivo a stáří. Vyberte značku a model.'
 
+type IndexBrand = {
+	brand: string
+	brandSlug: string
+	vehicleCount: number
+	modelCount: number
+}
+
 type LoadState = 'loading' | 'ok' | 'error'
 
 const ZnackyHubPage: React.FC = () => {
 	const [state, setState] = useState<LoadState>('loading')
 	const [models, setModels] = useState<IndexModel[]>([])
+	const [brands, setBrands] = useState<IndexBrand[]>([])
 
 	useEffect(() => {
 		let cancelled = false
-		requestJson<{ models: IndexModel[] }>('/api/stats?type=index')
+		requestJson<{ models: IndexModel[]; brands: IndexBrand[] }>(
+			'/api/stats?type=index'
+		)
 			.then((data) => {
 				if (cancelled) return
 				setModels(data.models)
+				setBrands(data.brands ?? [])
 				setState('ok')
 			})
 			.catch((err: unknown) => {
@@ -129,6 +140,38 @@ const ZnackyHubPage: React.FC = () => {
 							@media (min-width:992px){.znacky-cols{column-count:3}}
 							.znacky-brand{break-inside:avoid;-webkit-column-break-inside:avoid;display:inline-block;width:100%;margin-bottom:1.5rem}
 						`}</style>
+						{/* Brands lead. The full model list stays below, because 764
+						    internal links are how the model pages get discovered at all —
+						    it just stops being the first thing a visitor meets. */}
+						{brands.length > 0 && (
+							<section className='mb-5'>
+								<h2 className='h5 mb-3'>Vyberte značku</h2>
+								<div className='row row-cols-2 row-cols-md-3 row-cols-lg-4 g-2'>
+									{brands.map((b) => (
+										<div key={b.brandSlug} className='col'>
+											<Link
+												to={`/znacky/${b.brandSlug}`}
+												className='d-block border rounded p-2 h-100 text-decoration-none'
+											>
+												<span className='fw-semibold d-block'>
+													{titleCase(b.brand)}
+												</span>
+												<span className='small text-muted-ink'>
+													{b.modelCount}{' '}
+													{b.modelCount === 1
+														? 'model'
+														: b.modelCount < 5
+															? 'modely'
+															: 'modelů'}
+												</span>
+											</Link>
+										</div>
+									))}
+								</div>
+							</section>
+						)}
+
+						<h2 className='h5 mb-3'>Všechny modely</h2>
 						<div className='znacky-cols mt-2'>
 							{byBrand.map(([brand, list]) => (
 								<div key={brand} className='znacky-brand'>
