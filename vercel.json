@@ -91,6 +91,10 @@
 			"destination": "/api/stats?type=page&brand=:brand&model=:model"
 		},
 		{
+			"source": "/znacky/:brand",
+			"destination": "/api/stats?type=brand&brand=:brand"
+		},
+		{
 			"source": "/((?!api/|znacky-sitemap.xml|seznam-wmt-|static/|logos/|favicon.ico|manifest.json|logo192.png|logo512.png|robots.txt|asset-manifest.json|site.webmanifest|sitemap.xml|certificate-preview.png).*)",
 			"destination": "/index.html"
 		}

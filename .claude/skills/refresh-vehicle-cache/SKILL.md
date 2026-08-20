@@ -218,12 +218,23 @@ it here without re-reading that decision.
    would be served by more than one cohort; an exception there means the data
    changed shape, not that the run failed halfway.
 
-   **It does not need to run at night.** Measured 2026-08-20 from the `events`
-   table: 1 205 VIN lookups in 30 days, and the busiest single hour in that whole
-   window was 93 events — about 1.5 requests a minute. The load is also mostly
-   reads, unlike the odometer backfill that pushed the cache hit ratio to 61 %.
-   Avoid the midday peak (12:00-16:00 Brno) and that is enough. Runtime is still
-   unmeasured — record it here the first time someone times it.
+   **Runtime: 2h12m** on `DB-DEV-S`, measured 2026-08-20 (764 cohorts, 4 331
+   aliases). Most of it goes to the two joins over the inspection tables —
+   `_stk` against `vehicle_inspections` and `_odo` against the 91.9M-row
+   `vehicle_inspection_odometer`. Expect it to grow with the odometer table.
+
+   **It does not need a night window, but it is not free either.** A probe hit
+   the live VIN lookup every 15s for the whole run: 200 samples, median 0.104s,
+   p95 0.140s, zero failures — but **two consecutive requests took 18.5s and
+   8.9s** about 85 minutes in, during the heavy inspection join. So roughly 1 %
+   of requests saw a serious stall. With ~40 lookups a day (1 205 in 30 days,
+   busiest single hour 93) that is likely nobody, but do not claim it is
+   invisible. Avoid the midday peak (12:00-16:00 Brno); that is enough.
+
+   Keepalives are not optional: the URL needs
+   `&keepalives=1&keepalives_idle=15` or a two-hour transaction will not survive
+   a network blip. A VPN switch mid-run was survived on 2026-08-20 with them in
+   place.
 
 6. **Scale the node back down** to `DB-DEV-S` — only if you scaled up in step 1.
 

@@ -12,9 +12,15 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import {
+	type BrandStats,
+	getAllPublishedBrands,
 	getAllPublishedModels,
+	getBrandIndex,
+	getBrandStatsBySlug,
 	getModelIndex,
 	getModelStatsBySlug,
+	getModelsForBrand,
+	type IndexModel,
 	type ModelStats,
 	resolveModelAlias
 } from './_statsData'
@@ -91,6 +97,21 @@ type HeadOpts = {
 	canonical?: string
 	robots: string
 	og?: { title: string; description: string; url: string }
+	/** Emitted as <script type="application/ld+json"> at crawl time. The client
+	 *  adopts these nodes instead of appending its own — see the pages. */
+	jsonLd?: object[]
+}
+
+// Serialise JSON-LD for embedding in HTML.
+//
+// The one thing that must not survive verbatim is `<`: a `</script>` sequence
+// anywhere inside terminates the script element early and injects the remainder
+// as markup. Brand and model names come from free-text registry data, so this is
+// reachable rather than theoretical. htmlEscape() is the wrong tool — it would
+// corrupt the JSON — so escape the character in its JSON form instead.
+function jsonLdScript(node: object): string {
+	const json = JSON.stringify(node).replace(/</g, '\\u003c')
+	return `<script type="application/ld+json" data-stats-ld="true">${json}</script>`
 }
 
 // Fill the SEO head server-side: swap <title>/description in place, then insert
@@ -121,6 +142,7 @@ function injectHead(shell: string, opts: HeadOpts): string {
 			'<meta property="og:type" content="website"/>'
 		)
 	}
+	for (const node of opts.jsonLd ?? []) tags.push(jsonLdScript(node))
 	return html.replace('</head>', `${tags.join('')}</head>`)
 }
 
@@ -174,7 +196,21 @@ function renderModelPage(
 				title: `${name}: statistiky a spolehlivost`,
 				description,
 				url: canonical
-			}
+			},
+			jsonLd: [
+				datasetNode(
+					`Statistiky vozu ${name}`,
+					description,
+					canonical,
+					base,
+					stats.computedAt
+				),
+				breadcrumb(base, [
+					{ name: 'Značky', url: '/znacky' },
+					{ name: titleCase(stats.brand), url: `/znacky/${brandSlug}` },
+					{ name, url: `/znacky/${brandSlug}/${modelSlug}` }
+				])
+			]
 		}
 		return {
 			status: 200,
@@ -206,6 +242,120 @@ function renderModelPage(
 	}
 }
 
+// Breadcrumb for the /znacky hierarchy. Google uses it to render the trail in
+// results instead of a bare URL, and it is the structured counterpart to the
+// links the pages now carry.
+function breadcrumb(
+	base: string,
+	crumbs: Array<{ name: string; url: string }>
+): object {
+	return {
+		'@context': 'https://schema.org',
+		'@type': 'BreadcrumbList',
+		itemListElement: crumbs.map((c, i) => ({
+			'@type': 'ListItem',
+			position: i + 1,
+			name: c.name,
+			item: `${base}${c.url}`
+		}))
+	}
+}
+
+// Dataset node, matching what the client used to append after hydration. The
+// license points at the terms rather than granting reuse — Google's Dataset
+// report asks for the field, it does not require an open licence.
+function datasetNode(
+	name: string,
+	description: string,
+	url: string,
+	base: string,
+	computedAt: string | null
+): object {
+	return {
+		'@context': 'https://schema.org',
+		'@type': 'Dataset',
+		name,
+		description,
+		url,
+		creator: { '@type': 'Organization', name: 'VINInfo.cz' },
+		license: `${base}/podminky`,
+		...(computedAt ? { dateModified: computedAt.slice(0, 10) } : {})
+	}
+}
+
+// Render the SEO head for /znacky/:brand. Same three-way status contract as
+// renderModelPage: a real page, a real 404 for a clean miss, and 200-but-
+// indexable when the lookup failed — a DB blip must never deindex a hub.
+function renderBrandPage(
+	stats: BrandStats | null,
+	models: IndexModel[],
+	lookupFailed: boolean,
+	brandSlug: string,
+	base: string
+): { status: number; body: string; cacheControl: string } {
+	const shell = readShell()
+	const canonical = `${base}/znacky/${brandSlug}`
+
+	if (stats) {
+		const name = titleCase(stats.brand)
+		const parts = [`Statistiky vozů ${name} z registru silničních vozidel`]
+		if (stats.stkFailPct != null) {
+			parts.push(`poruchovost STK ${fmtNum1(stats.stkFailPct)} %`)
+		}
+		parts.push(`${fmtInt(stats.vehicleCount)} vozidel`)
+		if (models.length) parts.push(`${fmtInt(models.length)} modelů`)
+		const description = `${parts.join(', ')}.`
+		const opts: HeadOpts = {
+			title: `${name}: statistiky, spolehlivost a nájezd | VIN Info.cz`,
+			description,
+			canonical,
+			robots: 'index, follow',
+			og: {
+				title: `${name}: statistiky a spolehlivost`,
+				description,
+				url: canonical
+			},
+			jsonLd: [
+				datasetNode(
+					`Statistiky vozů ${name}`,
+					description,
+					canonical,
+					base,
+					stats.computedAt
+				),
+				breadcrumb(base, [
+					{ name: 'Značky', url: '/znacky' },
+					{ name, url: `/znacky/${brandSlug}` }
+				])
+			]
+		}
+		return {
+			status: 200,
+			body: shell ? injectHead(shell, opts) : minimalDoc(opts),
+			cacheControl: 'public, s-maxage=86400, stale-while-revalidate=604800'
+		}
+	}
+
+	if (lookupFailed) {
+		const opts: HeadOpts = { canonical, robots: 'index, follow' }
+		return {
+			status: 200,
+			body: shell ? injectHead(shell, opts) : minimalDoc(opts),
+			cacheControl: 'no-store'
+		}
+	}
+
+	const opts: HeadOpts = {
+		title: 'Stránka nenalezena | VIN Info.cz',
+		robots: 'noindex'
+	}
+	return {
+		status: 404,
+		body: shell ? injectHead(shell, opts) : minimalDoc(opts),
+		cacheControl: 'public, s-maxage=3600'
+	}
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
 	// GET serves; HEAD is answered like GET but with headers only (below), so the
 	// /znacky/* pages this handler now renders stay HEAD-able for crawlers, uptime
@@ -218,21 +368,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	const type = q(req.query.type)
 
 	if (type === 'index') {
-		const models = await getModelIndex()
+		// Brands ship with the models so the hub needs one request. The hub leads
+		// with brands now — 764 model links on one page is a directory, not a
+		// place to start.
+		const [models, brands] = await Promise.all([
+			getModelIndex(),
+			getBrandIndex()
+		])
 		res.setHeader(
 			'Cache-Control',
 			'public, s-maxage=86400, stale-while-revalidate=604800'
 		)
 		if (headOnly) return res.status(200).end()
-		return res.status(200).json({ models })
+		return res.status(200).json({ models, brands })
 	}
 
 	if (type === 'sitemap') {
-		const models = await getAllPublishedModels()
+		const [models, brands] = await Promise.all([
+			getAllPublishedModels(),
+			getAllPublishedBrands()
+		])
 		const base = baseUrl()
-		// Hub page first, then every model page.
+		// Hub first, then brand hubs, then model pages — most important first, so
+		// a crawler that gives up partway has spent its budget on the pages that
+		// matter. Ordering is the only priority signal here; <priority> is not
+		// used by Google.
 		const hubUrl = `  <url><loc>${xmlEscape(`${base}/znacky`)}</loc><changefreq>monthly</changefreq></url>`
+		const brandUrls = brands.map((b) => {
+			const loc = xmlEscape(`${base}/znacky/${b.brandSlug}`)
+			const lastmod = b.lastmod ? `<lastmod>${b.lastmod}</lastmod>` : ''
+			return `  <url><loc>${loc}</loc>${lastmod}<changefreq>monthly</changefreq></url>`
+		})
 		const urls = [hubUrl]
+			.concat(brandUrls)
 			.concat(
 				models.map((m) => {
 					const loc = xmlEscape(`${base}/znacky/${m.brandSlug}/${m.modelSlug}`)
@@ -252,6 +420,50 @@ ${urls}
 		)
 		if (headOnly) return res.status(200).end()
 		return res.status(200).send(xml)
+	}
+
+	if (type === 'brand' || type === 'brandjson') {
+		const brandSlug = q(req.query.brand)
+		let stats: BrandStats | null = null
+		let models: IndexModel[] = []
+		let lookupFailed = false
+		try {
+			if (brandSlug) {
+				;[stats, models] = await Promise.all([
+					getBrandStatsBySlug(brandSlug),
+					getModelsForBrand(brandSlug)
+				])
+			}
+		} catch (e) {
+			console.error('brand lookup failed:', (e as Error)?.message)
+			lookupFailed = true
+		}
+
+		if (type === 'brandjson') {
+			if (!stats) {
+				res.setHeader('Cache-Control', 'public, s-maxage=3600')
+				if (headOnly) return res.status(404).end()
+				return res.status(404).json({ error: 'not_found' })
+			}
+			res.setHeader(
+				'Cache-Control',
+				'public, s-maxage=86400, stale-while-revalidate=604800'
+			)
+			if (headOnly) return res.status(200).end()
+			return res.status(200).json({ stats, models })
+		}
+
+		const { status, body, cacheControl } = renderBrandPage(
+			stats,
+			models,
+			lookupFailed,
+			brandSlug,
+			baseUrl()
+		)
+		res.setHeader('Content-Type', 'text/html; charset=utf-8')
+		res.setHeader('Cache-Control', cacheControl)
+		if (headOnly) return res.status(status).end()
+		return res.status(status).send(body)
 	}
 
 	if (type === 'page') {
