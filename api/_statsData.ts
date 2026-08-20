@@ -128,6 +128,35 @@ export async function getModelStatsBySlug(
 	}
 }
 
+/**
+ * A retired model slug's replacement, or null when there is none.
+ *
+ * compute-stats.sql folds engine variants into one cohort ("OCTAVIA 1.9 TDI" ->
+ * "OCTAVIA") and records every slug it retires. Without this the fold would turn
+ * ~500 URLs Google has already seen into 404s and discard their ranking.
+ * Tolerates a missing table/grant like the other readers, so deploying this
+ * before migration 008 lands degrades to a plain 404 rather than an error.
+ */
+export async function resolveModelAlias(
+	brandSlug: string,
+	modelSlug: string
+): Promise<string | null> {
+	const p = getPool()
+	if (!p) return null
+	try {
+		const { rows } = await p.query(
+			`SELECT model_slug FROM stats_model_alias
+       WHERE brand_slug = $1 AND old_slug = $2 LIMIT 1`,
+			[brandSlug, modelSlug]
+		)
+		return rows[0] ? String(rows[0].model_slug) : null
+	} catch (e: unknown) {
+		const code = (e as { code?: string })?.code
+		if (code === '42P01' || code === '42501') return null
+		throw e
+	}
+}
+
 export type PublishedModel = {
 	brandSlug: string
 	modelSlug: string

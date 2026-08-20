@@ -200,9 +200,34 @@ it here without re-reading that decision.
    `docs/plans/2026-08-06-001-feat-leasing-check.md` for the full method, and
    appendix A4 there for the traps (autobazars, importers, banks, `CARent, a.s.`).
 
-5. **Scale the node back down** to `DB-DEV-S` — only if you scaled up in step 1.
+5. **Recompute the aggregate statistics.** They do NOT update themselves and are
+   not part of any cron — this step is the only thing that refreshes them:
 
-6. **Report** the new snapshot date + row counts to the user. No deploy needed —
+   ```bash
+   caffeinate -i env PGOPTIONS='-c statement_timeout=0' \
+     psql '<ADMIN_URL>' -v min_count=500 -f scripts/compute-stats.sql
+   ```
+
+   Skipping it silently serves stale numbers: on 2026-08-20 `stats_model` still
+   held the 2026-07-20 computation against an 2026-08-01 snapshot, so every
+   `/znacky` page showed month-old figures with no sign anything was wrong.
+
+   It is a single transaction — readers keep seeing the previous cohorts until it
+   commits, so there is no window where the pages break, and Ctrl-C rolls it back
+   without a trace. It ends with assertions that abort the rebuild if any url
+   would be served by more than one cohort; an exception there means the data
+   changed shape, not that the run failed halfway.
+
+   **It does not need to run at night.** Measured 2026-08-20 from the `events`
+   table: 1 205 VIN lookups in 30 days, and the busiest single hour in that whole
+   window was 93 events — about 1.5 requests a minute. The load is also mostly
+   reads, unlike the odometer backfill that pushed the cache hit ratio to 61 %.
+   Avoid the midday peak (12:00-16:00 Brno) and that is enough. Runtime is still
+   unmeasured — record it here the first time someone times it.
+
+6. **Scale the node back down** to `DB-DEV-S` — only if you scaled up in step 1.
+
+7. **Report** the new snapshot date + row counts to the user. No deploy needed —
    the live endpoint reads the DB directly; the new snapshot is served
    immediately once `cache_meta.source_snapshot` updates.
 
