@@ -1,9 +1,30 @@
 # feat: brand hubs, server-side JSON-LD, defect content, and a data study
 
-**Status:** proposed. Created 2026-08-18, out of the "má smysl kupovat backlinky?"
+**Status:** S0a, S0b, S1, S2 and most of S5 shipped 2026-08-19/20. S3 and S4
+outstanding. Verified on production; see "Shipped" below.
+
+**Status (original):** proposed. Created 2026-08-18, out of the "má smysl kupovat backlinky?"
 discussion. The short answer there was **no** — the Czech paid-article market sells
 placements on sites with no audience, which Google devalues on its own schedule.
 This plan is what to do with that budget and effort instead.
+
+## Shipped
+
+| Unit | State | Verified on production 2026-08-21 |
+|---|---|---|
+| S0a normalise model strings | done | 0 duplicate cohorts, 0 colliding slugs |
+| S0b fold + floor 500 | done | 2 273 → 764 cohorts, 4 331 aliases 308-ing |
+| S1 brand hubs | done | 43 hubs, all 200, unknown brand → 404 + noindex |
+| S2 crawl-time JSON-LD | done | Dataset + BreadcrumbList in raw HTML, one node after hydration |
+| S5 drill-down | mostly | motorisations on 269 model pages, hub leads with brands, nav link added |
+| S3 defects on model pages | not started | needs `top_defects` + another rebuild; full-pass cost unmeasured |
+| S4 odometer study | not started | independent of everything above |
+
+Rebuild takes **105 minutes** with the GROUPING SETS approach (132 before), and
+every unit that adds a column costs one — batch schema changes before running it.
+
+**Re-measure GSC in 4-8 weeks** against the baseline below. The 4 331 redirects
+and the 1 509 removed urls need crawling before anything moves.
 
 ## Goal Capsule
 
