@@ -15,7 +15,8 @@ import {
 	getAllPublishedModels,
 	getModelIndex,
 	getModelStatsBySlug,
-	type ModelStats
+	type ModelStats,
+	resolveModelAlias
 } from './_statsData'
 
 function q(v: string | string[] | undefined): string {
@@ -273,6 +274,21 @@ ${urls}
 			// unexpected/transient failure. Do NOT emit noindex for it.
 			console.error('stats page lookup failed:', (e as Error)?.message)
 			lookupFailed = true
+		}
+
+		// A clean miss may be a slug the variant fold retired. Redirect to the
+		// surviving cohort instead of 404-ing, so pages Google already indexed
+		// keep their ranking. Only on a genuine miss: a DB blip must not send a
+		// crawler anywhere, and a 308 is permanent and cached hard.
+		if (!stats && !lookupFailed) {
+			const target = await resolveModelAlias(brandSlug, modelSlug).catch(
+				() => null
+			)
+			if (target && target !== modelSlug) {
+				res.setHeader('Location', `/znacky/${brandSlug}/${target}`)
+				res.setHeader('Cache-Control', 'public, s-maxage=86400')
+				return res.status(308).end()
+			}
 		}
 
 		const { status, body, cacheControl } = renderModelPage(

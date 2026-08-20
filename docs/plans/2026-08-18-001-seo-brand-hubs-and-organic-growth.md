@@ -7,10 +7,15 @@ This plan is what to do with that budget and effort instead.
 
 ## Goal Capsule
 
-**Intent.** Grow organic traffic by (a) completing the hub-and-spoke hierarchy the
-`/znacky` section was designed for but never got, (b) making the structured data
-crawl-visible, (c) opening a new keyword surface from the STK defect codes, and
-(d) earning editorial links with a data study nobody else in CZ can compute.
+**Intent.** Turn `/znacky` from a directory of 2 273 links into the site's
+strongest content: a brand → model → motorisation tool people actually use.
+Organic growth follows from that rather than the other way round — the index data
+says Google is declining to crawl thin, near-identical pages, and the fix is
+fewer pages that are each worth reading. Concretely: (a) clean the model data so
+the numbers are credible, (b) complete the hub-and-spoke hierarchy the section was
+designed for but never got, (c) open a new surface from the STK defect codes,
+(d) make the structured data crawl-visible, and (e) earn editorial links with a
+data study nobody else in CZ can compute.
 
 **Definition of done.** 66 brand hubs live and indexed; JSON-LD present in the
 crawl-time HTML; model pages carry a "nejčastější závady" section; one study page
@@ -89,12 +94,15 @@ a specific concern ("nejčastější závady", "poruchovost", "nájezd").
 **In:** `api/stats.ts`, `api/_statsData.ts`, `scripts/compute-stats.sql`, a new
 `stats_brand` table, `vercel.json` routing, two React pages, the sitemap.
 
-**Out:** buying links; per-VIN indexing; a blog/CMS; redesign of the model page
-beyond the new defect section; the outreach itself (S4 ships the page, sending
+**Out:** buying links; per-VIN indexing; a blog/CMS; a URL level per
+motorisation (S5 explains why the data ships inside the model page instead); the outreach itself (S4 ships the page, sending
 pitches is the owner's call and is not automated here).
 
 ### Success criteria
 
+- **Zero colliding slugs** in `stats_model` — no cohort is unreachable.
+- `/znacky` is reachable from the main navigation on every page.
+- A model page shows its motorisations without a further navigation step.
 - 66 brand hubs return 200 with a brand-specific `<title>` and self-canonical.
 - `curl` of a model page shows `ld+json` in the raw HTML; the DOM after hydration
   contains exactly **one** such script.
@@ -108,8 +116,8 @@ pitches is the owner's call and is not automated here).
   every new route is a `type` discriminator on the existing `api/stats.ts`, never
   a new function file.
 - `min_count = 100` remains the publish floor.
-- S3 assumes the U3 backfill from
-  `docs/plans/2026-08-17-001-feat-stk-defect-codes-plan.md` has completed.
+- The U3 backfill from `docs/plans/2026-08-17-001-feat-stk-defect-codes-plan.md`
+  completed 2026-08-19 (91 936 384 rows, 100 % coverage), so S3 is unblocked.
 
 ## Key Technical Decisions
 
@@ -167,6 +175,217 @@ page**, a conservative threshold, and the word "nesrovnalost" rather than
 
 ## Implementation Units
 
+### S0a. Normalise model strings (found 2026-08-20)
+
+*Depends on: nothing. Must run **before** the engine fold.*
+
+**25 slugs collide, involving 53 cohorts — and one of each pair is unreachable.**
+`getModelStatsBySlug` matches on the slug with `LIMIT 1` and no `ORDER BY`, so
+when two cohorts slugify identically the database picks one arbitrarily and the
+other's vehicles appear nowhere on the site.
+
+| URL | cohorts sharing it |
+|---|---|
+| `hyundai/i-30` | `i 30` (85 063) **vs** `I 30` (4 531) |
+| `peugeot/206` | `206` (35 298) **vs** `206+` (2 350) |
+| `opel/astra` | `ASTRA` (10 200) **vs** `ASTRA+` (939) |
+| `opel/astra-sports-tourer` | three cohorts, one URL |
+| `peugeot/rifter` | `Rifter` (5 934) **vs** `RIFTER` (242) |
+| `volkswagen/up` | `UP!` (4 207) **vs** `UP` (283) |
+| `mercedes-benz/v-klasse` | `V-KLASSE` **vs** `V - KLASSE` |
+
+The causes are letter case (`Rifter`/`RIFTER`), spacing (`V-KLASSE`/`V - KLASSE`)
+and punctuation slugify discards (`206+`, `UP!`). None of them are different cars.
+
+Hyundai i30 is the worst case and the one that makes the point about credibility:
+`i 30`, `I 30`, `i30`, `I 30CW`, `i 30CW`, `i 30 N` — six cohorts, of which three
+are the same string in different clothes.
+
+**Fix: group by the slug, not by a normalised string.** The first attempt was a
+normalisation function (upper-case, collapse whitespace, strip the punctuation
+slugify drops). It cut collisions from 25 to 11 and then stalled on an endless
+tail of separator and diacritic noise — `MX-5` vs `MX 5`, `DOBLÓ` vs `DOBLO`,
+`TOWN & COUNTRY` vs `TOWN COUNTRY`, `TUCSON, IX35` vs `TUCSON,IX35` vs
+`TUCSON IX35`. Chasing a rule per character is a losing game.
+
+The clean formulation: **if two strings slugify identically they are the same
+page, by definition of our URL space.** So group on
+`slugify(fold_model(model))` and keep the highest-count raw spelling as the
+display name. Collisions then cannot exist — not because a rule caught them, but
+because the grouping key *is* the URL. 252 slugs absorb more than one source
+cohort under this rule.
+
+That also fixes the decimal-point trap the normalisation approach hit: a `norm()`
+that strips `.` turns `1.9` into `1 9`, and the engine fold stops recognising it.
+Grouping by slug needs no such surgery on the string.
+
+Measured effect on Hyundai i30 — the case that prompted this:
+
+| before | after |
+|---|---|
+| `i 30` (85 063), `I 30` (4 531), `i30` (790), `I 30CW` (2 953), `i 30CW` (2 809), `i 30 N` (118) | `i-30` (89 594), `i-30cw` (5 762), `i-30-n` (118) |
+
+Six cohorts become three, and the three that remain are genuinely different cars:
+hatchback, estate, and the N hot hatch.
+
+**Separators fragment too, and slug grouping alone does not catch it.** Raised
+by the owner 2026-08-20: the STK data is typed by people with no enum to pick
+from, so the same car arrives spelled several ways. Where those spellings produce
+*different* slugs, grouping by slug leaves them apart:
+
+| URL | URL |
+|---|---|
+| `kia/cee-d` (33 997) | `kia/ceed` (22 407) |
+| `hyundai/i-30` (89 594) | `hyundai/i30` (790) |
+| `volvo/xc60` (19 475) | `volvo/xc-60` (243) |
+| `mazda/mazda6` (1 134) | `mazda/mazda-6` (672) |
+
+**Measured impact, and the two numbers answer different questions:**
+
+- **3 models** would be hidden by a 500 floor when split but clear it when merged
+  (2 072 vehicles). The owner's stated worry — a legitimate car disappearing — is
+  real but small.
+- **29 750 vehicles** sit on a *duplicate* page that should not exist at all,
+  dominated by Kia Cee'd. That is the larger problem, and it is independent of the
+  floor.
+
+**Fix:** group on the slug with separators removed (`i-30` and `i30` both key on
+`i30`), and keep the **highest-count member's slug as the canonical URL** so the
+page with the history keeps its address; the others become aliases and 308 to it
+through the mechanism S0b already builds.
+
+**All 27 affected groups were reviewed by hand and none is a false merge** — every
+one is the same car typed differently (`vel-satis`/`velsatis`, `m550d`/`m-550-d`,
+`pathfinder-a-t`/`pathfinder-at`). The rule is "identical once separators are
+removed", which is far stronger than "similar": it cannot merge an A4 with an A5.
+The residual risk is a maker deliberately using a hyphen to distinguish two
+models, which does not occur in this data — re-review the group list when the
+registry snapshot changes materially.
+
+**Verification:** zero duplicate `(brand_slug, model_slug)` pairs in
+`stats_model` — structurally guaranteed, and asserted anyway. Plus: no group of
+separator-variants left unmerged, asserted the same way.
+
+### S0b. Fold engine variants, then raise the publish floor
+
+*Depends on: nothing for the fold; the floor raise depends on S1.*
+
+**The fold.** Strip engine, displacement, valve-count, power and drivetrain
+tokens from the model string before grouping; keep body styles. Measured on the
+live data 2026-08-19: **2 273 → 1 876 cohorts**, all 366 merges genuinely the
+same car (`OCTAVIA 1.9 TDI` → `OCTAVIA`, `BERLINGO 1.6 HDI` → `BERLINGO`).
+
+Body styles are deliberately **not** folded, on evidence: `A4 AVANT` holds 19 044
+vehicles against `A4`'s 16 100, and `PASSAT VARIANT` 48 818. These are searched as
+their own cars; merging them would destroy a cohort, not consolidate one. The same
+care applies to BMW, where the trailing letter *is* the name — `320 D` and `320 I`
+are different cars, so a lone `D`/`I` is dropped only when an engine token was
+already stripped from the same string (`X5 3.0 D` → `X5`, but `320 D` survives).
+
+**The floor.** Folding alone is a 16 % reduction, which does not solve crawl
+rationing on its own. Raising `min_count` is the lever:
+
+Re-measured 2026-08-20 with S0a's slug grouping applied first (`min_count` is
+**100** today):
+
+| floor | pages | vehicle coverage |
+|---|---|---|
+| today, no S0a/S0b | 2 273 | 100 % |
+| 100 (current floor) | 1 737 | 100 % |
+| 250 | 1 069 | 98.3 % |
+| **500** | **749** | **96.4 %** |
+| 750 | 594 | 94.8 % |
+| 1 000 | 509 | 93.6 % |
+| 2 000 | 333 | 89.4 % |
+
+**Proposed: 500.** A 67 % cut from today's 2 273 URLs for 3.6 % of vehicle
+coverage. It is also defensible statistically — 500 cars carry roughly 2 500
+inspections behind `stk_fail_pct`, and `median_km_by_age` has its own `n >= 20`
+guard — so this is not trading honesty for tidiness.
+
+Not 1 000: the extra 240 pages saved cost another 2.8 points of coverage, which
+is more "model not found" for cars people actually own. The floor can be raised
+later if crawling still stalls; it cannot easily be lowered once pages have been
+dropped and redirected.
+
+With S5 shipping a motorisation breakdown inside each page, a 500-car cohort is
+no longer a thin page — it is one car with its variants laid out, which is the
+depth the crawl data says is missing.
+
+**Sequencing matters here.** `renderModelPage` returns a real 404 for an unknown
+slug, so raising the floor before S1 exists would send ~1 000 URLs — including 22
+currently indexed ones — to 404 with nowhere to go. Ship the fold first (nothing
+is lost, every retired slug 308s to its base model), then S1, then raise the floor
+with dropped models redirecting to their brand hub.
+
+**Do the redirects in code, not in `vercel.json`.** The brand aliases are 14
+static entries; 366 folded slugs plus ~1 000 floor-dropped ones is a different
+scale. `api/stats.ts` already handles the miss case — on a 404, apply the same
+fold to the requested slug and 308 to the target when one exists. That covers
+future folds automatically and keeps the config readable.
+
+**Junk cohorts.** Three published cohorts carry an engine spec where the model
+name belongs (`OPEL / 1.0 12V`, `1.2 16V`, `1.3CDTI 16V` — ~1 000 vehicles). They
+are excluded at the publish-floor step, not in `_base`: the cars are still Opels
+and must keep counting toward brand aggregates, they just do not deserve a page.
+
+**Deploy order is forced, not a preference.** Running the precompute before the
+code ships turns 504 retired slugs into 404s, several of them indexed. Shipping
+the code first is a no-op — the alias table does not exist yet, so the handler
+degrades to its existing 404. So: code + migration 008, then the precompute.
+The precompute itself has no downtime window: both `TRUNCATE`s sit inside the
+single `BEGIN`/`COMMIT`, so readers see the old cohorts until the swap commits.
+
+**Verification:** every retired slug resolves 200 after one hop; no fold merges
+two cohorts whose base names differ; `A4 AVANT`, `PASSAT VARIANT`, `320 D` and
+`320 I` all survive as distinct pages.
+
+### S5. Make the stats a destination, not a directory (2026-08-20)
+
+*Depends on: S0a, S0b, S1. This is the reason the rest is worth doing.*
+
+The section is currently built as an index: a flat A-Z list of 2 273 links. The
+owner's reading is that these numbers are the most interesting thing on the site
+and should hold people there. That reframes the goal from "pages that rank" to
+"a tool people use", and the two are not in tension — dwell time and depth are
+exactly what "Discovered – currently not indexed" is asking for.
+
+**Drill-down instead of a list.** Brand → model → motorisation, each step
+narrowing the set:
+
+1. `/znacky` — brands, with counts. Not 2 273 links.
+2. `/znacky/:brand` — that brand's models (S1).
+3. `/znacky/:brand/:model` — the model page, **with a motorisation breakdown on
+   it**.
+
+**Motorisations are a section, not a URL level.** This is the one place the
+owner's sketch and the index data pull apart, and the resolution favours both:
+2 180 of our URLs are already discovered-and-not-crawled, so a third URL level
+would add thousands more of exactly what Google is declining. Rendering the
+motorisations *within* the model page gives the same drill-down experience,
+keeps the data the fold would otherwise discard, makes the page substantially
+richer, and adds no URLs. A buyer comparing "Octavia 1.9 TDI" against "Octavia
+2.0 TDI" wants them side by side anyway, not on two pages.
+
+This means **S0b must keep the per-variant data, not discard it**: the fold
+decides what gets a URL, not what gets computed. Add a `motorisations JSONB`
+column to `stats_model` holding each source variant with its count, fuel, and
+median mileage.
+
+**Main-navigation link.** `/znacky` is absent from the main nav (verified
+2026-08-20: the nav carries `/firma`, `/povinne-ruceni`, `/overeny-vypis-vozidla`
+and six others, not this). That is a site-wide internal link to the section
+Google is under-crawling — the cheapest item in this entire plan and one of the
+better-targeted ones.
+
+**Layout is already fine.** Both `ZnackyHubPage` and `BrandModelStatsPage`
+already render `Navigation` and `Footer`, so the pages are not visually detached
+from the site. What was missing is the entry point, not the chrome.
+
+**Keep the flat list.** Move it to its own route (`/znacky/vse`) or below the
+fold on the hub. It stays useful for crawlers and for people who know exactly
+what they want; it just stops being the primary interface.
+
 ### S1. Brand hub pages `/znacky/:brand`
 
 *Depends on: nothing. Biggest single win.*
@@ -208,7 +427,27 @@ page**, a conservative threshold, and the word "nesrovnalost" rather than
 
 ### S3. "Nejčastější závady" on model pages
 
-*Depends on: **U3 backfill complete**. Blocked until then.*
+*Depends on: U3 backfill — **complete since 2026-08-19**, so this is unblocked.*
+
+**Cost measured 2026-08-19, and it is the real constraint here.** Aggregating the
+defect codes for a single cohort (ŠKODA OCTAVIA, 932 116 VINs — the largest one)
+against an indexed VIN table took **3 min 20 s**. The result is exactly the
+content this unit is for:
+
+| code | occurrences | |
+|---|---|---|
+| 6.2.1.1.1 | 960 440 | povrchová koroze karosérie |
+| 5.3.3.2.1 | 550 271 | nápravy, kola a pneumatiky |
+| 6.1.1.3.1 | 503 814 | povrchová koroze rámu |
+| 1.1.14.1.1 | 386 682 | zkorodovaný brzdový kotouč |
+
+That number does **not** multiply by 2 274. The precompute makes one pass grouped
+by `(brand, model)`, the same shape `_odo` already uses for median mileage, so the
+whole set is one scan rather than 2 274 of them. But the full-pass cost was not
+measured — doing so means running the heaviest query in the system against the
+shared node, which belongs off-peak and not during a working day. **Measure it
+before committing to a monthly cadence**, and be ready to fall back to a separate
+quarterly job if it does not fit alongside the existing blocks.
 
 1. `009_stats_top_defects.sql` — `ALTER TABLE stats_model ADD COLUMN
    top_defects JSONB`, nullable, no default. Degrades to "neuvedeno" while NULL.
@@ -257,9 +496,92 @@ until someone sends those mails.
 | V10 | Rich Results Test on a brand + a model URL | Dataset + BreadcrumbList valid |
 | V11 | `pnpm build`, both typechecks, Biome on touched files | clean |
 
-**Baseline first.** Capture GSC impressions/clicks for `/znacky/*` **before** S1
-deploys. Without it, S1's effect is unattributable and the whole "don't buy links"
-argument stays unfalsifiable.
+### GSC baseline, captured 2026-08-19 (29-day window)
+
+**Index coverage is the whole story.**
+
+| Index status | Pages |
+|---|---|
+| Indexed | **58** |
+| **Discovered – currently not indexed** | **2 180** |
+| Duplicate without user-selected canonical | 16 |
+| Excluded by noindex | 2 |
+| Redirect page | 2 |
+
+**2 180 URLs have been discovered and never crawled** — "Naposledy procházeno:
+Není k dispozici" on every one. Google read them from the sitemap, assessed the
+domain, and declined to spend the budget. That list includes pages with real
+demand: `/znacky/audi/a4`, `/audi/a6`, `/audi/q7`, `/alfa-romeo/giulietta`, and
+the top-level `/upozorneni-na-terminy`.
+
+The 58 that *are* indexed are effectively a random early sample — `kia/clarus`,
+`daewoo/leganza`, `citroen/zx` — not the valuable ones.
+
+**The queries confirm it.** Every query in the 29-day window is either brand
+navigation (`vin info` 35 clicks, `vininfo` 17) or generic free-VIN intent
+(`kontrola vin zdarma`, `vin kód zdarma`). **Not one model query.** The `/znacky`
+section is not ranking badly for "škoda octavia" — it is not in the race at all.
+
+The two smaller buckets are already handled and will self-heal: the `noindex` and
+`redirect` entries are the login page and the apex, both correct, and
+`/znacky/vw/tiguan` and `/znacky/mercedes-amg/…` were crawled on 21-22 July,
+*before* the brand-alias 308s landed. Both now redirect correctly (re-verified
+2026-08-19).
+
+**This changes the diagnosis.** Cannibalisation is real but small — 16 pages.
+The dominant problem is that a low-authority domain published 2 273 URLs of
+near-identical shape, and Google is rationing. Adding pages does not fix that;
+**making the set smaller and each page more distinct does.** Every unit in this
+plan should be judged by whether it raises value-per-URL:
+
+- **S0 (consolidate thin variants)** removes ~1 400 near-duplicate URLs. Directly
+  targets the ration.
+- **S1 (brand hubs)** adds 66 URLs but gives the survivors a real internal link
+  hierarchy — the standard remedy for "Discovered – not indexed".
+- **S3 (defects)** makes each surviving page carry content no template can
+  generate. Also directly on target.
+- **S2 (JSON-LD)** does not move this needle. It is still worth an hour, but it
+  is no longer the recommended first step.
+
+### Supporting measurements
+
+| | |
+|---|---|
+| `www.vininfo.cz/` (homepage) | 612 clicks · 15 549 impressions |
+| `vininfo.cz/` (apex, historical) | 265 clicks · 4 197 impressions |
+| **All `/znacky/*` pages combined** | **1 click · ~77 impressions across 43 URLs** |
+| `/overeny-vypis-vozidla` | 0 clicks · 22 impressions |
+| Model pages published | 2 273 |
+
+The apex figures need no action: `vininfo.cz` → `www` is a 308 that preserves the
+path, and the pages self-canonicalise to `www` (re-verified 2026-08-19). That
+traffic is Google catching up, not a live split.
+
+**The section is not under-ranked, it is under-crawled and diluted.** 2 273 pages
+returned 77 impressions between them, and the ones that surfaced are variants
+nobody types: `citroen/c8-2-0hdi-16v`, `bmw/730-d`, `chevrolet/captiva-2-2`. Two
+measurements explain it:
+
+- **68 % of the pages (1 548 / 2 272) are engine or trim variants**, not model
+  names, and **1 497 base+variant pairs** are both published — `/skoda/octavia`
+  competes with `/skoda/octavia-1-9-tdi`, `/octavia-rs`, `/octavia-combi`,
+  `/octavia-kombi`, `/octavia-slx-tdi` and more.
+- **63 % of cohorts (1 422 / 2 273) hold fewer than 500 vehicles.** OCTAVIA itself
+  has 698 195; OCTAVIA KOMBI has 187. They are listed in the same flat sitemap
+  with no `<priority>`, so a crawler cannot tell them apart.
+
+The 2026-07-15 plan chose to keep model strings "intentionally granular". That
+choice is now measurably the bottleneck: it spends a small crawl budget on pages
+that cannot rank, and splits the signal of the ones that could.
+
+**This reorders the plan.** S1's brand hubs are still right — they are what gives
+the good pages internal links — but consolidating or de-indexing the thin variants
+is cheaper and should come first, because otherwise the hubs link to 2 273 pages
+of which two thirds should not exist. See "Open Questions" for what is still
+unknown.
+
+**Re-measure after each unit ships.** Without this table, the effect of any of it
+is unattributable and the "don't buy links" argument stays unfalsifiable.
 
 ## Risks & Dependencies
 
@@ -272,25 +594,44 @@ argument stays unfalsifiable.
 | Brand count ≠ sum of model counts looks like a bug | KTD2; wording is "nejčastější modely" |
 | Defect precompute too heavy for the monthly run | KTD6 precompute; measure on one brand before the full pass |
 | Study reads as an accusation against a model | KTD7: aggregates, conservative threshold, published methodology |
-| S3 slips if U3 slips | S1/S2/S4 are all independent of U3 — sequence them first |
+| S3's precompute does not fit the monthly run | Full-pass cost unmeasured; one cohort took 3m20s. Measure off-peak before wiring it into the monthly job; fall back to a separate quarterly job |
 
 ## Sequencing
 
 ```
 S2 (JSON-LD)      ──┐
-S1 (brand hubs)   ──┼── independent of the defect backfill, start now
-S4 (study)        ──┘
-S3 (defect content) ── blocked on U3 backfill
+S1 (brand hubs)   ──┼── all four are now unblocked (U3 completed 2026-08-19)
+S4 (study)        ──┤
+S3 (defect content) ─┘  heaviest precompute; measure the full pass off-peak
 ```
 
-Recommended order: **baseline GSC → S2 → S1 → S4 → S3**. S2 first because it is
-an hour of work and validates the `injectHead` changes that S1 then builds on.
+Recommended order, revised after the 2026-08-19 baseline:
+**S0a → S0b-fold → S1 → S5 → S0b-floor → S3 → S2 → S4**.
+
+S0a leads because the fold inherits its noise otherwise. S5 lands after
+the hubs because the drill-down needs them to exist, and before the floor
+raise because a richer page changes which cohorts are worth keeping.
+
+The original order led with S2 because it was small. The index data says the
+binding constraint is crawl rationing across 2 273 near-identical URLs, so the
+work that shrinks and enriches that set comes first. S2 keeps its place as an
+hour of cleanup, just not at the front.
 
 ## Open Questions
 
-- How many of the 2 274 model pages are actually indexed? If coverage is poor, the
-  bottleneck is crawl budget/authority and S1's internal linking matters even more
-  than assumed — but the fix order does not change.
+- **Which index status do the 58 sampled URLs represent?** GSC's drilldown was
+  read without its category label, so "58 URLs" could mean 58 indexed, or 58
+  crawled-but-not-indexed. The two imply different fixes: the first is a crawl
+  budget problem, the second a quality/thin-content one. Needed before S0 is
+  scoped.
+- **What do people actually search?** The Queries tab would confirm the reading
+  above — that demand is on "škoda octavia", not "octavia 1.9 tdi". The page-level
+  data strongly implies it but does not prove it.
+- **S0 (new): consolidate or de-index thin model pages.** Fold variants into their
+  base model, or keep the pages and `noindex` those under a vehicle-count floor?
+  Folding is better for users and signal; noindex is reversible and far cheaper.
+  Either way the brand-alias precedent applies: retired slugs need 308s in
+  `vercel.json`, exactly as the brand folds already do.
 - Tolerance for the rollback rule in S4: needs a distribution check on real
   reading pairs before a number is picked.
 
