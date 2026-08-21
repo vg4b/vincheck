@@ -29,7 +29,8 @@ psql -qX -d "$DB" -v ON_ERROR_STOP=1 \
   -f "$SCRIPT_DIR/migrations/006_stats_tables.sql" \
   -f "$SCRIPT_DIR/migrations/008_stats_model_alias.sql" \
   -f "$SCRIPT_DIR/migrations/009_stats_brand.sql" \
-  -f "$SCRIPT_DIR/migrations/010_stats_defects_and_theft.sql" >/dev/null 2>&1
+  -f "$SCRIPT_DIR/migrations/010_stats_defects_and_theft.sql" \
+  -f "$SCRIPT_DIR/migrations/011_theft_rate.sql" >/dev/null 2>&1
 
 psql -qX -d "$DB" -v ON_ERROR_STOP=1 <<'SQL'
 -- Cases chosen to exercise every rule the script implements:
@@ -78,16 +79,27 @@ UPDATE vehicle_inspection_odometer SET zavady_kody =
        WHEN (vin ~ '[147]$') THEN ARRAY['6.2.1.1.1']
        ELSE NULL END;
 
--- Thefts arranged so the COUNT and the RATE disagree — that is the whole point
--- of storing a rate. OCTAVIA (1 200 cars) gets 30 thefts, A4 (500 cars) gets 20:
--- by raw count Octavia leads, by rate A4 does. A fixture where both orderings
--- agree cannot tell you which number was computed.
-INSERT INTO vehicle_deregistration (pcv, duvod)
-SELECT pcv, 'Odcizeno' FROM vehicle_registry
+-- Thefts arranged to test the two things that broke v1.
+--
+--  1. MOST STOLEN CARS ARE DEREGISTERED. v1 joined through _base, which is
+--     PROVOZOVANÉ-only, and so counted 4.4% of real thefts. Here the OCTAVIA
+--     thefts are on cars marked VYŘAZENO Z PROVOZU: if the fixture reports them,
+--     the query is looking in the right place.
+--  2. COUNT AND RATE MUST DISAGREE. OCTAVIA takes more thefts than A4 but has
+--     far more cars, so by count it leads and by rate it does not.
+UPDATE vehicle_registry SET status = 'VYŘAZENO Z PROVOZU'
 WHERE tovarni_znacka = 'ŠKODA' AND obchodni_oznaceni = 'OCTAVIA' AND (pcv % 40) = 0;
-INSERT INTO vehicle_deregistration (pcv, duvod)
-SELECT pcv, 'Odcizeno' FROM vehicle_registry
+
+INSERT INTO vehicle_deregistration (pcv, duvod, datum_od)
+SELECT pcv, 'Odcizeno', '2023-05-01' FROM vehicle_registry
+WHERE tovarni_znacka = 'ŠKODA' AND obchodni_oznaceni = 'OCTAVIA' AND (pcv % 40) = 0;
+INSERT INTO vehicle_deregistration (pcv, duvod, datum_od)
+SELECT pcv, 'Odcizeno', '2023-05-01' FROM vehicle_registry
 WHERE tovarni_znacka = 'AUDI' AND obchodni_oznaceni = 'A4' AND (pcv % 25) = 0;
+-- Outside the window: must NOT be counted.
+INSERT INTO vehicle_deregistration (pcv, duvod, datum_od)
+SELECT pcv, 'Odcizeno', '2015-05-01' FROM vehicle_registry
+WHERE tovarni_znacka = 'AUDI' AND obchodni_oznaceni = 'A4' AND (pcv % 7) = 0;
 SQL
 
 echo "== running compute-stats.sql =="
@@ -105,11 +117,12 @@ SELECT brand, model, jsonb_array_length(coalesce(motorisations,'[]'::jsonb)) AS 
 FROM stats_model WHERE motorisations IS NOT NULL ORDER BY 1,2"
 echo "== top defects and theft rate (new in 010) =="
 psql -qX -d "$DB" -c "
-SELECT brand, model, stolen_count, stolen_per_1000,
-       left(top_defects::text, 55) AS defects
-FROM stats_model WHERE top_defects IS NOT NULL OR stolen_count IS NOT NULL
-ORDER BY stolen_per_1000 DESC NULLS LAST, brand"
-echo "   ^ if stolen_count and stolen_per_1000 rank differently, the rate is real"
+SELECT brand, model, vehicle_count, theft_count, theft_fleet, theft_per_1000,
+       left(top_defects::text, 40) AS defects
+FROM stats_model WHERE top_defects IS NOT NULL OR theft_count IS NOT NULL
+ORDER BY theft_per_1000 DESC NULLS LAST, brand"
+echo "   ^ theft_fleet > vehicle_count means deregistered cars were counted (the v1 bug)"
+echo "   ^ OCTAVIA leading on theft_count but not on theft_per_1000 means the rate is real"
 echo "== brand hubs =="
 psql -qX -d "$DB" -c "SELECT brand, vehicle_count, model_count, stk_fail_pct, stk_inspections FROM stats_brand ORDER BY vehicle_count DESC"
 echo "== brand totals must cover the WHOLE brand, incl. below-floor models =="

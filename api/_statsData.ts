@@ -438,23 +438,6 @@ export type RankingDef = {
 	valueLabel: string
 }
 
-// NOT PUBLISHED: the theft ranking, withdrawn 2026-08-21 before it ever shipped.
-//
-// The columns exist (migration 010) and compute-stats.sql fills them, but the
-// numbers do not mean what the page would have claimed. Two independent faults:
-//
-//  1. `_base` is restricted to status = 'PROVOZOVANÉ', and a stolen car gets
-//     deregistered — 17 924 of the 19 355 'Odcizeno' rows sit on VYŘAZENO
-//     Z PROVOZU vehicles. The join therefore sees 845 thefts, 4.4% of them, and
-//     what it measures is "stolen and still on the road", i.e. recovered cars.
-//  2. Even with the full numerator, the rate divides all-time thefts by today's
-//     registered population — two different periods over two different
-//     populations.
-//
-// A sound version needs thefts and registrations from the same window, and a
-// minimum numerator: the top rates here were built on 2 to 4 events, which is
-// noise wearing a decimal point. Until that exists this stays unpublished —
-// a wrong ranking on a public page is worse than no ranking.
 export const RANKINGS: RankingDef[] = [
 	{
 		slug: 'nejporuchovejsi-vozy',
@@ -497,6 +480,23 @@ export const RANKINGS: RankingDef[] = [
 		contextLabel: 'poruchovost STK',
 		contextUnit: 'pct',
 		valueLabel: 'vozidel v provozu'
+	},
+	{
+		slug: 'nejcasteji-kradene-vozy',
+		title: 'Nejčastěji kradené vozy v ČR',
+		lede: 'Počet odcizených vozidel na 1 000 kusů daného modelu, které byly v provozu v letech 2021–2025. Uvádíme podíl, ne absolutní počet — ten by seřadil jen nejrozšířenější auta.',
+		column: 'theft_per_1000',
+		direction: 'DESC',
+		// theft_per_1000 is already NULL below the numerator floor, so the guard
+		// here is only the denominator. Both are needed: a rate over few cars is
+		// as unpublishable as one over few thefts.
+		minColumn: 'theft_fleet',
+		minValue: 5000,
+		unit: 'count',
+		contextColumn: 'theft_count',
+		contextLabel: 'odcizeno 2021–2025',
+		contextUnit: 'count',
+		valueLabel: 'na 1 000 vozů'
 	},
 	{
 		slug: 'vozy-na-lpg',

@@ -38,6 +38,7 @@ const RANKING_LINKS = [
 		title: 'Vozy s nejnižší poruchovostí při STK'
 	},
 	{ slug: 'nejrozsirenejsi-vozy', title: 'Nejrozšířenější vozy v ČR' },
+	{ slug: 'nejcasteji-kradene-vozy', title: 'Nejčastěji kradené vozy v ČR' },
 	{ slug: 'vozy-na-lpg', title: 'Vozy nejčastěji přestavěné na LPG nebo CNG' }
 ]
 
