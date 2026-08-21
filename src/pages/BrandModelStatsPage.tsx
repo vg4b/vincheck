@@ -23,6 +23,14 @@ interface ModelStats {
 	medianKmByAge: Record<string, number> | null
 	colorSplit: Record<string, number> | null
 	motorisations: Array<{ name: string; count: number }> | null
+	/** Defect codes already resolved to Czech text by the API — the 246 KB
+	 *  catalog stays on the server. */
+	topDefectsResolved: Array<{
+		code: string
+		count: number
+		share: number
+		text: string
+	}> | null
 	computedAt: string | null
 }
 
@@ -464,6 +472,32 @@ const BrandModelStatsPage: React.FC = () => {
 								<p>Registr eviduje {eqBits.join(' a ')}.</p>
 							</section>
 						)}
+
+						{/* The question forums answer with anecdotes, answered from 138.8M
+						    real inspection defects. Shares are out of inspections that
+						    recorded a defect, which is what the caption says. */}
+						{stats.topDefectsResolved &&
+							stats.topDefectsResolved.length > 0 && (
+								<section className='border-top pt-3 mt-4'>
+									<h2 className='h5 mb-3'>Nejčastější závady na STK</h2>
+									<ul className='list-unstyled mb-2'>
+										{stats.topDefectsResolved.slice(0, 8).map((d) => (
+											<li key={d.code} className='border-bottom py-1'>
+												<div className='d-flex justify-content-between gap-3'>
+													<span>{d.text}</span>
+													<span className='text-muted-ink small text-nowrap'>
+														{fmtPct(d.share)}
+													</span>
+												</div>
+											</li>
+										))}
+									</ul>
+									<p className='small text-muted-ink mb-0'>
+										Podíl z prohlídek, u kterých je závada evidovaná. Údaje z
+										otevřených dat o technických prohlídkách.
+									</p>
+								</section>
+							)}
 
 						{/* Motorisations live here rather than at their own URL level:
 						    2 180 of the section's urls are already discovered and never
