@@ -422,6 +422,60 @@ FROM (
 ) v
 WHERE v.brand = m.brand AND v.model = m.model;
 
+-- Most frequent STK defect codes per cohort.
+--
+-- Joins the odometer table (which since migration 007 carries the defect codes)
+-- the same way _odo does. Codes only — the Czech text comes from the vendored
+-- catalog at read time, so a better catalog never means a re-ingest.
+--
+-- The share is out of inspections that HAVE a defect record, not out of all
+-- inspections: 41.5% of records carry defects and pre-2009 ones carry none, so
+-- dividing by everything would understate every code by roughly half.
+CREATE TEMP TABLE _defects ON COMMIT DROP AS
+WITH exploded AS (
+  SELECT b.brand, b.model, unnest(o.zavady_kody) AS code
+  FROM _base b
+  JOIN vehicle_inspection_odometer o USING (vin)
+  WHERE o.zavady_kody IS NOT NULL
+),
+counted AS (
+  SELECT brand, model, code, count(*) AS n,
+         sum(count(*)) OVER (PARTITION BY brand, model) AS total
+  FROM exploded GROUP BY 1, 2, 3
+),
+ranked AS (
+  SELECT brand, model, code, n, total,
+         row_number() OVER (PARTITION BY brand, model ORDER BY n DESC) AS rn
+  FROM counted
+)
+SELECT brand, model,
+       jsonb_agg(jsonb_build_object('code', code, 'count', n,
+                                    'share', round(n::numeric / total, 4))
+                 ORDER BY n DESC) AS top_defects
+FROM ranked WHERE rn <= 8
+GROUP BY brand, model;
+
+UPDATE stats_model m SET top_defects = d.top_defects
+FROM _defects d WHERE d.brand = m.brand AND d.model = m.model;
+
+-- Theft rate per 1 000 registered vehicles.
+--
+-- vehicle_deregistration carries 19 355 'Odcizeno' rows. Published as a RATE
+-- because the raw count ranks by how common a car is: ŠKODA 6 162, VOLKSWAGEN
+-- 1 070, FORD 920. stolen_count ships alongside so the page can show what the
+-- rate is built on.
+CREATE TEMP TABLE _theft ON COMMIT DROP AS
+SELECT b.brand, b.model, count(*) AS stolen_count
+FROM _base b
+JOIN vehicle_deregistration d USING (pcv)
+WHERE d.duvod = 'Odcizeno'
+GROUP BY 1, 2;
+
+UPDATE stats_model m
+SET stolen_count = t.stolen_count,
+    stolen_per_1000 = round(1000.0 * t.stolen_count / nullif(m.vehicle_count, 0), 2)
+FROM _theft t WHERE t.brand = m.brand AND t.model = m.model;
+
 -- Record every slug the fold or the canonicalisation retired, so api/stats.ts
 -- can 308 instead of 404. A row is emitted only when the spelling actually
 -- resolves to a different url than its cohort's.

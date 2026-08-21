@@ -17,9 +17,9 @@ This plan is what to do with that budget and effort instead.
 | S1 brand hubs | done | 43 hubs, all 200, unknown brand → 404 + noindex |
 | S2 crawl-time JSON-LD | done | Dataset + BreadcrumbList in raw HTML, one node after hydration |
 | S5 drill-down | mostly | motorisations on 269 model pages, hub leads with brands, nav link added |
-| S3 defects on model pages | not started | needs `top_defects` + another rebuild; full-pass cost unmeasured |
+| S3 defects on model pages | done | 763/764 cohorts; the aggregation added **8 minutes** to the rebuild (113 vs 105) |
 | S4 odometer study | not started | independent of everything above |
-| S6 ranking pages | not started | scoped in the 2026-07-15 plan, dropped from this one, restored 2026-08-21 |
+| S6 ranking pages | 4 of 5 live | theft ranking **withdrawn before shipping** — see below |
 
 Rebuild takes **105 minutes** with the GROUPING SETS approach (132 before), and
 every unit that adds a column costs one — batch schema changes before running it.
@@ -545,6 +545,30 @@ registry, which is the constraint that plan established in the first place.
 **KTD7 applies to theft as it does to rollbacks:** publish rates and the method,
 never a claim about a named model being "the thieves' favourite". A ranking is a
 description of data, not an accusation.
+
+### Withdrawn: the theft ranking
+
+Built, computed, and pulled before it went live (2026-08-21). Recorded because
+the failure is not obvious from the query, which looks correct.
+
+`_base` is restricted to `status = 'PROVOZOVANÉ'`. A stolen car gets
+deregistered, so **17 924 of the 19 355 'Odcizeno' rows sit on VYŘAZENO Z PROVOZU
+vehicles** and the join saw 845 of them — 4.4 %. The column was measuring "stolen
+and still on the road", which is closer to a recovery rate than a theft rate.
+
+Two further problems even with the full numerator:
+
+- The rate divides all-time thefts by *today's* registered population: two
+  different periods over two different populations.
+- The top rates were built on 2 to 4 events. `AUDI TT — 0.90 per 1 000` rests on
+  two thefts. That is noise with a decimal point, and a minimum numerator is as
+  necessary as the minimum denominator already in place.
+
+A sound version needs thefts and registrations from the same window, computed
+outside the `PROVOZOVANÉ` filter, with a numerator floor. The columns and the
+precompute block stay (they cost 8 minutes and no correctness); only the public
+page is withheld. **A wrong ranking is worse than no ranking** — this one would
+have named specific models as theft magnets on evidence that does not support it.
 
 ### S4. Data study: odometer inconsistencies
 

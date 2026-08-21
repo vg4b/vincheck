@@ -11,6 +11,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { resolveDefects } from './_defects'
 import {
 	type BrandStats,
 	getAllPublishedBrands,
@@ -284,6 +285,30 @@ function datasetNode(
 		creator: { '@type': 'Organization', name: 'VINInfo.cz' },
 		license: `${base}/podminky`,
 		...(computedAt ? { dateModified: computedAt.slice(0, 10) } : {})
+	}
+}
+
+// Resolve defect codes to Czech text server-side. The vendored catalog is 246 KB;
+// shipping it to the browser would cost every visitor that weight for a section
+// most of them never scroll to. The client receives resolved strings instead.
+function withResolvedDefects(stats: ModelStats): ModelStats & {
+	topDefectsResolved?: Array<{
+		code: string
+		count: number
+		share: number
+		text: string
+	}>
+} {
+	if (!stats.topDefects?.length) return stats
+	const resolved = resolveDefects(stats.topDefects.map((d) => d.code))
+	return {
+		...stats,
+		topDefectsResolved: stats.topDefects.map((d) => {
+			// resolveDefects sorts by severity, so match on the code — zipping by
+			// index would put the wrong text next to every count.
+			const r = resolved.find((x) => x.code === d.code)
+			return { ...d, text: r?.text ?? r?.group ?? `závada ${d.code}` }
+		})
 	}
 }
 
@@ -664,7 +689,7 @@ ${urls}
 			'public, s-maxage=86400, stale-while-revalidate=604800'
 		)
 		if (headOnly) return res.status(200).end()
-		return res.status(200).json({ stats })
+		return res.status(200).json({ stats: withResolvedDefects(stats) })
 	}
 
 	res.setHeader('Cache-Control', 'public, s-maxage=3600')

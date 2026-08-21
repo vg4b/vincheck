@@ -24,10 +24,12 @@ trap 'dropdb --if-exists "$DB" 2>/dev/null || true' EXIT
 psql -qX -d "$DB" -v ON_ERROR_STOP=1 \
   -f "$SCRIPT_DIR/migrations/001_vehicle_cache.sql" \
   -f "$SCRIPT_DIR/migrations/004_vehicle_odometer.sql" \
+  -f "$SCRIPT_DIR/migrations/007_inspection_defects.sql" \
   -f "$SCRIPT_DIR/migrations/005_vehicle_equipment.sql" \
   -f "$SCRIPT_DIR/migrations/006_stats_tables.sql" \
   -f "$SCRIPT_DIR/migrations/008_stats_model_alias.sql" \
-  -f "$SCRIPT_DIR/migrations/009_stats_brand.sql" >/dev/null 2>&1
+  -f "$SCRIPT_DIR/migrations/009_stats_brand.sql" \
+  -f "$SCRIPT_DIR/migrations/010_stats_defects_and_theft.sql" >/dev/null 2>&1
 
 psql -qX -d "$DB" -v ON_ERROR_STOP=1 <<'SQL'
 -- Cases chosen to exercise every rule the script implements:
@@ -68,6 +70,24 @@ FROM vehicle_registry;
 
 INSERT INTO vehicle_owners (pcv, vztah_k_vozidlu)
 SELECT pcv, '1' FROM vehicle_registry;
+
+-- Defect codes on every third inspection, so top_defects has a distribution
+-- rather than one code repeated.
+UPDATE vehicle_inspection_odometer SET zavady_kody =
+  CASE WHEN (vin ~ '[0369]$') THEN ARRAY['6.2.1.1.1','1.1.14.1.1']
+       WHEN (vin ~ '[147]$') THEN ARRAY['6.2.1.1.1']
+       ELSE NULL END;
+
+-- Thefts arranged so the COUNT and the RATE disagree — that is the whole point
+-- of storing a rate. OCTAVIA (1 200 cars) gets 30 thefts, A4 (500 cars) gets 20:
+-- by raw count Octavia leads, by rate A4 does. A fixture where both orderings
+-- agree cannot tell you which number was computed.
+INSERT INTO vehicle_deregistration (pcv, duvod)
+SELECT pcv, 'Odcizeno' FROM vehicle_registry
+WHERE tovarni_znacka = 'ŠKODA' AND obchodni_oznaceni = 'OCTAVIA' AND (pcv % 40) = 0;
+INSERT INTO vehicle_deregistration (pcv, duvod)
+SELECT pcv, 'Odcizeno' FROM vehicle_registry
+WHERE tovarni_znacka = 'AUDI' AND obchodni_oznaceni = 'A4' AND (pcv % 25) = 0;
 SQL
 
 echo "== running compute-stats.sql =="
@@ -83,6 +103,13 @@ psql -qX -d "$DB" -c "
 SELECT brand, model, jsonb_array_length(coalesce(motorisations,'[]'::jsonb)) AS variants,
        left(motorisations::text, 70) AS sample
 FROM stats_model WHERE motorisations IS NOT NULL ORDER BY 1,2"
+echo "== top defects and theft rate (new in 010) =="
+psql -qX -d "$DB" -c "
+SELECT brand, model, stolen_count, stolen_per_1000,
+       left(top_defects::text, 55) AS defects
+FROM stats_model WHERE top_defects IS NOT NULL OR stolen_count IS NOT NULL
+ORDER BY stolen_per_1000 DESC NULLS LAST, brand"
+echo "   ^ if stolen_count and stolen_per_1000 rank differently, the rate is real"
 echo "== brand hubs =="
 psql -qX -d "$DB" -c "SELECT brand, vehicle_count, model_count, stk_fail_pct, stk_inspections FROM stats_brand ORDER BY vehicle_count DESC"
 echo "== brand totals must cover the WHOLE brand, incl. below-floor models =="

@@ -54,6 +54,9 @@ export type ModelStats = {
 	/** Engine variants the cohort fold merged, biggest first. Null when the model
 	 *  has only one, so the page shows no breakdown rather than a list of one. */
 	motorisations: Array<{ name: string; count: number }> | null
+	/** Most frequent STK defect codes for the cohort. Codes only — the Czech text
+	 *  is resolved at read time from the vendored catalog. */
+	topDefects: Array<{ code: string; count: number; share: number }> | null
 	computedAt: string | null
 }
 
@@ -78,6 +81,12 @@ function mapRow(r: Record<string, unknown>): ModelStats {
 		colorSplit: (r.color_split as Record<string, number>) ?? null,
 		motorisations:
 			(r.motorisations as Array<{ name: string; count: number }>) ?? null,
+		topDefects:
+			(r.top_defects as Array<{
+				code: string
+				count: number
+				share: number
+			}>) ?? null,
 		computedAt: r.computed_at ? String(r.computed_at) : null
 	}
 }
@@ -85,6 +94,7 @@ function mapRow(r: Record<string, unknown>): ModelStats {
 const SELECT_COLS = `brand, model, vehicle_count, first_year, last_year,
   avg_age_years, fuel_split, avg_owners, pct_imported, pct_lpg, pct_towbar,
   stk_fail_pct, stk_inspections, median_km_by_age, color_split, motorisations,
+  top_defects,
   computed_at::text AS computed_at`
 
 // Diacritic fold, shared by slugify (JS) and the SQL lookup so a URL slug and a DB
@@ -422,6 +432,23 @@ export type RankingDef = {
 	contextLabel: string
 }
 
+// NOT PUBLISHED: the theft ranking, withdrawn 2026-08-21 before it ever shipped.
+//
+// The columns exist (migration 010) and compute-stats.sql fills them, but the
+// numbers do not mean what the page would have claimed. Two independent faults:
+//
+//  1. `_base` is restricted to status = 'PROVOZOVANÉ', and a stolen car gets
+//     deregistered — 17 924 of the 19 355 'Odcizeno' rows sit on VYŘAZENO
+//     Z PROVOZU vehicles. The join therefore sees 845 thefts, 4.4% of them, and
+//     what it measures is "stolen and still on the road", i.e. recovered cars.
+//  2. Even with the full numerator, the rate divides all-time thefts by today's
+//     registered population — two different periods over two different
+//     populations.
+//
+// A sound version needs thefts and registrations from the same window, and a
+// minimum numerator: the top rates here were built on 2 to 4 events, which is
+// noise wearing a decimal point. Until that exists this stays unpublished —
+// a wrong ranking on a public page is worse than no ranking.
 export const RANKINGS: RankingDef[] = [
 	{
 		slug: 'nejporuchovejsi-vozy',
