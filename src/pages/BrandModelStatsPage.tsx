@@ -41,6 +41,11 @@ const fmtInt = (n: number) => Math.round(n).toLocaleString('cs-CZ')
 const fmtKm = (n: number) => `${fmtInt(n)} km`
 const fmtPct = (frac: number) =>
 	`${(frac * 100).toLocaleString('cs-CZ', { maximumFractionDigits: 0 })} %`
+// Defect shares need a decimal. The existing fmtPct rounds to whole numbers,
+// which printed 6.3% and 6.1% as "6 %" and "6 %" on consecutive rows — an
+// ordered list where two neighbours show the same figure reads as broken.
+const fmtShare = (frac: number) =>
+	`${(frac * 100).toLocaleString('cs-CZ', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`
 const fmtNum1 = (n: number) =>
 	n.toLocaleString('cs-CZ', {
 		minimumFractionDigits: 1,
@@ -486,7 +491,7 @@ const BrandModelStatsPage: React.FC = () => {
 												<div className='d-flex justify-content-between gap-3'>
 													<span>{d.text}</span>
 													<span className='text-muted-ink small text-nowrap'>
-														{fmtPct(d.share)}
+														{fmtShare(d.share)}
 													</span>
 												</div>
 											</li>
