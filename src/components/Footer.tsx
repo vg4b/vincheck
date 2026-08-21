@@ -200,6 +200,14 @@ const Footer: React.FC = () => {
 							</li>
 							<li className='mb-2'>
 								<Link
+									to='/statistiky/nejcasteji-kradene-vozy'
+									className='text-muted-ink text-decoration-none small'
+								>
+									Nejčastěji kradené vozy v ČR
+								</Link>
+							</li>
+							<li className='mb-2'>
+								<Link
 									to='/statistiky/vozy-na-lpg'
 									className='text-muted-ink text-decoration-none small'
 								>

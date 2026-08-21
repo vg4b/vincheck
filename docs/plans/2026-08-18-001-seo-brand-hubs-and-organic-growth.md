@@ -19,7 +19,7 @@ This plan is what to do with that budget and effort instead.
 | S5 drill-down | mostly | motorisations on 269 model pages, hub leads with brands, nav link added |
 | S3 defects on model pages | done | 763/764 cohorts; the aggregation added **8 minutes** to the rebuild (113 vs 105) |
 | S4 odometer study | **dropped** 2026-08-21 at the owner's decision |
-| S6 ranking pages | 4 of 5 live | theft ranking **withdrawn before shipping** — see below |
+| S6 ranking pages | 5 of 5 live | theft ranking rebuilt as S7 after the first was withdrawn |
 
 Rebuild takes **105 minutes** with the GROUPING SETS approach (132 before), and
 every unit that adds a column costs one — batch schema changes before running it.
@@ -188,12 +188,19 @@ The 2026-07-15 plan established that a registry × inspections join times out at
 array column, which is worse. `top_defects JSONB` on `stats_model`, filled by the
 monthly precompute; the page does an indexed single-row read as it does now.
 
-### KTD7 — The study reports patterns, not accusations
+### KTD7 — Rankings describe data, they do not accuse
 
-Odometer rollback is fraud, and naming models invites a defamation problem. The
-study publishes **aggregate percentages with the detection rule stated on the
-page**, a conservative threshold, and the word "nesrovnalost" rather than
-"podvod". No VIN, no seller, no dealer is ever named.
+Written for the odometer study (dropped 2026-08-21) and now governing the theft
+ranking, which raises the same problem in a sharper form: theft is a crime, and
+a page headed "most stolen cars" naming specific models is one bad number away
+from a defamation complaint.
+
+Every such page publishes **an aggregate rate with its method stated on the
+page**, a conservative floor on both numerator and denominator, and wording that
+describes the data rather than the owners or the thieves. No VIN, no seller, no
+dealer is ever named. Where the data cannot support the claim the headline would
+make, the page is not published — as happened to the first theft ranking, whose
+top entries rested on two events.
 
 ## Implementation Units
 
@@ -546,7 +553,31 @@ registry, which is the constraint that plan established in the first place.
 never a claim about a named model being "the thieves' favourite". A ranking is a
 description of data, not an accusation.
 
-### S7. Theft ranking, done properly — scoped 2026-08-21
+### S7. Theft ranking — BUILT 2026-08-21
+
+Shipped on the second attempt. Result, at a floor of 20 thefts and 5 000
+vehicles, 36 models qualifying:
+
+| | rate /1 000 | thefts | fleet |
+|---|---|---|---|
+| Fiat Ducato | **6.86** | 49 | 7 148 |
+| Toyota RAV4 | 1.51 | 50 | 33 023 |
+| VW Transporter | 1.48 | 46 | 31 135 |
+| … | | | |
+| Škoda Octavia | 0.76 | **677** | 885 648 |
+
+Vans and large SUVs, not the common hatchbacks — and Octavia, with by far the
+most thefts in absolute terms, ranks tenth. That gap is the entire argument for
+publishing a rate.
+
+Cost: **12 minutes** on the rebuild (125 against 113).
+
+The measured plan held: the pre-aggregated `_gone` temp table replaced the
+correlated LATERAL that would not finish in seven minutes, and the brand fold
+moved out of `_base` into `pg_temp.brand_fold` so both sides of the fraction key
+on the same canonical brand rather than on two copies of a sixteen-branch CASE.
+
+### S7 as originally scoped
 
 Replaces the withdrawn version. Feasibility measured rather than assumed.
 

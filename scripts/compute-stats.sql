@@ -23,6 +23,22 @@
 -- collide across eras (e.g. the 1960s Škoda Octavia and the modern one share the
 -- name "OCTAVIA"; blending them makes avg_age and median-km meaningless). A 30-year
 -- window keeps every published cohort commercially and statistically coherent.
+-- Theft window and the floor on its numerator. Five years holds ~6 745 thefts;
+-- at a floor of 20 that leaves 43 publishable models, at 30 it leaves 24. Below
+-- that a "rate" is two or three events wearing a decimal point.
+\if :{?theft_from}
+\else
+  \set theft_from '2021-01-01'
+\endif
+\if :{?theft_to}
+\else
+  \set theft_to '2026-01-01'
+\endif
+\if :{?theft_min}
+\else
+  \set theft_min 20
+\endif
+
 \if :{?max_age_years}
 \else
   \set max_age_years 30
@@ -104,6 +120,30 @@ END $$ LANGUAGE plpgsql IMMUTABLE;
 -- URL slug, character-for-character identical to slugSql() in api/_statsData.ts
 -- and slugify() in the same file. All three must agree or an emitted alias will
 -- point at a URL that does not resolve; there is a cross-check in the run notes.
+-- Brand-alias fold, as a function so the theft blocks below key on exactly the
+-- same canonical brand as _base. It used to be an inline CASE; duplicating
+-- sixteen WHEN clauses in a second place is how two lists drift apart.
+CREATE OR REPLACE FUNCTION pg_temp.brand_fold(b text) RETURNS text AS $bf$
+  SELECT CASE upper(btrim($1))
+  WHEN 'BMW I'                          THEN 'BMW'
+  WHEN 'CITROEN'                        THEN 'CITROËN'
+  WHEN 'TESLA MOTORS'                   THEN 'TESLA'
+  WHEN 'VW'                             THEN 'VOLKSWAGEN'
+  WHEN 'VOLKSWAGEN/FD SERVIS'           THEN 'VOLKSWAGEN'
+  WHEN 'FORD-CNG-TECHNIK'               THEN 'FORD'
+  WHEN 'ŠKODA OCTAVIA'                  THEN 'ŠKODA'
+  WHEN 'VAZ'                            THEN 'LADA'
+  WHEN 'LADA - VAZ'                     THEN 'LADA'
+  WHEN 'GM DAEWOO'                      THEN 'DAEWOO'
+  WHEN 'MCC'                            THEN 'SMART'
+  WHEN 'MICRO COMPACT CAR SMART'        THEN 'SMART'
+  WHEN 'KG MOBILITY'                    THEN 'SSANGYONG'
+  WHEN 'MERCEDES-AMG'                   THEN 'MERCEDES-BENZ'
+  WHEN 'AUTOMOBILI LAMBORGHINI S.P.A.'  THEN 'LAMBORGHINI'
+  ELSE btrim($1)
+  END
+$bf$ LANGUAGE sql IMMUTABLE;
+
 CREATE OR REPLACE FUNCTION pg_temp.slugify(s text) RETURNS text AS $slug$
   SELECT btrim(regexp_replace(
     translate(lower($1),
@@ -123,24 +163,7 @@ SELECT
   -- URLs indexed before a fold keep their ranking. Keep the two lists in sync:
   -- add/remove a redirect there whenever this CASE changes (skip folds whose
   -- source and target slugify identically, e.g. CITROEN -> CITROEN = "citroen").
-  CASE upper(btrim(tovarni_znacka))
-    WHEN 'BMW I'                          THEN 'BMW'
-    WHEN 'CITROEN'                        THEN 'CITROËN'
-    WHEN 'TESLA MOTORS'                   THEN 'TESLA'
-    WHEN 'VW'                             THEN 'VOLKSWAGEN'
-    WHEN 'VOLKSWAGEN/FD SERVIS'           THEN 'VOLKSWAGEN'
-    WHEN 'FORD-CNG-TECHNIK'               THEN 'FORD'
-    WHEN 'ŠKODA OCTAVIA'                  THEN 'ŠKODA'
-    WHEN 'VAZ'                            THEN 'LADA'
-    WHEN 'LADA - VAZ'                     THEN 'LADA'
-    WHEN 'GM DAEWOO'                      THEN 'DAEWOO'
-    WHEN 'MCC'                            THEN 'SMART'
-    WHEN 'MICRO COMPACT CAR SMART'        THEN 'SMART'
-    WHEN 'KG MOBILITY'                    THEN 'SSANGYONG'
-    WHEN 'MERCEDES-AMG'                   THEN 'MERCEDES-BENZ'
-    WHEN 'AUTOMOBILI LAMBORGHINI S.P.A.'  THEN 'LAMBORGHINI'
-    ELSE btrim(tovarni_znacka)
-  END                                                        AS brand,
+  pg_temp.brand_fold(tovarni_znacka)                          AS brand,
   -- Model-variant fold (see pg_temp.fold_model above): engine and drivetrain
   -- tokens are stripped so "OCTAVIA 1.9 TDI" and "OCTAVIA" are one cohort.
   -- Body styles are NOT folded — "A4 AVANT" is its own car. Measured effect on
@@ -458,23 +481,65 @@ GROUP BY brand, model;
 UPDATE stats_model m SET top_defects = d.top_defects
 FROM _defects d WHERE d.brand = m.brand AND d.model = m.model;
 
--- Theft rate per 1 000 registered vehicles.
+-- Theft rate: thefts in a fixed window over the fleet that existed during it.
 --
--- vehicle_deregistration carries 19 355 'Odcizeno' rows. Published as a RATE
--- because the raw count ranks by how common a car is: ŠKODA 6 162, VOLKSWAGEN
--- 1 070, FORD 920. stolen_count ships alongside so the page can show what the
--- rate is built on.
+-- Deliberately computed OUTSIDE _base. _base is restricted to
+-- status = 'PROVOZOVANÉ', and a stolen car gets deregistered — 17 924 of the
+-- 19 355 'Odcizeno' rows sit on VYŘAZENO Z PROVOZU vehicles, so joining through
+-- _base saw 4.4% of them and measured "stolen and still on the road", which is
+-- nearer a recovery rate. Both sides of the fraction come from vehicle_registry
+-- directly, with the same folds applied so the keys match published cohorts.
+CREATE TEMP TABLE _gone ON COMMIT DROP AS
+SELECT pcv, min(datum_od) AS gone
+FROM vehicle_deregistration
+WHERE duvod <> 'Odcizeno' AND datum_od IS NOT NULL
+GROUP BY pcv;
+CREATE INDEX ON _gone (pcv);
+
+-- Fleet at risk: registered before the window ended, not already deregistered
+-- for a non-theft reason when it began. A car deregistered mid-window counts as
+-- fully at risk — a simplification the page states rather than models away.
+--
+-- _gone is pre-aggregated on purpose. The obvious form, a correlated LATERAL
+-- against vehicle_deregistration for each of 19.3M registry rows, does not
+-- finish inside seven minutes; this is the shape _owners and _imp already use.
+CREATE TEMP TABLE _theft_fleet ON COMMIT DROP AS
+SELECT c.brand, c.canon AS model, count(*) AS fleet
+FROM vehicle_registry r
+LEFT JOIN _gone g USING (pcv)
+JOIN _canon c
+  ON c.brand = pg_temp.brand_fold(r.tovarni_znacka)
+ AND c.key = replace(pg_temp.slugify(pg_temp.fold_model(r.obchodni_oznaceni)), '-', '')
+WHERE r.kategorie_vozidla LIKE 'M1%'
+  AND r.datum_prvni_registrace < :'theft_to'
+  AND (g.gone IS NULL OR g.gone >= :'theft_from')
+GROUP BY 1, 2;
+
 CREATE TEMP TABLE _theft ON COMMIT DROP AS
-SELECT b.brand, b.model, count(*) AS stolen_count
-FROM _base b
-JOIN vehicle_deregistration d USING (pcv)
+SELECT c.brand, c.canon AS model, count(*) AS theft_count
+FROM vehicle_deregistration d
+JOIN vehicle_registry r USING (pcv)
+JOIN _canon c
+  ON c.brand = pg_temp.brand_fold(r.tovarni_znacka)
+ AND c.key = replace(pg_temp.slugify(pg_temp.fold_model(r.obchodni_oznaceni)), '-', '')
 WHERE d.duvod = 'Odcizeno'
+  AND d.datum_od >= :'theft_from' AND d.datum_od < :'theft_to'
 GROUP BY 1, 2;
 
 UPDATE stats_model m
-SET stolen_count = t.stolen_count,
-    stolen_per_1000 = round(1000.0 * t.stolen_count / nullif(m.vehicle_count, 0), 2)
-FROM _theft t WHERE t.brand = m.brand AND t.model = m.model;
+SET theft_count = t.theft_count,
+    theft_fleet = f.fleet,
+    -- NULL below the floor. Keeping the rate absent is what holds an
+    -- unpublishable figure off the ranking, rather than a WHERE clause in the
+    -- read layer that somebody could later drop.
+    theft_per_1000 = CASE
+      WHEN t.theft_count >= :theft_min AND f.fleet > 0
+        THEN round(1000.0 * t.theft_count / f.fleet, 2)
+      ELSE NULL
+    END
+FROM _theft t
+JOIN _theft_fleet f USING (brand, model)
+WHERE t.brand = m.brand AND t.model = m.model;
 
 -- Record every slug the fold or the canonicalisation retired, so api/stats.ts
 -- can 308 instead of 404. A row is emitted only when the spelling actually
