@@ -18,7 +18,7 @@ This plan is what to do with that budget and effort instead.
 | S2 crawl-time JSON-LD | done | Dataset + BreadcrumbList in raw HTML, one node after hydration |
 | S5 drill-down | mostly | motorisations on 269 model pages, hub leads with brands, nav link added |
 | S3 defects on model pages | done | 763/764 cohorts; the aggregation added **8 minutes** to the rebuild (113 vs 105) |
-| S4 odometer study | not started | independent of everything above |
+| S4 odometer study | **dropped** 2026-08-21 at the owner's decision |
 | S6 ranking pages | 4 of 5 live | theft ranking **withdrawn before shipping** — see below |
 
 Rebuild takes **105 minutes** with the GROUPING SETS approach (132 before), and
@@ -546,7 +546,52 @@ registry, which is the constraint that plan established in the first place.
 never a claim about a named model being "the thieves' favourite". A ranking is a
 description of data, not an accusation.
 
-### Withdrawn: the theft ranking
+### S7. Theft ranking, done properly — scoped 2026-08-21
+
+Replaces the withdrawn version. Feasibility measured rather than assumed.
+
+**The numerator works.** Theft records carry dates (`datum_od`, 1993→2026) and
+run ~1 400 a year, so a five-year window (2021-2025) holds ~6 745 thefts. With
+the cohort fold applied:
+
+| minimum thefts | models qualifying |
+|---|---|
+| 10 | 104 |
+| **20** | **43** |
+| 30 | 24 |
+| 50 | 12 |
+
+A floor of 20-30 leaves a publishable list. This is the numerator guard the
+first attempt lacked, where the top entries rested on two events.
+
+**The denominator is the work.** "Fleet at risk during the window" =
+vehicles registered before the window ended and not already deregistered when it
+began — computable, and it must be built outside the `PROVOZOVANÉ` filter, which
+is what broke v1. Measured: **12.9 M vehicles, 3m20s** as a single count.
+
+**But grouped by model it times out at 7 minutes.** The naive form uses a
+correlated `LATERAL` against `vehicle_deregistration` for each of 19.3 M registry
+rows. The fix is the pattern this script already uses for `_owners` and `_imp`:
+pre-aggregate the deregistration dates into an indexed temp table, then
+`LEFT JOIN`. Tractable, but it is optimisation work, not a copy-paste.
+
+**Effort: roughly half a day hands-on, plus one unattended rebuild.**
+
+| | |
+|---|---|
+| SQL block (numerator, denominator, floor) incl. the optimisation above | 1.5-2 h |
+| Migration 011 — the existing `stolen_per_1000` has the wrong semantics and should be replaced, not reused | 15 min |
+| Fixture test, specifically that a *deregistered* stolen car is counted | 30 min |
+| Ranking definition and honest page copy | 20 min |
+| Verify and deploy | 30 min |
+| Rebuild | ~2 h unattended |
+
+**Risks worth naming before starting.** A car deregistered mid-window is counted
+as fully at risk, which slightly understates rates — a simplification to state on
+the page rather than model away. And KTD7 still governs the copy: publish the
+rate and the method, never a claim that a named model is a thieves' favourite.
+
+### Withdrawn: the theft ranking (v1)
 
 Built, computed, and pulled before it went live (2026-08-21). Recorded because
 the failure is not obvious from the query, which looks correct.
