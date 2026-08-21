@@ -430,6 +430,12 @@ export type RankingDef = {
 	/** Shown beside each row so the reader can judge the number. */
 	contextColumn: string
 	contextLabel: string
+	/** How the context value renders — same distinction as `unit`. */
+	contextUnit: 'pct' | 'fraction' | 'count'
+	/** Column header for the ranked value, so a bare "4,7 %" is not left to
+	 *  guesswork. The first version shipped without these and a reader had no
+	 *  way to tell a failure rate from a share of anything else. */
+	valueLabel: string
 }
 
 // NOT PUBLISHED: the theft ranking, withdrawn 2026-08-21 before it ever shipped.
@@ -460,7 +466,9 @@ export const RANKINGS: RankingDef[] = [
 		minValue: 2000,
 		unit: 'pct',
 		contextColumn: 'stk_inspections',
-		contextLabel: 'prohlídek'
+		contextLabel: 'prohlídek',
+		contextUnit: 'count',
+		valueLabel: 'závadných prohlídek'
 	},
 	{
 		slug: 'nejspolehlivejsi-vozy',
@@ -472,7 +480,9 @@ export const RANKINGS: RankingDef[] = [
 		minValue: 2000,
 		unit: 'pct',
 		contextColumn: 'stk_inspections',
-		contextLabel: 'prohlídek'
+		contextLabel: 'prohlídek',
+		contextUnit: 'count',
+		valueLabel: 'závadných prohlídek'
 	},
 	{
 		slug: 'nejrozsirenejsi-vozy',
@@ -484,7 +494,9 @@ export const RANKINGS: RankingDef[] = [
 		minValue: 0,
 		unit: 'count',
 		contextColumn: 'stk_fail_pct',
-		contextLabel: '% poruchovost'
+		contextLabel: 'poruchovost STK',
+		contextUnit: 'pct',
+		valueLabel: 'vozidel v provozu'
 	},
 	{
 		slug: 'vozy-na-lpg',
@@ -496,7 +508,9 @@ export const RANKINGS: RankingDef[] = [
 		minValue: 2000,
 		unit: 'fraction',
 		contextColumn: 'vehicle_count',
-		contextLabel: 'vozidel'
+		contextLabel: 'vozidel',
+		contextUnit: 'count',
+		valueLabel: 'přestavěno na plyn'
 	}
 ]
 

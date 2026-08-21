@@ -11,7 +11,7 @@ const Footer: React.FC = () => {
 			<div className='container py-5'>
 				<div className='row g-4'>
 					{/* Brand & Description */}
-					<div className='col-12 col-md-6 col-lg-3'>
+					<div className='col-12 col-md-6 col-lg'>
 						<div className='mb-3 d-flex align-items-center gap-2'>
 							<BrandMark width={44} height={28} color='var(--brand-600)' />
 							<h5 className='fw-bold mb-0'>
@@ -94,7 +94,7 @@ const Footer: React.FC = () => {
 					</div>
 
 					{/* Navigation */}
-					<div className='col-12 col-md-6 col-lg-3'>
+					<div className='col-12 col-md-6 col-lg'>
 						<h6 className='fw-bold mb-3'>
 							<span className='heading-accent'>Navigace</span>
 						</h6>
@@ -166,8 +166,51 @@ const Footer: React.FC = () => {
 						</ul>
 					</div>
 
+					{/* Statistics. Site-wide links into the section Google under-crawls:
+					    every page now carries an inbound link to each ranking, and each
+					    ranking points out at 30 model pages. */}
+					<div className='col-12 col-md-6 col-lg'>
+						<h6 className='fw-bold mb-3'>
+							<span className='heading-accent'>Statistiky vozů</span>
+						</h6>
+						<ul className='list-unstyled mb-0'>
+							<li className='mb-2'>
+								<Link
+									to='/statistiky/nejporuchovejsi-vozy'
+									className='text-muted-ink text-decoration-none small'
+								>
+									Vozy s nejvyšší poruchovostí při STK
+								</Link>
+							</li>
+							<li className='mb-2'>
+								<Link
+									to='/statistiky/nejspolehlivejsi-vozy'
+									className='text-muted-ink text-decoration-none small'
+								>
+									Vozy s nejnižší poruchovostí při STK
+								</Link>
+							</li>
+							<li className='mb-2'>
+								<Link
+									to='/statistiky/nejrozsirenejsi-vozy'
+									className='text-muted-ink text-decoration-none small'
+								>
+									Nejrozšířenější vozy v ČR
+								</Link>
+							</li>
+							<li className='mb-2'>
+								<Link
+									to='/statistiky/vozy-na-lpg'
+									className='text-muted-ink text-decoration-none small'
+								>
+									Vozy nejčastěji přestavěné na LPG nebo CNG
+								</Link>
+							</li>
+						</ul>
+					</div>
+
 					{/* Related services */}
-					<div className='col-12 col-md-6 col-lg-3'>
+					<div className='col-12 col-md-6 col-lg'>
 						<h6 className='fw-bold mb-3'>
 							<span className='heading-accent'>Další služby</span>
 						</h6>
@@ -226,7 +269,7 @@ const Footer: React.FC = () => {
 					</div>
 
 					{/* Disclaimer */}
-					<div className='col-12 col-md-6 col-lg-3'>
+					<div className='col-12 col-md-6 col-lg'>
 						<h6 className='fw-bold mb-3'>
 							<span className='heading-accent'>Upozornění</span>
 						</h6>

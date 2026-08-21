@@ -16,6 +16,8 @@ type RankingDef = {
 	lede: string
 	unit: 'pct' | 'fraction' | 'count'
 	contextLabel: string
+	contextUnit: 'pct' | 'fraction' | 'count'
+	valueLabel: string
 	minValue: number
 	minColumn: string
 }
@@ -110,7 +112,23 @@ const RankingPage: React.FC = () => {
 						<h1 className='h3 mb-2'>{def.title}</h1>
 						<p className='text-muted-ink'>{def.lede}</p>
 
-						<ol className='list-unstyled mt-4 mb-3'>
+						{/* Column headers. Without them the list showed "701 130" and
+						    "4,7 %" side by side with nothing to say what either was. */}
+						<div className='d-flex align-items-baseline gap-2 border-bottom pb-1 mt-4 small text-muted-ink'>
+							<span style={{ minWidth: '1.8rem' }} />
+							<span className='flex-grow-1'>Model</span>
+							<span className='text-nowrap fw-semibold'>{def.valueLabel}</span>
+							{rows.some((r) => r.context !== null) && (
+								<span
+									className='text-nowrap d-none d-sm-inline'
+									style={{ minWidth: '9rem', textAlign: 'right' }}
+								>
+									{def.contextLabel}
+								</span>
+							)}
+						</div>
+
+						<ol className='list-unstyled mb-3'>
 							{rows.map((r, i) => (
 								<li
 									key={`${r.brandSlug}-${r.modelSlug}`}
@@ -134,9 +152,11 @@ const RankingPage: React.FC = () => {
 											className='small text-muted-ink text-nowrap d-none d-sm-inline'
 											style={{ minWidth: '9rem', textAlign: 'right' }}
 										>
-											{def.unit === 'count'
+											{def.contextUnit === 'pct'
 												? fmtPct(r.context)
-												: `${fmtInt(r.context)} ${def.contextLabel}`}
+												: def.contextUnit === 'fraction'
+													? fmtPct(r.context * 100)
+													: fmtInt(r.context)}
 										</span>
 									)}
 								</li>
@@ -146,9 +166,17 @@ const RankingPage: React.FC = () => {
 						{/* The floor is stated, not hidden: a rate over a handful of cars
 						    is noise, and a reader who cannot see the denominator has no
 						    way to judge the number. */}
+						{/* Only where a floor actually applies: the "most common cars"
+						    ranking has none, and printing "alespoň 0" made the caption
+						    read as a bug. */}
 						<p className='small text-muted-ink'>
-							Do žebříčku se dostanou jen modely s dostatečným počtem záznamů
-							(alespoň {fmtInt(def.minValue)}), aby procento něco znamenalo.
+							{def.minValue > 0 && (
+								<>
+									Do žebříčku se dostanou jen modely s dostatečným počtem
+									záznamů (alespoň {fmtInt(def.minValue)}), aby procento něco
+									znamenalo.{' '}
+								</>
+							)}
 							Údaje pocházejí z registru silničních vozidel ČR a z evidence
 							technických prohlídek.
 						</p>

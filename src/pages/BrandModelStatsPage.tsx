@@ -466,7 +466,7 @@ const BrandModelStatsPage: React.FC = () => {
 
 						{stats.fuelSplit && (
 							<section className='border-top pt-3 mt-4'>
-								<h2 className='h5 mb-3'>Palivo</h2>
+								<h2 className='h5 mb-3'>Palivo podle registru</h2>
 								<SplitBars split={stats.fuelSplit} limit={6} />
 							</section>
 						)}
@@ -475,6 +475,17 @@ const BrandModelStatsPage: React.FC = () => {
 							<section className='border-top pt-3 mt-4'>
 								<h2 className='h5'>Výbava a úpravy</h2>
 								<p>Registr eviduje {eqBits.join(' a ')}.</p>
+								{/* This share and the LPG row above are different measurements
+								    and will not match: one counts an equipment record across
+								    every vehicle, the other counts registered fuel across
+								    vehicles whose fuel is known. Two numbers that disagree
+								    without explanation read as an error. */}
+								<p className='small text-muted-ink mb-0'>
+									Podíl přestaveb je z evidence výbavy a počítá se ze všech vozů
+									modelu. Podíl paliva výše vychází z registrovaného typu paliva
+									a jen z vozů, u kterých je palivo uvedené — obě čísla proto
+									nemusí sedět.
+								</p>
 							</section>
 						)}
 
