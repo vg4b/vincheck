@@ -129,16 +129,6 @@ const Navigation: React.FC = () => {
 							</Link>
 						</li>
 
-						<li className='nav-item'>
-							<Link
-								className={navLinkClass('/kompletni-historie-vozu')}
-								to='/kompletni-historie-vozu'
-								onClick={closeMenu}
-							>
-								Historie vozu
-							</Link>
-						</li>
-
 						{/* /znacky had no entry point from anywhere on the site, which is
 						    part of why 2 180 of its urls were discovered and never
 						    crawled. A site-wide link is the cheapest fix available. */}
@@ -169,7 +159,8 @@ const Navigation: React.FC = () => {
 							<a
 								className={`nav-link px-2 rounded dropdown-toggle text-nowrap ${
 									isActive('/povinne-ruceni') ||
-									isActive('/havarijni-pojisteni')
+									isActive('/havarijni-pojisteni') ||
+									isActive('/kompletni-historie-vozu')
 										? 'active'
 										: ''
 								}`}
@@ -182,6 +173,15 @@ const Navigation: React.FC = () => {
 								Rádce
 							</a>
 							<ul className='dropdown-menu dropdown-menu-end shadow-sm border-0'>
+								<li>
+									<Link
+										className={`dropdown-item ${isActive('/kompletni-historie-vozu') ? 'active' : ''}`}
+										to='/kompletni-historie-vozu'
+										onClick={closeMenu}
+									>
+										Historie vozu
+									</Link>
+								</li>
 								<li>
 									<Link
 										className={`dropdown-item ${isActive('/povinne-ruceni') ? 'active' : ''}`}
