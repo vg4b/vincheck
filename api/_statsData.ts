@@ -390,3 +390,132 @@ export async function getAllPublishedBrands(): Promise<
 		throw e
 	}
 }
+
+/**
+ * The published ranking pages.
+ *
+ * Every entry is a RATE or an absolute the reader actually asked for, never a
+ * raw count that just re-sorts the population. A "most stolen cars" list built
+ * on counts reads ŠKODA 6 162 / VOLKSWAGEN 1 070 / FORD 920 — which is a list of
+ * common cars, not stolen ones. Hence `minColumn`/`minValue`: a rate over a
+ * small denominator is noise, and publishing it invites a correction.
+ */
+export type RankingDef = {
+	slug: string
+	title: string
+	/** One sentence explaining what the number means, shown under the heading. */
+	lede: string
+	/** Column ranked on, and which way. */
+	column: string
+	direction: 'DESC' | 'ASC'
+	/** Denominator guard: rows below this are excluded, not shown small. */
+	minColumn: string
+	minValue: number
+	/**
+	 * How the value renders. The distinction matters: stk_fail_pct is stored
+	 * 0..100 while pct_lpg is stored 0..1, so treating both as 'pct' would print
+	 * a 17.2 % LPG share as "0.2 %".
+	 */
+	unit: 'pct' | 'fraction' | 'count'
+	/** Shown beside each row so the reader can judge the number. */
+	contextColumn: string
+	contextLabel: string
+}
+
+export const RANKINGS: RankingDef[] = [
+	{
+		slug: 'nejporuchovejsi-vozy',
+		title: 'Vozy s nejvyšší poruchovostí při STK',
+		lede: 'Podíl technických prohlídek, které skončily závadou. Počítáno z evidovaných prohlídek, ne z odhadů.',
+		column: 'stk_fail_pct',
+		direction: 'DESC',
+		minColumn: 'stk_inspections',
+		minValue: 2000,
+		unit: 'pct',
+		contextColumn: 'stk_inspections',
+		contextLabel: 'prohlídek'
+	},
+	{
+		slug: 'nejspolehlivejsi-vozy',
+		title: 'Vozy s nejnižší poruchovostí při STK',
+		lede: 'Tytéž údaje z opačného konce: modely, které na technické prohlídce propadají nejméně často.',
+		column: 'stk_fail_pct',
+		direction: 'ASC',
+		minColumn: 'stk_inspections',
+		minValue: 2000,
+		unit: 'pct',
+		contextColumn: 'stk_inspections',
+		contextLabel: 'prohlídek'
+	},
+	{
+		slug: 'nejrozsirenejsi-vozy',
+		title: 'Nejrozšířenější vozy na českých silnicích',
+		lede: 'Počet provozovaných vozidel podle registru silničních vozidel ČR.',
+		column: 'vehicle_count',
+		direction: 'DESC',
+		minColumn: 'vehicle_count',
+		minValue: 0,
+		unit: 'count',
+		contextColumn: 'stk_fail_pct',
+		contextLabel: '% poruchovost'
+	},
+	{
+		slug: 'vozy-na-lpg',
+		title: 'Vozy nejčastěji přestavěné na LPG nebo CNG',
+		lede: 'Podíl vozidel daného modelu s evidovanou přestavbou na plyn.',
+		column: 'pct_lpg',
+		direction: 'DESC',
+		minColumn: 'vehicle_count',
+		minValue: 2000,
+		unit: 'fraction',
+		contextColumn: 'vehicle_count',
+		contextLabel: 'vozidel'
+	}
+]
+
+export type RankingRow = {
+	brand: string
+	model: string
+	brandSlug: string
+	modelSlug: string
+	value: number
+	context: number | null
+}
+
+/** One ranking's rows. Reads the precomputed table, so this is a 764-row sort. */
+export async function getRanking(
+	def: RankingDef,
+	limit = 30
+): Promise<RankingRow[]> {
+	const p = getPool()
+	if (!p) return []
+	try {
+		// Column names come from RANKINGS above, never from the request — the slug
+		// is matched against that list first, so nothing user-supplied is
+		// interpolated here.
+		const { rows } = await p.query(
+			`SELECT brand, model,
+			        ${slugSql('brand')} AS brand_slug,
+			        ${slugSql('model')} AS model_slug,
+			        ${def.column} AS value,
+			        ${def.contextColumn} AS context
+			 FROM stats_model
+			 WHERE ${def.column} IS NOT NULL AND ${def.minColumn} >= $1
+			 ORDER BY ${def.column} ${def.direction}
+			 LIMIT $2`,
+			[def.minValue, limit]
+		)
+		return rows.map((r) => ({
+			brand: String(r.brand),
+			model: String(r.model),
+			brandSlug: String(r.brand_slug),
+			modelSlug: String(r.model_slug),
+			value: Number(r.value),
+			context: r.context === null ? null : Number(r.context)
+		}))
+	} catch (e: unknown) {
+		const code = (e as { code?: string })?.code
+		if (code === '42P01' || code === '42501') return []
+		throw e
+	}
+}

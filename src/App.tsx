@@ -18,6 +18,7 @@ import LoginPage from './pages/LoginPage'
 import PlatbaPage from './pages/PlatbaPage'
 import PovinneRuceniPage from './pages/PovinneRuceniPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
+import RankingPage from './pages/RankingPage'
 import RegisterPage from './pages/RegisterPage'
 import SjednatPojisteniPage from './pages/SjednatPojisteniPage'
 import TermsPage from './pages/TermsPage'
@@ -64,6 +65,7 @@ function App() {
 				/>
 				<Route path='/firma' element={<FleetSearchPage />} />
 				<Route path='/firma/:ico' element={<FleetPage />} />
+				<Route path='/statistiky/:slug' element={<RankingPage />} />
 				<Route path='/znacky' element={<ZnackyHubPage />} />
 				<Route path='/znacky/:brand' element={<BrandStatsPage />} />
 				<Route path='/znacky/:brand/:model' element={<BrandModelStatsPage />} />

@@ -144,7 +144,9 @@ const Navigation: React.FC = () => {
 						    crawled. A site-wide link is the cheapest fix available. */}
 						<li className='nav-item'>
 							<Link
-								className={navLinkClass('/znacky')}
+								className={`nav-link px-2 rounded text-nowrap ${
+									isActive('/znacky') || isActive('/statistiky') ? 'active' : ''
+								}`}
 								to='/znacky'
 								onClick={closeMenu}
 							>
