@@ -26,6 +26,21 @@ type IndexBrand = {
 	modelCount: number
 }
 
+// Mirrors RANKINGS in api/_statsData.ts. Kept static so the hub renders its
+// links without a second request; if a ranking is added there, add it here too.
+const RANKING_LINKS = [
+	{
+		slug: 'nejporuchovejsi-vozy',
+		title: 'Vozy s nejvyšší poruchovostí při STK'
+	},
+	{
+		slug: 'nejspolehlivejsi-vozy',
+		title: 'Vozy s nejnižší poruchovostí při STK'
+	},
+	{ slug: 'nejrozsirenejsi-vozy', title: 'Nejrozšířenější vozy v ČR' },
+	{ slug: 'vozy-na-lpg', title: 'Vozy nejčastěji přestavěné na LPG nebo CNG' }
+]
+
 type LoadState = 'loading' | 'ok' | 'error'
 
 const ZnackyHubPage: React.FC = () => {
@@ -140,6 +155,19 @@ const ZnackyHubPage: React.FC = () => {
 							@media (min-width:992px){.znacky-cols{column-count:3}}
 							.znacky-brand{break-inside:avoid;-webkit-column-break-inside:avoid;display:inline-block;width:100%;margin-bottom:1.5rem}
 						`}</style>
+						{/* Ranking pages first: they are the entry point that earns links
+						    and each one points out at 30 model pages. */}
+						<section className='mb-4'>
+							<h2 className='h5 mb-3'>Žebříčky</h2>
+							<ul className='list-unstyled mb-0'>
+								{RANKING_LINKS.map((r) => (
+									<li key={r.slug} className='mb-1'>
+										<Link to={`/statistiky/${r.slug}`}>{r.title}</Link>
+									</li>
+								))}
+							</ul>
+						</section>
+
 						{/* Brands lead. The full model list stays below, because 764
 						    internal links are how the model pages get discovered at all —
 						    it just stops being the first thing a visitor meets. */}

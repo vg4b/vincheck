@@ -20,8 +20,12 @@ import {
 	getModelIndex,
 	getModelStatsBySlug,
 	getModelsForBrand,
+	getRanking,
 	type IndexModel,
 	type ModelStats,
+	RANKINGS,
+	type RankingDef,
+	type RankingRow,
 	resolveModelAlias
 } from './_statsData'
 
@@ -356,6 +360,68 @@ function renderBrandPage(
 	}
 }
 
+// Render /statistiky/:slug. The ranking definition is looked up in RANKINGS by
+// slug, so an unknown slug is a clean 404 rather than an attempt to sort by a
+// column somebody put in the URL.
+function renderRankingPage(
+	def: RankingDef | undefined,
+	rows: RankingRow[],
+	lookupFailed: boolean,
+	slug: string,
+	base: string
+): { status: number; body: string; cacheControl: string } {
+	const shell = readShell()
+	const canonical = `${base}/statistiky/${slug}`
+
+	if (def && (rows.length > 0 || lookupFailed)) {
+		const description = `${def.lede} Žebříček ${fmtInt(rows.length)} modelů z registru silničních vozidel ČR.`
+		const opts: HeadOpts = {
+			title: `${def.title} | VIN Info.cz`,
+			description,
+			canonical,
+			robots: 'index, follow',
+			og: { title: def.title, description, url: canonical },
+			jsonLd: [
+				{
+					'@context': 'https://schema.org',
+					'@type': 'ItemList',
+					name: def.title,
+					description: def.lede,
+					url: canonical,
+					numberOfItems: rows.length,
+					itemListElement: rows.slice(0, 10).map((r, i) => ({
+						'@type': 'ListItem',
+						position: i + 1,
+						name: `${titleCase(r.brand)} ${titleCase(r.model)}`,
+						url: `${base}/znacky/${r.brandSlug}/${r.modelSlug}`
+					}))
+				},
+				breadcrumb(base, [
+					{ name: 'Statistiky', url: '/statistiky' },
+					{ name: def.title, url: `/statistiky/${slug}` }
+				])
+			]
+		}
+		return {
+			status: 200,
+			body: shell ? injectHead(shell, opts) : minimalDoc(opts),
+			cacheControl: lookupFailed
+				? 'no-store'
+				: 'public, s-maxage=86400, stale-while-revalidate=604800'
+		}
+	}
+
+	const opts: HeadOpts = {
+		title: 'Stránka nenalezena | VIN Info.cz',
+		robots: 'noindex'
+	}
+	return {
+		status: 404,
+		body: shell ? injectHead(shell, opts) : minimalDoc(opts),
+		cacheControl: 'public, s-maxage=3600'
+	}
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
 	// GET serves; HEAD is answered like GET but with headers only (below), so the
 	// /znacky/* pages this handler now renders stay HEAD-able for crawlers, uptime
@@ -399,7 +465,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 			const lastmod = b.lastmod ? `<lastmod>${b.lastmod}</lastmod>` : ''
 			return `  <url><loc>${loc}</loc>${lastmod}<changefreq>monthly</changefreq></url>`
 		})
+		// Ranking pages sit right after the hub: few urls, high link value, and
+		// each one points out at 30 model pages.
+		const rankingUrls = RANKINGS.map(
+			(r) =>
+				`  <url><loc>${xmlEscape(`${base}/statistiky/${r.slug}`)}</loc><changefreq>monthly</changefreq></url>`
+		)
 		const urls = [hubUrl]
+			.concat(rankingUrls)
 			.concat(brandUrls)
 			.concat(
 				models.map((m) => {
@@ -420,6 +493,62 @@ ${urls}
 		)
 		if (headOnly) return res.status(200).end()
 		return res.status(200).send(xml)
+	}
+
+	if (type === 'ranking' || type === 'rankingjson') {
+		const slug = q(req.query.slug)
+		const def = RANKINGS.find((r) => r.slug === slug)
+		let rows: RankingRow[] = []
+		let lookupFailed = false
+		if (def) {
+			try {
+				rows = await getRanking(def)
+			} catch (e) {
+				console.error('ranking lookup failed:', (e as Error)?.message)
+				lookupFailed = true
+			}
+		}
+
+		if (type === 'rankingjson') {
+			if (!def) {
+				res.setHeader('Cache-Control', 'public, s-maxage=3600')
+				if (headOnly) return res.status(404).end()
+				return res.status(404).json({ error: 'not_found' })
+			}
+			res.setHeader(
+				'Cache-Control',
+				'public, s-maxage=86400, stale-while-revalidate=604800'
+			)
+			if (headOnly) return res.status(200).end()
+			return res.status(200).json({ def, rows })
+		}
+
+		const { status, body, cacheControl } = renderRankingPage(
+			def,
+			rows,
+			lookupFailed,
+			slug,
+			baseUrl()
+		)
+		res.setHeader('Content-Type', 'text/html; charset=utf-8')
+		res.setHeader('Cache-Control', cacheControl)
+		if (headOnly) return res.status(status).end()
+		return res.status(status).send(body)
+	}
+
+	if (type === 'rankingindex') {
+		res.setHeader(
+			'Cache-Control',
+			'public, s-maxage=86400, stale-while-revalidate=604800'
+		)
+		if (headOnly) return res.status(200).end()
+		return res.status(200).json({
+			rankings: RANKINGS.map((r) => ({
+				slug: r.slug,
+				title: r.title,
+				lede: r.lede
+			}))
+		})
 	}
 
 	if (type === 'brand' || type === 'brandjson') {
