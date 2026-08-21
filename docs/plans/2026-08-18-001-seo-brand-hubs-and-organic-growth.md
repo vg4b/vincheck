@@ -19,6 +19,7 @@ This plan is what to do with that budget and effort instead.
 | S5 drill-down | mostly | motorisations on 269 model pages, hub leads with brands, nav link added |
 | S3 defects on model pages | not started | needs `top_defects` + another rebuild; full-pass cost unmeasured |
 | S4 odometer study | not started | independent of everything above |
+| S6 ranking pages | not started | scoped in the 2026-07-15 plan, dropped from this one, restored 2026-08-21 |
 
 Rebuild takes **105 minutes** with the GROUPING SETS approach (132 before), and
 every unit that adds a column costs one — batch schema changes before running it.
@@ -502,6 +503,49 @@ siblings are currently served by discussion forums with anecdotes. This answers
 them from 138.8 M real inspection defects. It multiplies the *depth* of 2 274
 existing pages rather than adding thin new ones.
 
+### S6. Ranking pages — the listicles this plan dropped
+
+*Depends on: S0a/S0b (done). Independent of everything else.*
+
+**This was scoped and then lost.** `docs/plans/2026-07-15-001-aggregate-seo-pages.md`
+listed "shareable ranking lists" in its first paragraph and named the routes at
+its line 161: `/statistiky/nejporuchovejsi-vozy`, `/nejcastejsi-vozy`,
+`/vozy-na-lpg`. Writing the 2026-08-18 plan I carried over the hubs, the model
+pages and the study, and silently left the rankings behind. Raised by the owner
+2026-08-21.
+
+They belong here for the same reason the hubs do: a ranking page is one URL that
+earns links and links *out* to dozens of model pages, which is exactly the
+internal-linking shape the crawl data says is missing.
+
+**Data confirmed available 2026-08-21:**
+
+| Page | Source | Status |
+|---|---|---|
+| Nejporuchovější / nejspolehlivější vozy | `stats_model.stk_fail_pct` | already computed — the page is `ORDER BY` |
+| Nejčastěji stáčené vozy | odometer readings (S4's rule) | needs S4's detection first |
+| Nejčastěji kradené vozy | `vehicle_deregistration.duvod = 'Odcizeno'` | 19 355 records, joins to brand/model, returns in seconds |
+| Vozy na LPG/CNG | `stats_model.pct_lpg` | already computed |
+| Nejrozšířenější vozy | `stats_model.vehicle_count` | already computed |
+
+**Rates, not counts — this is the whole design.** A raw theft ranking reads
+ŠKODA 6 162, VOLKSWAGEN 1 070, FORD 920, which is not a list of stolen cars but a
+list of *common* cars. Every ranking here must divide by the registered
+population and carry a minimum-denominator floor, or the page says nothing and
+invites a correction. The same trap applies to defects and to rollbacks.
+
+**One route, not one function per page** (the 12-function cap): `/statistiky/:slug`
+rewritten to `api/stats.ts` with a `type=ranking` discriminator, exactly as the
+brand hubs work.
+
+**Ranking snapshots go in a table.** The 2026-07-15 plan already proposed
+`stats_meta` for this. Computing a ranking at request time means scanning the
+registry, which is the constraint that plan established in the first place.
+
+**KTD7 applies to theft as it does to rollbacks:** publish rates and the method,
+never a claim about a named model being "the thieves' favourite". A ranking is a
+description of data, not an accusation.
+
 ### S4. Data study: odometer inconsistencies
 
 *Depends on: **nothing** — needs only the odometer readings already ingested, not
@@ -646,7 +690,9 @@ S3 (defect content) ─┘  heaviest precompute; measure the full pass off-peak
 ```
 
 Recommended order, revised after the 2026-08-19 baseline:
-**S0a → S0b-fold → S1 → S5 → S0b-floor → S3 → S2 → S4**.
+**S0a → S0b-fold → S1 → S5 → S0b-floor → S3 → S2 → S6 → S4**.
+
+S6 sits before S4 because two of its five pages need no new data at all.
 
 S0a leads because the fold inherits its noise otherwise. S5 lands after
 the hubs because the drill-down needs them to exist, and before the floor
