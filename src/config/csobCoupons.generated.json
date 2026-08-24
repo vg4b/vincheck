@@ -1,0 +1,56 @@
+[
+	{
+		"id": "13465",
+		"label": "Sleva 20 % na autopojištění při online sjednání",
+		"shortLabel": "20 % autopojištění",
+		"url": "https://ehub.cz/system/scripts/click.php?a_aid=9a3cbf23&a_bid=f5e0f8fb&desturl=https%3A%2F%2Fwww.csobpoj.cz%2Fpojisteni%2Fpojisteni-vozidel",
+		"validFrom": "2026-08-01",
+		"validTo": "2026-08-31",
+		"sortOrder": 0
+	},
+	{
+		"id": "13284",
+		"label": "Elektronická poukázka EuroOil v hodnotě 1 000 Kč k autopojištění",
+		"shortLabel": "Poukázka EuroOil 1 000 Kč",
+		"url": "https://ehub.cz/system/scripts/click.php?a_aid=9a3cbf23&a_bid=f5e0f8fb&desturl=https%3A%2F%2Fwww.csobpoj.cz%2Fpojisteni%2Fpojisteni-vozidel",
+		"validFrom": "2026-07-01",
+		"validTo": "2026-09-30",
+		"sortOrder": 1
+	},
+	{
+		"id": "13467",
+		"label": "Sleva 20 % na cestovní pojištění při online sjednání",
+		"shortLabel": "20 % cestovní",
+		"url": "https://ehub.cz/system/scripts/click.php?a_aid=9a3cbf23&a_bid=f5e0f8fb&desturl=https%3A%2F%2Fwww.csobpoj.cz%2Fpojisteni%2Fcestovni-pojisteni",
+		"validFrom": "2026-08-01",
+		"validTo": "2026-08-31",
+		"sortOrder": 2
+	},
+	{
+		"id": "13134",
+		"label": "Dárek k cestovnímu pojištění - e-kniha zdarma",
+		"shortLabel": "E-kniha zdarma",
+		"url": "https://ehub.cz/system/scripts/click.php?a_aid=9a3cbf23&a_bid=f5e0f8fb",
+		"validFrom": "2026-06-01",
+		"validTo": "2026-09-30",
+		"sortOrder": 3
+	},
+	{
+		"id": "13464",
+		"label": "Sleva 10 % na pojištění odpovědnosti při online sjednání",
+		"shortLabel": "10 % odpovědnost",
+		"url": "https://ehub.cz/system/scripts/click.php?a_aid=9a3cbf23&a_bid=f5e0f8fb&desturl=https%3A%2F%2Fwww.csobpoj.cz%2Fpojisteni%2Fpojisteni-odpovednosti",
+		"validFrom": "2026-08-01",
+		"validTo": "2026-08-31",
+		"sortOrder": 4
+	},
+	{
+		"id": "13466",
+		"label": "Sleva 10 % na pojištění majetku při online sjednání",
+		"shortLabel": "10 % majetek",
+		"url": "https://ehub.cz/system/scripts/click.php?a_aid=9a3cbf23&a_bid=f5e0f8fb&desturl=https%3A%2F%2Fwww.csobpoj.cz%2Fpojisteni%2Fpojisteni-majetku",
+		"validFrom": "2026-08-01",
+		"validTo": "2026-08-31",
+		"sortOrder": 5
+	}
+]

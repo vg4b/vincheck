@@ -761,10 +761,10 @@ const HomePage: React.FC = () => {
 														</small>
 													</li>
 													<li className='mb-2'>
-														<strong>💰 Srovnání pojištění</strong>
+														<strong>💰 Sjednání pojištění</strong>
 														<br />
 														<small className='text-muted'>
-															Rychlý přístup k výhodným nabídkám pojištění
+															Povinné ručení i havarijní pojištění online
 														</small>
 													</li>
 													<li className='mb-2'>

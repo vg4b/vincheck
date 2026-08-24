@@ -1,0 +1,79 @@
+{
+	"id": "174174d6",
+	"name": "ČSOB Pojišťovna",
+	"cookieLifetime": 15,
+	"maxApprovalInterval": 50,
+	"defaultLink": "https://ehub.cz/system/scripts/click.php?a_aid=9a3cbf23&a_bid=f5e0f8fb",
+	"restrictedWords": "csob, csobpoj, csob pojistovna, csob group, csob.cz, csbopoj.cz",
+	"commissions": [
+		{
+			"key": "(default)",
+			"type": "PPS",
+			"value": 16,
+			"unit": "%"
+		},
+		{
+			"key": "Autopojištění (povinné a havarijní pojištění",
+			"type": "PPS",
+			"value": 16,
+			"unit": "%"
+		},
+		{
+			"key": "Cestovní pojištění",
+			"type": "PPS",
+			"value": 20,
+			"unit": "%"
+		},
+		{
+			"key": "Kontaktní formulář",
+			"type": "PPL",
+			"value": 100,
+			"unit": "$"
+		},
+		{
+			"key": "Lead - životní pojištění",
+			"type": "PPS",
+			"value": 40,
+			"unit": "%"
+		},
+		{
+			"key": "Pojištění internetových rizik",
+			"type": "PPS",
+			"value": 16,
+			"unit": "%"
+		},
+		{
+			"key": "Pojištění Náš domov (pojištění staveb a domácnosti)",
+			"type": "PPS",
+			"value": 46,
+			"unit": "%"
+		},
+		{
+			"key": "Pojištění občanské odpovědnosti (pojistka na blbost) a také z výkonu povolání (profesní)",
+			"type": "PPS",
+			"value": 16,
+			"unit": "%"
+		},
+		{
+			"key": "Pojištění Rento (úrazové pojištění řidiče)",
+			"type": "PPS",
+			"value": 16,
+			"unit": "%"
+		},
+		{
+			"key": "Životní pojištění",
+			"type": "PPS",
+			"value": 65,
+			"unit": "%"
+		}
+	],
+	"restrictions": [
+		"Emailing bez předchozího schválení",
+		"Klamavá reklama",
+		"PPC na klíčová slova (vč. brandu) a přímá arbitráž",
+		"Plugin v prohlížeči",
+		"Překlepové domény",
+		"Přímé přesměrování domény",
+		"Tvorba vlastního obsahu a použití loga inzerenta"
+	]
+}

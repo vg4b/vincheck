@@ -1,0 +1,94 @@
+name: Sync eHub ČSOB (coupons + campaign terms)
+
+# Two jobs in one, both reading the eHub v3 API:
+#
+# 1. COUPONS -> src/config/csobCoupons.generated.json
+#    ČSOB rotates its "Sleva X %" coupons MONTHLY: they expire on the last day of
+#    the month and are replaced on the 1st. A hand-kept list therefore goes stale
+#    every month, and the failure is SILENT — getValidCoupons() returns an empty
+#    array and the ČSOB block just disappears from /povinne-ruceni,
+#    /havarijni-pojisteni and the client zone. That is exactly what happened
+#    between 2026-04 and 2026-08.
+#
+# 2. CAMPAIGN TERMS -> docs/ehub/csob-campaign.json
+#    ČSOB is our only insurance partner, so a change to its terms is a business
+#    risk rather than a detail. The script fails the job when a restriction is
+#    ADDED (which can retroactively make our existing promotion a violation and
+#    get "dotčené provize" rejected), when a commission is cut or removed, or
+#    when the cookie window shortens. Non-breaking changes are just committed.
+#
+# Both files are committed on change; the commit triggers a Vercel deploy.
+#
+# Required secrets:
+#   EHUB_PARTNER_ID — publisher id (the a_aid in the tracking links)
+#   EHUB_API_KEY    — eHub v3 API key
+#
+# NOTE: the API echoes the key back inside response bodies, so never dump a raw
+# response into the log. The script only prints counts, labels and diff lines.
+
+on:
+  schedule:
+    # 1st of the month, 04:10 UTC — right after ČSOB's monthly coupon rotation.
+    - cron: '10 4 1 * *'
+    # Mondays 04:10 UTC — catches mid-month coupon and terms changes.
+    - cron: '10 4 * * 1'
+  workflow_dispatch:
+
+# Needed to push the regenerated files back to the branch.
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-ehub-csob
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      # Writes both generated files. Exits non-zero on a BREAKING terms change —
+      # the files are written first, so the diff is still committed below.
+      - name: Sync coupons and campaign terms
+        id: sync
+        continue-on-error: true
+        env:
+          EHUB_PARTNER_ID: ${{ secrets.EHUB_PARTNER_ID }}
+          EHUB_API_KEY: ${{ secrets.EHUB_API_KEY }}
+        run: pnpm exec tsx scripts/sync-ehub-csob.ts
+
+      # The coupon file feeds the site, so a broken shape must not reach
+      # production just because the JSON parsed.
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
+      - name: Commit if changed
+        run: |
+          set -euo pipefail
+          FILES="src/config/csobCoupons.generated.json docs/ehub/csob-campaign.json"
+          if git diff --quiet -- $FILES; then
+            echo "no change"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add $FILES
+          git commit -m "chore(affiliate): sync ČSOB coupons and campaign terms from eHub"
+          git push
+
+      # Runs after the commit so a terms change is both recorded and loud.
+      - name: Fail on breaking terms change
+        if: steps.sync.outcome == 'failure'
+        run: |
+          echo "::error::ČSOB campaign terms changed in a way that needs review - see the sync step log"
+          exit 1

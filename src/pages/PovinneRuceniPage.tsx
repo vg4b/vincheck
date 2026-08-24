@@ -31,13 +31,13 @@ const PovinneRuceniPage: React.FC = () => {
 				</div>
 
 				<p className='mt-3 mb-4'>
-					<strong>Hledáte povinné ručení?</strong> Porovnejte si nabídky
-					pojišťoven online.{' '}
+					<strong>Hledáte povinné ručení?</strong> Sjednáte ho online během pár
+					minut.{' '}
 					<Link
 						to='/sjednat-pojisteni?typ=povinne&src=povinne_page'
 						className='fw-bold'
 					>
-						Přejít na srovnání povinného ručení
+						Sjednat povinné ručení
 					</Link>
 				</p>
 
@@ -245,37 +245,22 @@ const PovinneRuceniPage: React.FC = () => {
 							Sjednejte si povinné ručení ještě dnes
 						</h3>
 						<p className='card-text mb-4'>
-							Porovnejte si nabídky pojišťoven online během pár minut.
+							Sjednáte online během pár minut, bez telefonátů a papírování.
 						</p>
 						<Link
 							to='/sjednat-pojisteni?typ=povinne&src=povinne_page'
 							className='btn btn-primary btn-lg'
 						>
-							Porovnat povinné ručení
+							Sjednat povinné ručení
 						</Link>
-						{csob
-							.getValidCoupons()
-							.some((c) =>
-								[
-									'sleva_10_odpovednost',
-									'sleva_20_auto',
-									'ccs_karta_1000'
-								].includes(c.id)
-							) && (
+						{csob.getCouponsFor('povinne', 'odpovednost').length > 0 && (
 							<div className='mt-4 pt-4 border-top'>
 								<p className='text-muted small mb-2'>
 									{csob.shortLabel} – {csob.tagline}
 								</p>
 								<div className='d-flex flex-wrap gap-2 justify-content-center'>
 									{csob
-										.getValidCoupons()
-										.filter((c) =>
-											[
-												'sleva_10_odpovednost',
-												'sleva_20_auto',
-												'ccs_karta_1000'
-											].includes(c.id)
-										)
+										.getCouponsFor('povinne', 'odpovednost')
 										.map(({ id, shortLabel }) => (
 											<a
 												key={id}

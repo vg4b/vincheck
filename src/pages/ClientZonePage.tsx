@@ -220,7 +220,7 @@ function formatOkVehicles(count: number): string {
 }
 
 /**
- * Kontextová nabídka srovnání pojištění na kartě vozidla - zobrazí se,
+ * Kontextová nabídka sjednání pojištění na kartě vozidla - zobrazí se,
  * když se u vozidla blíží termín pojištění.
  */
 const InsuranceDeadlineCallout: React.FC<{ deadline: InsuranceDeadline }> = ({
@@ -235,7 +235,7 @@ const InsuranceDeadlineCallout: React.FC<{ deadline: InsuranceDeadline }> = ({
 	>
 		<span className='small'>
 			<strong>{deadline.label}</strong> končí{' '}
-			{formatDaysLeft(deadline.daysLeft)}. Porovnejte si nabídky a ušetřete.
+			{formatDaysLeft(deadline.daysLeft)}. Sjednáte online během pár minut.
 		</span>
 		<Link
 			to={`/sjednat-pojisteni?typ=${deadline.kind}&src=vehicle_card_due`}
@@ -1661,13 +1661,13 @@ const ClientZonePage: React.FC = () => {
 									<div className='card-body'>
 										<h5 className='card-title'>Pojištění vozidla</h5>
 										<p className='card-text text-muted'>
-											Porovnejte si povinné ručení i havarijní pojištění online.
+											Povinné ručení i havarijní pojištění sjednáte online.
 										</p>
 										<Link
 											to='/sjednat-pojisteni?typ=povinne&src=client_zone_benefits'
 											className='btn btn-outline-primary'
 										>
-											Porovnat pojištění
+											Sjednat pojištění
 										</Link>
 									</div>
 								</div>
@@ -1679,14 +1679,13 @@ const ClientZonePage: React.FC = () => {
 										<h5 className='card-title'>Cestovní pojištění</h5>
 										<p className='card-text text-muted small mb-2'>
 											Pojištění léčebných výloh, úrazu, odpovědnosti i zavazadel
-											na cesty po Evropě i do světa. Porovnejte si nabídky
-											online.
+											na cesty po Evropě i do světa. Sjednáte online.
 										</p>
 										<Link
 											to='/sjednat-pojisteni?typ=cestovni&src=client_zone_benefits'
 											className='btn btn-outline-primary'
 										>
-											Porovnat cestovní pojištění
+											Sjednat cestovní pojištění
 										</Link>
 									</div>
 								</div>

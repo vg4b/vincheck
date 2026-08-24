@@ -1,0 +1,37 @@
+Komu: kratka@ehub.cz
+Předmět: VINInfo.cz – posouzení vlastní kreativy u kampaně ČSOB Pojišťovna
+
+
+Dobrý den, paní Krátká,
+
+provozuji web VINInfo.cz, kde si lidé podle VIN ověřují historii ojetého vozu. Pracujeme s daty z registru vozidel, se záznamy technických prohlídek, nájezdy a evidovanými závadami. V eHubu máme schválenou kampaň ČSOB Pojišťovna i Cebia.
+
+ČSOB chceme nabízet jako jediného partnera pro pojištění napříč webem. Než to spustíme, potřebuji si vyjasnit dvě věci.
+
+
+1) Vlastní modul s našimi daty
+
+Pod výsledek lustrace vozidla bychom rádi umístili modul postavený na našich datech, zakončený oficiálním odkazem z eHubu do vaší kalkulačky.
+
+Abyste ho mohla posoudit v reálné podobě a ne z popisu, připravili jsme ho na adrese:
+
+    https://www.vininfo.cz/sjednat-pojisteni?typ=povinne&nahled=csob&znacka=skoda&model=fabia
+
+Modul zatím není veřejně dostupný. Zobrazí se pouze s tímto parametrem v adrese, nevede na něj žádný odkaz z webu a je vyloučený z indexace vyhledávači. Dokud nám nedáte vědět, nikam ho nezpřístupníme.
+
+Co modul obsahuje: statistiky k danému modelu vozu (počet vozidel v registru, průměrné stáří, průměrný počet majitelů, úspěšnost při technické prohlídce, míra evidovaných krádeží) a krátký redakční komentář k tomu, jaký typ pojištění u vozu daného stáří dává smysl.
+
+Co neobsahuje: logo ČSOB, žádné ceny, žádné srovnání cen a žádné tvrzení o vašich produktech. Data i text jsou naše. Odkaz vede přes oficiální kreativu z eHubu (například "Odkaz do kalkulačky – povinné ručení", ID edd3eab1), nikoli přes vlastní přesměrování.
+
+Podle podmínek programu lze vlastní obsah pro propagaci inzerenta publikovat jen s předchozím souhlasem, a nejsem si jistý, jestli se toto pravidlo na takový modul vztahuje. Můžete ho prosím posoudit? Pokud je něco potřeba upravit, rád to změním a pošlu k odsouhlasení znovu.
+
+
+2) Odkazy do kalkulačky
+
+Chápu správně, že produktové kreativy typu Odkaz (povinné ručení edd3eab1, havarijní f2cbd4a7, vozidlo komplet 31ad0287, cestovní ce3024c2) můžeme používat volně, včetně umístění ve vlastním layoutu stránky?
+
+
+Děkuji za odpověď a přeji hezký den.
+
+Václav Gabriel
+VINInfo.cz
