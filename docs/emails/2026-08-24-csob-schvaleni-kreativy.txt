@@ -19,7 +19,7 @@ Abyste ho mohla posoudit v reálné podobě a ne z popisu, připravili jsme ho n
 
 Modul zatím není veřejně dostupný. Zobrazí se pouze s tímto parametrem v adrese, nevede na něj žádný odkaz z webu a je vyloučený z indexace vyhledávači. Dokud nám nedáte vědět, nikam ho nezpřístupníme.
 
-Co modul obsahuje: statistiky k danému modelu vozu (počet vozidel v registru, průměrné stáří, průměrný počet majitelů, úspěšnost při technické prohlídce, míra evidovaných krádeží) a krátký redakční komentář k tomu, jaký typ pojištění u vozu daného stáří dává smysl.
+Co modul obsahuje: čtyři údaje o daném modelu vozu (počet vozidel v registru, průměrné stáří, podíl vozů neúspěšných při technické prohlídce, míra evidovaných krádeží) a krátký redakční komentář k tomu, jaký typ pojištění u vozu daného stáří dává smysl.
 
 Co neobsahuje: logo ČSOB, žádné ceny, žádné srovnání cen a žádné tvrzení o vašich produktech. Data i text jsou naše. Odkaz vede přes oficiální kreativu z eHubu (například "Odkaz do kalkulačky – povinné ručení", ID edd3eab1), nikoli přes vlastní přesměrování.
 
