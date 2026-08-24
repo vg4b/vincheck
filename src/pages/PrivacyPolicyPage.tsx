@@ -209,23 +209,27 @@ const PrivacyPolicyPage: React.FC = () => {
 							marketing) mohou být data (např. o prokliku, ID transakce nebo IP
 							adresa) předávána:
 						</p>
+						{/* One entry PER NETWORK, partners nested underneath. The recipient
+						    of the data is the network; the advertisers are who we promote
+						    through it. Listing eHUB once per partner made the same company
+						    appear twice, which reads like two separate data transfers. */}
 						<ul>
-							<li>
-								<strong>eHub.cz s.r.o.</strong> (poskytovatel affiliate sítě)
-								<br />
-								<em>Partner:</em> CEBIA, spol. s r.o. (prověřování historie
-								vozidel)
-							</li>
 							<li>
 								<strong>eHUB.cz s.r.o.</strong> (provozovatel affiliate sítě
 								eHUB.cz)
 								<br />
-								<em>Partner:</em> ČSOB Pojišťovna, a. s. – sjednání pojištění
-								(povinné ručení, havarijní, cestovní, majetek, odpovědnost).
-								Pojištění se sjednává až na webu ČSOB Pojišťovny, kam vede
-								odkaz; žádný formulář pojišťovny na našem webu nevkládáme a
-								žádné údaje z něj nepřijímáme. Co na webu ČSOB Pojišťovny
-								vyplníte, zpracovává ČSOB Pojišťovna jako samostatný správce.
+								<em>Partneři:</em>
+								<ul>
+									<li>CEBIA, spol. s r.o. – prověřování historie vozidel</li>
+									<li>
+										ČSOB Pojišťovna, a. s. – sjednání pojištění (povinné ručení,
+										havarijní, cestovní, majetek, odpovědnost). Pojištění se
+										sjednává až na webu ČSOB Pojišťovny, kam vede odkaz; žádný
+										formulář pojišťovny na našem webu nevkládáme a žádné údaje z
+										něj nepřijímáme. Co na webu ČSOB Pojišťovny vyplníte,
+										zpracovává ČSOB Pojišťovna jako samostatný správce.
+									</li>
+								</ul>
 							</li>
 						</ul>
 					</section>
@@ -322,22 +326,18 @@ const PrivacyPolicyPage: React.FC = () => {
 									</tr>
 								</thead>
 								<tbody>
+									{/* One row: eHUB sets a single tracking cookie, the retention just
+									    differs per campaign (Cebia 30 days, ČSOB 15 — both read from
+									    the eHub API, see docs/ehub/csob-campaign.json). Two rows made
+									    it look like two separate cookies, and the old "30-90 dní" was
+									    not the figure either campaign actually uses. */}
 									<tr>
 										<td>ehub_tracking</td>
-										<td>eHub</td>
-										<td>30-90 dní</td>
+										<td>eHUB.cz</td>
+										<td>15–30 dní podle kampaně</td>
 										<td>
-											Sledování prokliku pro přiznání provize partnerovi
-											(Cebia).
-										</td>
-									</tr>
-									<tr>
-										<td>Affiliate tracking (eHUB)</td>
-										<td>eHUB.cz (ČSOB Pojišťovna)</td>
-										<td>15 dní</td>
-										<td>
-											Sledování prokliku na sjednání pojištění pro přiznání
-											provize.
+											Sledování prokliku pro přiznání provize partnerovi (Cebia,
+											ČSOB Pojišťovna).
 										</td>
 									</tr>
 								</tbody>
