@@ -466,7 +466,7 @@ const BrandModelStatsPage: React.FC = () => {
 
 						{stats.fuelSplit && (
 							<section className='border-top pt-3 mt-4'>
-								<h2 className='h5 mb-3'>Palivo podle registru</h2>
+								<h2 className='h5 mb-3'>Zapsaný typ paliva</h2>
 								<SplitBars split={stats.fuelSplit} limit={6} />
 							</section>
 						)}
@@ -474,17 +474,24 @@ const BrandModelStatsPage: React.FC = () => {
 						{eqBits.length > 0 && (
 							<section className='border-top pt-3 mt-4'>
 								<h2 className='h5'>Výbava a úpravy</h2>
-								<p>Registr eviduje {eqBits.join(' a ')}.</p>
-								{/* This share and the LPG row above are different measurements
-								    and will not match: one counts an equipment record across
-								    every vehicle, the other counts registered fuel across
-								    vehicles whose fuel is known. Two numbers that disagree
-								    without explanation read as an error. */}
+								<p>Evidence výbavy uvádí {eqBits.join(' a ')}.</p>
+								{/* The gas share here and the LPG row in "Zapsaný typ paliva"
+								    come from two separate registry records and disagree in BOTH
+								    directions, so neither is a subset of the other. Measured on
+								    SUBARU LEGACY (2 360 vehicles): 348 carry both records, 156
+								    are bi-fuel by fuel type with no conversion record, 58 have a
+								    conversion record without a bi-fuel fuel type. An earlier
+								    version of this note blamed the differing denominators, which
+								    is wrong — only 3 of the 2 360 have an unknown fuel type, so
+								    the denominators explain none of the gap. */}
 								<p className='small text-muted-ink mb-0'>
-									Podíl přestaveb je z evidence výbavy a počítá se ze všech vozů
-									modelu. Podíl paliva výše vychází z registrovaného typu paliva
-									a jen z vozů, u kterých je palivo uvedené — obě čísla proto
-									nemusí sedět.
+									Přestavby na plyn vede registr v evidenci výbavy, zatímco
+									sekce Zapsaný typ paliva vychází z typu paliva zapsaného u
+									vozidla. Jsou to dva nezávislé záznamy: část vozů má zapsané
+									dvoupalivové provedení bez záznamu o přestavbě (typicky vozy z
+									výroby), u jiných je naopak zapsaná přestavba, aniž se změnil
+									zapsaný typ paliva. Podíly se proto liší a ani jeden není
+									podmnožinou druhého.
 								</p>
 							</section>
 						)}
