@@ -313,31 +313,40 @@ const SjednatPojisteniPage: React.FC = () => {
 				{/* Ostatní akce hned pod nabídkou, ne až na konci stránky: obchodní obsah
 				    drží pohromadě a naše vlastní sekce jdou pod něj. Nekonkuruje to hlavní
 				    nabídce, protože `otherCoupons` z výpisu vyhazuje kupón aktuální
-				    záložky — jsou to nabídky na JINÉ produkty. Držet vizuálně lehké
-				    (prostý seznam odkazů), ať to hlavní CTA nepřebíjí. */}
+				    záložky — jsou to nabídky na JINÉ produkty.
+				
+				    Dlaždice, ne karty: zlepšení má přijít z rozvržení, ne z další barvy.
+				    Tlumené pozadí a žádné tlačítko drží váhu pod hlavní nabídkou, která
+				    jediná má na stránce plné zelené CTA. */}
 				{otherCoupons.length > 0 && (
 					<div className='mb-5'>
 						<h2 className='h6 mb-3'>Další akce ČSOB Pojišťovny</h2>
-						<ul className='list-unstyled d-flex flex-column gap-2 mb-0'>
+						<div className='row g-2'>
 							{otherCoupons.map((c) => (
-								<li key={c.id}>
+								<div className='col-md-6' key={c.id}>
 									{/* eslint-disable-next-line react/jsx-no-target-blank -- Referer must survive for eHub click attribution; `noopener` already covers the security risk */}
 									<a
 										href={csob.getCouponUrl(c.id)}
 										target='_blank'
 										rel='noopener sponsored'
+										className='promo-tile d-flex align-items-center gap-3 h-100 rounded-3 px-3 py-2 text-decoration-none'
 									>
-										{promoLabel(c.label)}
+										<span className='flex-grow-1'>
+											<span className='d-block' style={{ fontSize: '.9rem' }}>
+												{promoLabel(c.label)}
+											</span>
+											<span
+												className='d-block text-muted-ink'
+												style={{ fontSize: '.78rem' }}
+											>
+												platí do {fmtDate(c.validTo)}
+											</span>
+										</span>
+										<Icon name='chevron-right' size={16} />
 									</a>
-									<span
-										className='text-muted-ink ms-2'
-										style={{ fontSize: '.8rem' }}
-									>
-										do {fmtDate(c.validTo)}
-									</span>
-								</li>
+								</div>
 							))}
-						</ul>
+						</div>
 					</div>
 				)}
 				<div className='row g-4'>

@@ -1362,3 +1362,37 @@ details[open] > .spec-summary .spec-chevron {
 	--bs-btn-active-border-color: var(--brand-600);
 	--bs-btn-focus-shadow-rgb: 47, 122, 62;
 }
+
+/* Promo tiles in the "Další akce" list on /sjednat-pojisteni. Deliberately quiet:
+   a tinted surface and a hover lift, no border and no button, so the block stays
+   visibly secondary to the single green CTA above it. */
+.promo-tile {
+	background-color: var(--surface-soft, #f7f8fa);
+	color: var(--ink-700);
+	transition:
+		background-color 0.15s ease,
+		transform 0.15s ease;
+}
+.promo-tile:hover,
+.promo-tile:focus-visible {
+	background-color: rgba(90, 143, 62, 0.12);
+	color: var(--brand-700);
+	transform: translateY(-1px);
+}
+.promo-tile svg {
+	flex-shrink: 0;
+	opacity: 0.5;
+}
+.promo-tile:hover svg {
+	opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.promo-tile {
+		transition: none;
+	}
+	.promo-tile:hover,
+	.promo-tile:focus-visible {
+		transform: none;
+	}
+}
