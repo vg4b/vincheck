@@ -217,14 +217,15 @@ const PrivacyPolicyPage: React.FC = () => {
 								vozidel)
 							</li>
 							<li>
-								<strong>Elephant Orchestra, s.r.o.</strong> (provozovatel
-								affiliate sítě eSpolupráce.cz; Rohanské nábřeží 678/29, Praha 8
-								– Karlín, IČO: 03272974)
+								<strong>eHUB.cz s.r.o.</strong> (provozovatel affiliate sítě
+								eHUB.cz)
 								<br />
-								<em>Partner:</em> ePojištění.cz – srovnání a sjednání pojištění
-								(povinné ručení, havarijní pojištění). Srovnávač je na stránce
-								„Sjednat pojištění“ vložen formou iframe; údaje, které do něj
-								zadáte, zpracovává přímo ePojištění.cz jako samostatný správce.
+								<em>Partner:</em> ČSOB Pojišťovna, a. s. – sjednání pojištění
+								(povinné ručení, havarijní, cestovní, majetek, odpovědnost).
+								Pojištění se sjednává až na webu ČSOB Pojišťovny, kam vede
+								odkaz; žádný formulář pojišťovny na našem webu nevkládáme a
+								žádné údaje z něj nepřijímáme. Co na webu ČSOB Pojišťovny
+								vyplníte, zpracovává ČSOB Pojišťovna jako samostatný správce.
 							</li>
 						</ul>
 					</section>
@@ -331,12 +332,12 @@ const PrivacyPolicyPage: React.FC = () => {
 										</td>
 									</tr>
 									<tr>
-										<td>Affiliate tracking (eSpolupráce)</td>
-										<td>eSpolupráce (ePojištění.cz)</td>
-										<td>30–90 dní</td>
+										<td>Affiliate tracking (eHUB)</td>
+										<td>eHUB.cz (ČSOB Pojišťovna)</td>
+										<td>15 dní</td>
 										<td>
-											Sledování prokliku na srovnávač pojištění a sjednání pro
-											přiznání provize.
+											Sledování prokliku na sjednání pojištění pro přiznání
+											provize.
 										</td>
 									</tr>
 								</tbody>

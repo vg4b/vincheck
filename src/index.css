@@ -1344,3 +1344,21 @@ details[open] > .spec-summary .spec-chevron {
 	opacity: 1;
 	transform: none;
 }
+
+/* Bootstrap compiles .btn-outline-* colours from its own Sass $primary, so the
+   --bs-primary override above never reaches them: an outline button rendered
+   Bootstrap blue against the green brand, most visibly as the selected segment
+   of a btn-check group (homepage search switcher, insurance type switcher).
+   Bootstrap 5.3 does read these per-button custom properties at runtime, so
+   restating them here fixes every .btn-outline-primary at once. */
+.btn-outline-primary {
+	--bs-btn-color: var(--brand-700);
+	--bs-btn-border-color: var(--ink-300);
+	--bs-btn-hover-color: #fff;
+	--bs-btn-hover-bg: var(--brand-600);
+	--bs-btn-hover-border-color: var(--brand-600);
+	--bs-btn-active-color: #fff;
+	--bs-btn-active-bg: var(--brand-600);
+	--bs-btn-active-border-color: var(--brand-600);
+	--bs-btn-focus-shadow-rgb: 47, 122, 62;
+}

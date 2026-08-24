@@ -62,8 +62,13 @@ function getPromoBlockHtml(params: ReminderEmailParams): string {
 		const sjednatUrl = hasVin
 			? `${baseUrl}/sjednat-pojisteni?vin=${encodeURIComponent(vin)}`
 			: `${baseUrl}/sjednat-pojisteni`
+		// No price claim here. This used to promise "jedny z nejlepších cen na
+		// trhu", which was arguable when the page ran a comparison engine and is
+		// simply false now that it carries a single insurer — and a price claim
+		// about someone else's product is "klamavá reklama" under the eHub
+		// campaign rules, which is banned outright with no approval path.
 		return promoBlockHtml(
-			'Sjednejte si pojištění online během pár minut – bez telefonátů a za jedny z nejlepších cen na trhu.',
+			'Sjednejte si pojištění online během pár minut, bez telefonátů a papírování.',
 			sjednatUrl,
 			'Sjednat pojištění online'
 		)

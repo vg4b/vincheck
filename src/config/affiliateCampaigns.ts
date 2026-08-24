@@ -1,3 +1,5 @@
+import generatedCoupons from './csobCoupons.generated.json'
+
 /**
  * Central configuration for all affiliate campaigns.
  * Single source of truth for affiliate links, campaign IDs, and banner assets.
@@ -39,58 +41,32 @@ export const campaigns = {
  */
 const CSOB_EHUB_BID = 'f5e0f8fb'
 
-export const csobCoupons = {
-	ccs_karta_1000: {
-		label: 'CCS karta v hodnotě 1 000 Kč k pojištění NAŠE AUTO',
-		shortLabel: 'CCS karta 1 000 Kč',
-		destUrl: 'https://www.csobpoj.cz/specialni-nabidka-autopojisteni-s-darkem',
-		validFrom: '2026-01-01',
-		validTo: '2026-03-31',
-		sortOrder: 0
-	},
-	ekniha_cestovni: {
-		label: 'Dárek k cestovnímu pojištění - e-kniha zdarma',
-		shortLabel: 'E-kniha zdarma',
-		destUrl: 'https://www.csobpoj.cz/pojisteni/cestovni-pojisteni/',
-		validFrom: '2026-01-21',
-		validTo: '2026-04-06',
-		sortOrder: 1
-	},
-	sleva_10_odpovednost: {
-		label: 'Sleva 10 % na pojištění odpovědnosti při online sjednání',
-		shortLabel: '10 % odpovědnost',
-		destUrl: 'https://www.csobpoj.cz/pojisteni/pojisteni-odpovednosti',
-		validFrom: '2026-02-01',
-		validTo: '2026-02-28',
-		sortOrder: 2
-	},
-	sleva_20_auto: {
-		label: 'Sleva 20 % na autopojištění při online sjednání',
-		shortLabel: '20 % autopojištění',
-		destUrl: 'https://www.csobpoj.cz/pojisteni/pojisteni-vozidel',
-		validFrom: '2026-02-01',
-		validTo: '2026-02-28',
-		sortOrder: 3
-	},
-	sleva_10_majetek: {
-		label: 'Sleva 10 % na pojištění majetku při online sjednání',
-		shortLabel: '10 % majetek',
-		destUrl: 'https://www.csobpoj.cz/pojisteni/pojisteni-majetku',
-		validFrom: '2026-02-01',
-		validTo: '2026-02-28',
-		sortOrder: 4
-	},
-	sleva_20_cestovni: {
-		label: 'Sleva 20 % na cestovní pojištění při online sjednání',
-		shortLabel: '20 % cestovní',
-		destUrl: 'https://www.csobpoj.cz/pojisteni/cestovni-pojisteni',
-		validFrom: '2026-02-01',
-		validTo: '2026-02-28',
-		sortOrder: 5
-	}
-} as const
+/**
+ * Coupon definitions come from `src/config/csobCoupons.generated.json`, which
+ * `scripts/sync-ehub-coupons.ts` regenerates from the eHub v3 API (weekly CI job
+ * `sync-ehub-coupons`). Do NOT hand-edit either file.
+ *
+ * Why generated: ČSOB rotates the "Sleva X %" coupons MONTHLY, so a hand-kept
+ * list goes stale on the 1st. Between 2026-04 and 2026-08 every coupon here was
+ * expired and the ČSOB block rendered nothing on all three insurance pages,
+ * with nothing to signal it.
+ *
+ * `url` is eHub's own tracking URL, taken verbatim. It already carries a_aid,
+ * a_bid and (where the campaign defines one) desturl.
+ */
+export type CsobCoupon = {
+	id: string
+	label: string
+	shortLabel: string
+	url: string
+	validFrom: string
+	validTo: string
+	sortOrder: number
+}
 
-export type CsobCouponId = keyof typeof csobCoupons
+export const csobCoupons = generatedCoupons as CsobCoupon[]
+
+export type CsobCouponId = string
 
 /**
  * Dealora.cz – odkazy na slevové kódy
@@ -171,54 +147,89 @@ export const cebia = {
 /**
  * CSOB Pojišťovna – coupon-based offers via eHub
  */
+/**
+ * Product-specific eHub "Odkaz" creatives, all landing on kalkulacka.csobpoj.cz.
+ *
+ * These are official campaign creatives, so using them needs no approval. Each
+ * product has its OWN banner id, which matters for reporting: routing everything
+ * through the default link (f5e0f8fb + desturl) collapses every click in eHub
+ * into a single creative and we cannot tell povinné ručení from cestovní.
+ */
+const CSOB_PRODUCT_BIDS = {
+	povinne: 'edd3eab1',
+	havarijni: 'f2cbd4a7',
+	vozidlo: '31ad0287',
+	cestovni: 'ce3024c2',
+	odpovednost: '9892e41f',
+	majetek: 'a6886874'
+} as const
+
+export type CsobProduct = keyof typeof CSOB_PRODUCT_BIDS
+
+/**
+ * Which coupons belong to which product.
+ *
+ * eHub exposes no product field on a voucher, only free-text `rules`, so the
+ * match is on the label. This lives here rather than in the pages because it was
+ * previously duplicated as hardcoded coupon ids in three files — and those ids
+ * were the OLD hand-written slugs ('sleva_20_auto', …). Once the list became
+ * generated from the API the ids turned into eHub's numeric voucher ids, every
+ * `includes(c.id)` silently went false, and the coupon block vanished from
+ * /povinne-ruceni and /havarijni-pojisteni. Matching on meaning survives that.
+ */
+const CSOB_COUPON_PATTERNS: Record<CsobProduct, RegExp> = {
+	povinne: /autopojištění|pojištění vozidel/i,
+	havarijni: /autopojištění|pojištění vozidel/i,
+	vozidlo: /autopojištění|pojištění vozidel/i,
+	cestovni: /cestovn/i,
+	odpovednost: /odpovědnost/i,
+	majetek: /majetk/i
+}
+
+/** Prefix a coupon label so it reads as the advertiser's promotion, not our claim. */
+export const promoLabel = (label: string): string => `AKCE: ${label}`
+
 export const csob = {
-	/** Get affiliate URL for a specific coupon */
-	getCouponUrl: (couponId: CsobCouponId): string => {
-		const c = csobCoupons[couponId]
-		return buildEhubClickUrlWithDest(CSOB_EHUB_BID, c.destUrl)
-	},
+	/** Tracking URL for a coupon, straight from eHub. */
+	getCouponUrl: (couponId: CsobCouponId): string =>
+		csobCoupons.find((c) => c.id === couponId)?.url ??
+		buildEhubClickUrl(CSOB_EHUB_BID),
 
-	/** All coupons, sorted by sortOrder */
-	getAllCoupons: (): Array<{
-		id: CsobCouponId
-		label: string
-		shortLabel: string
-		validFrom: string
-		validTo: string
-	}> =>
-		(
-			Object.entries(csobCoupons) as [
-				CsobCouponId,
-				(typeof csobCoupons)[CsobCouponId]
-			][]
-		)
-			.map(([id, c]) => ({ id, ...c }))
+	/** All coupons, sorted by sortOrder. */
+	getAllCoupons: (): CsobCoupon[] =>
+		[...csobCoupons].sort((a, b) => a.sortOrder - b.sortOrder),
+
+	/**
+	 * Valid coupons for one or more products, in sortOrder.
+	 * Empty when nothing is running — callers must handle that, since ČSOB rotates
+	 * the discount coupons monthly and gaps between them are normal.
+	 */
+	getCouponsFor: (...products: CsobProduct[]): CsobCoupon[] => {
+		const date = new Date().toISOString().slice(0, 10)
+		return csobCoupons
+			.filter((c) => c.validFrom <= date && date <= c.validTo)
+			.filter((c) =>
+				products.some((p) => CSOB_COUPON_PATTERNS[p].test(c.label))
+			)
 			.sort((a, b) => a.sortOrder - b.sortOrder)
-			.map(({ id, label, shortLabel, validFrom, validTo }) => ({
-				id,
-				label,
-				shortLabel,
-				validFrom,
-				validTo
-			})),
-
-	/** Coupons valid for a given date (default: today) */
-	getValidCoupons: (
-		asOfDate?: string
-	): Array<{ id: CsobCouponId; label: string; shortLabel: string }> => {
-		const date = asOfDate ?? new Date().toISOString().slice(0, 10)
-		return (
-			Object.entries(csobCoupons) as [
-				CsobCouponId,
-				(typeof csobCoupons)[CsobCouponId]
-			][]
-		)
-			.filter(([, c]) => c.validFrom <= date && date <= c.validTo)
-			.map(([id, c]) => ({ id, label: c.label, shortLabel: c.shortLabel }))
-			.sort((a, b) => csobCoupons[a.id].sortOrder - csobCoupons[b.id].sortOrder)
 	},
 
-	/** General landing (autopojištění) – use when no specific coupon fits */
+	/** Coupons valid for a given date (default: today). */
+	getValidCoupons: (asOfDate?: string): CsobCoupon[] => {
+		const date = asOfDate ?? new Date().toISOString().slice(0, 10)
+		return csobCoupons
+			.filter((c) => c.validFrom <= date && date <= c.validTo)
+			.sort((a, b) => a.sortOrder - b.sortOrder)
+	},
+
+	/**
+	 * Tracking URL for one product's calculator.
+	 * @param placement – where the link sits; passed as eHub `data1`.
+	 */
+	getProductUrl: (product: CsobProduct, placement?: string): string =>
+		buildEhubClickUrl(CSOB_PRODUCT_BIDS[product], placement),
+
+	/** General landing (autopojištění) – use when no specific coupon fits. */
 	getAutopojisteniUrl: (): string =>
 		buildEhubClickUrlWithDest(
 			CSOB_EHUB_BID,
@@ -230,41 +241,17 @@ export const csob = {
 	tagline: 'slevové kódy a bonusy'
 } as const
 
-/** Cestovní pojištění – CJ affiliate (dpbolvw.net) */
-const AXA_CESTOVNI_AFFILIATE_BASE =
-	'https://www.dpbolvw.net/click-101607830-12934852'
-
 /**
- * Cestovní pojištění – affiliate s `sid` podle umístění odkazu.
+ * Insurance product kind and link placement.
+ *
+ * These outlive the ePojištění campaign they were written for: ten entry points
+ * across the site (nav, footer, VehicleInfo, client zone, both product pages and
+ * the reminder e-mail) link to /sjednat-pojisteni?typ=…&src=…, and `src` is what
+ * we pass to eHub as `data1` for placement attribution.
  */
-export const axaCestovniPojisteni = {
-	/**
-	 * @param placementSid – jednoznačný identifikátor místa (např. `client_zone_benefits`, `footer`)
-	 */
-	getUrl: (placementSid: string): string => {
-		const sep = AXA_CESTOVNI_AFFILIATE_BASE.includes('?') ? '&' : '?'
-		return `${AXA_CESTOVNI_AFFILIATE_BASE}${sep}sid=${encodeURIComponent(placementSid)}`
-	},
-
-	headline: 'Cestovní pojištění se slevou 50 %',
-
-	/** Krátký neutrální popis pro karty (bez jména partnera) */
-	partnerInfo:
-		'Léčebné výlohy, asistence, úraz, odpovědnost, zavazadla i rizika spojená s letem. Sjednáte online.'
-} as const
-
-/**
- * ePojištění – srovnávač pojištění vozidel (HasOffers / go2cloud affiliate).
- * Integrace přes iframe creative; `aff_sub` slouží k atribuci leadu na umístění.
- */
-const EPOJISTENI_AFF_BASE = 'https://espolupracecz.go2cloud.org/aff_c'
-const EPOJISTENI_OFFER_ID = '2'
-const EPOJISTENI_AFF_ID = '6692'
-
-/** Typ pojištění – jedna iframe creativa na typ (vozidla + cestovní). */
 export type InsuranceKind = 'povinne' | 'havarijni' | 'cestovni'
 
-/** Identifikátor umístění odkazu – předává se jako `aff_sub` (atribuce leadu). */
+/** Identifikátor umístění odkazu – předává se jako `data1` (atribuce prokliku). */
 export type InsurancePlacement =
 	| 'sjednat_page'
 	| 'email_reminder'
@@ -278,96 +265,10 @@ export type InsurancePlacement =
 	| 'nav'
 
 /**
- * Identifikátory creativy iframe formuláře srovnávače podle typu pojištění –
- * přesně jak je skládá tracking odkaz vygenerovaný v portálu eSpolupráce.
- * `url_id` vybírá vstupní formulář, `file_id` je ID creativy (reporting).
- * POV = „Iframe formular ePojištění POV" (1000×2100),
- * HAV = „Iframe formular ePojištění HAV" (1000×2400),
- * CEST = „Iframe formular ePojištění cestovní" (700×1600).
- */
-const EPOJISTENI_URL_IDS: Record<InsuranceKind, string> = {
-	povinne: '1401',
-	havarijni: '1856',
-	cestovni: '1999'
-}
-const EPOJISTENI_FILE_IDS: Record<InsuranceKind, string> = {
-	povinne: '40146',
-	havarijni: '40694',
-	cestovni: '42877'
-}
-
-/**
- * Volitelný CSS styl iframe formuláře z Formstyleru eSpolupráce (sladí formulář
- * s brandem VIN Info.cz). Vytvoří se v portálu eSpolupráce → Rady a Návody →
- * Formstyler; výsledkem je odkaz na CSS (cdn.eoit.cz). Předává se formuláři přes
- * vlastní proměnnou `use-style`. Prázdný řetězec = výchozí styl ePojištění.
- */
-const EPOJISTENI_FORM_STYLE_URL =
-	'https://cdn.eoit.cz/css/38be4807-5ee3-44b1-802b-543298d7a4c1'
-
-export const epojisteni = {
-	displayName: 'ePojištění',
-
-	/** Seznam spolupracujících pojišťoven (podmínka kampaně eSpolupráce). */
-	partnersUrl: 'https://www.epojisteni.cz/pojistovny',
-
-	/**
-	 * Pojišťovny, jejichž nabídky ePojištění srovnává. Podmínka kampaně:
-	 * tento seznam musí být uveden na webu. Zdroj: `partnersUrl` (ověřeno 2026-05-19).
-	 */
-	partnerInsurers: [
-		'Allianz pojišťovna',
-		'Inter Partner Assistance',
-		'Česká podnikatelská pojišťovna',
-		'ČSOB pojišťovna',
-		'Direct pojišťovna',
-		'ERV pojišťovna',
-		'Generali Česká pojišťovna',
-		'Kooperativa pojišťovna',
-		'Maxima pojišťovna',
-		'MetLife',
-		'NN Životní pojišťovna',
-		'Pillow pojišťovna',
-		'Slavia pojišťovna',
-		'Union pojišťovna',
-		'UNIQA pojišťovna',
-		'Pojišťovna VZP'
-	],
-
-	/**
-	 * `src` iframe formuláře srovnávače pro daný typ pojištění.
-	 * @param kind - povinné ručení / havarijní pojištění
-	 * @param placement - umístění odkazu (`aff_sub`, atribuce leadu)
-	 */
-	getIframeUrl: (
-		kind: InsuranceKind,
-		placement: InsurancePlacement
-	): string => {
-		const params = new URLSearchParams({
-			offer_id: EPOJISTENI_OFFER_ID,
-			aff_id: EPOJISTENI_AFF_ID,
-			aff_sub: placement,
-			url_id: EPOJISTENI_URL_IDS[kind],
-			file_id: EPOJISTENI_FILE_IDS[kind]
-		})
-		let url = `${EPOJISTENI_AFF_BASE}?${params.toString()}`
-		// `use-style` (CSS z Formstyleru) se připojuje jako HOLÁ URL – přesně
-		// jak ji generuje tracking odkaz v portálu eSpolupráce, bez URL-kódování.
-		// URL-kódovaná hodnota se do formuláře (`StyleUrl`) nepropíše.
-		if (EPOJISTENI_FORM_STYLE_URL) {
-			url += `&use-style=${EPOJISTENI_FORM_STYLE_URL}`
-		}
-		return url
-	}
-} as const
-
-/**
  * All affiliate campaigns as a map for iteration / documentation
  */
 export const allCampaigns = {
 	dealora,
 	cebia,
-	csob,
-	axaCestovniPojisteni,
-	epojisteni
+	csob
 } as const

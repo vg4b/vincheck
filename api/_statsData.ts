@@ -57,6 +57,11 @@ export type ModelStats = {
 	/** Most frequent STK defect codes for the cohort. Codes only — the Czech text
 	 *  is resolved at read time from the vendored catalog. */
 	topDefects: Array<{ code: string; count: number; share: number }> | null
+	/** Windowed theft rate (2021–2025). NULL below the publish floor, which is
+	 *  why the insurance module treats absence as "do not mention theft" rather
+	 *  than as zero. */
+	theftPer1000: number | null
+	theftCount: number | null
 	computedAt: string | null
 }
 
@@ -87,6 +92,8 @@ function mapRow(r: Record<string, unknown>): ModelStats {
 				count: number
 				share: number
 			}>) ?? null,
+		theftPer1000: num(r.theft_per_1000),
+		theftCount: num(r.theft_count),
 		computedAt: r.computed_at ? String(r.computed_at) : null
 	}
 }
@@ -94,7 +101,7 @@ function mapRow(r: Record<string, unknown>): ModelStats {
 const SELECT_COLS = `brand, model, vehicle_count, first_year, last_year,
   avg_age_years, fuel_split, avg_owners, pct_imported, pct_lpg, pct_towbar,
   stk_fail_pct, stk_inspections, median_km_by_age, color_split, motorisations,
-  top_defects,
+  top_defects, theft_per_1000, theft_count,
   computed_at::text AS computed_at`
 
 // Diacritic fold, shared by slugify (JS) and the SQL lookup so a URL slug and a DB

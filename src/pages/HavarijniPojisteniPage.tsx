@@ -34,13 +34,13 @@ const HavarijniPojisteniPage: React.FC = () => {
 				</div>
 
 				<p className='mt-3 mb-4'>
-					<strong>Hledáte havarijní pojištění?</strong> Porovnejte si nabídky
-					pojišťoven online.{' '}
+					<strong>Hledáte havarijní pojištění?</strong> Sjednáte ho online během
+					pár minut.{' '}
 					<Link
 						to='/sjednat-pojisteni?typ=havarijni&src=havarijni_page'
 						className='fw-bold'
 					>
-						Přejít na srovnání havarijního pojištění
+						Sjednat havarijní pojištění
 					</Link>
 				</p>
 
@@ -382,40 +382,31 @@ const HavarijniPojisteniPage: React.FC = () => {
 							Sjednejte si havarijní pojištění ještě dnes
 						</h3>
 						<p className='card-text mb-4'>
-							Porovnejte si nabídky pojišťoven online během pár minut.
+							Sjednáte online během pár minut, bez telefonátů a papírování.
 						</p>
 						<Link
 							to='/sjednat-pojisteni?typ=havarijni&src=havarijni_page'
 							className='btn btn-primary btn-lg'
 						>
-							Porovnat havarijní pojištění
+							Sjednat havarijní pojištění
 						</Link>
-						{csob
-							.getValidCoupons()
-							.some((c) =>
-								['sleva_20_auto', 'ccs_karta_1000'].includes(c.id)
-							) && (
+						{csob.getCouponsFor('havarijni').length > 0 && (
 							<div className='mt-4 pt-4 border-top'>
 								<p className='text-muted small mb-2'>
 									{csob.shortLabel} – {csob.tagline}
 								</p>
 								<div className='d-flex flex-wrap gap-2 justify-content-center'>
-									{csob
-										.getValidCoupons()
-										.filter((c) =>
-											['sleva_20_auto', 'ccs_karta_1000'].includes(c.id)
-										)
-										.map(({ id, shortLabel }) => (
-											<a
-												key={id}
-												href={csob.getCouponUrl(id)}
-												target='_blank'
-												rel='noopener noreferrer'
-												className='btn btn-outline-success btn-sm'
-											>
-												{shortLabel}
-											</a>
-										))}
+									{csob.getCouponsFor('havarijni').map(({ id, shortLabel }) => (
+										<a
+											key={id}
+											href={csob.getCouponUrl(id)}
+											target='_blank'
+											rel='noopener noreferrer'
+											className='btn btn-outline-success btn-sm'
+										>
+											{shortLabel}
+										</a>
+									))}
 								</div>
 							</div>
 						)}
