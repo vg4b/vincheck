@@ -310,6 +310,36 @@ const SjednatPojisteniPage: React.FC = () => {
 					/>
 				)}
 
+				{/* Ostatní akce hned pod nabídkou, ne až na konci stránky: obchodní obsah
+				    drží pohromadě a naše vlastní sekce jdou pod něj. Nekonkuruje to hlavní
+				    nabídce, protože `otherCoupons` z výpisu vyhazuje kupón aktuální
+				    záložky — jsou to nabídky na JINÉ produkty. Držet vizuálně lehké
+				    (prostý seznam odkazů), ať to hlavní CTA nepřebíjí. */}
+				{otherCoupons.length > 0 && (
+					<div className='mb-5'>
+						<h2 className='h6 mb-3'>Další akce ČSOB Pojišťovny</h2>
+						<ul className='list-unstyled d-flex flex-column gap-2 mb-0'>
+							{otherCoupons.map((c) => (
+								<li key={c.id}>
+									{/* eslint-disable-next-line react/jsx-no-target-blank -- Referer must survive for eHub click attribution; `noopener` already covers the security risk */}
+									<a
+										href={csob.getCouponUrl(c.id)}
+										target='_blank'
+										rel='noopener sponsored'
+									>
+										{promoLabel(c.label)}
+									</a>
+									<span
+										className='text-muted-ink ms-2'
+										style={{ fontSize: '.8rem' }}
+									>
+										do {fmtDate(c.validTo)}
+									</span>
+								</li>
+							))}
+						</ul>
+					</div>
+				)}
 				<div className='row g-4'>
 					{/* Co získáte */}
 					<div className='col-lg-6'>
@@ -385,33 +415,6 @@ const SjednatPojisteniPage: React.FC = () => {
 						</div>
 					</div>
 				</div>
-
-				{/* Zbylé akce – návštěvník přišel kvůli autu, ale cestovní platí 20 % */}
-				{otherCoupons.length > 0 && (
-					<div className='mt-5'>
-						<h2 className='h6 mb-3'>Další akce ČSOB Pojišťovny</h2>
-						<ul className='list-unstyled d-flex flex-column gap-2 mb-0'>
-							{otherCoupons.map((c) => (
-								<li key={c.id}>
-									{/* eslint-disable-next-line react/jsx-no-target-blank -- Referer must survive for eHub click attribution; `noopener` already covers the security risk */}
-									<a
-										href={csob.getCouponUrl(c.id)}
-										target='_blank'
-										rel='noopener sponsored'
-									>
-										{promoLabel(c.label)}
-									</a>
-									<span
-										className='text-muted-ink ms-2'
-										style={{ fontSize: '.8rem' }}
-									>
-										do {fmtDate(c.validTo)}
-									</span>
-								</li>
-							))}
-						</ul>
-					</div>
-				)}
 			</div>
 			<Footer />
 		</>
