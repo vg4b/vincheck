@@ -17,7 +17,9 @@ name: Sync eHub ČSOB (coupons + campaign terms)
 #    get "dotčené provize" rejected), when a commission is cut or removed, or
 #    when the cookie window shortens. Non-breaking changes are just committed.
 #
-# Both files are committed on change; the commit triggers a Vercel deploy.
+# Both files are committed on change; the commit triggers a Vercel deploy, which
+# is where the generated JSON is typechecked — the script itself refuses to write
+# an empty coupon list, so a broken shape cannot silently blank the site.
 #
 # Required secrets:
 #   EHUB_PARTNER_ID — publisher id (the a_aid in the tracking links)
@@ -48,14 +50,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: 22
 
-      - run: pnpm install --frozen-lockfile
+      # The script imports only Node builtins (node:fs, node:path, global fetch),
+      # so it needs nothing but tsx to run a .ts file. Install ONLY tsx: hide
+      # package.json so npm doesn't pull the whole CRA tree (~1600 packages) —
+      # matching .github/workflows/ingest-odometer.yml. (The old pnpm install
+      # failed here anyway: pnpm/action-setup needs a version this repo pins
+      # nowhere.)
+      - name: Install tsx only
+        run: |
+          mv package.json _package.json
+          npm install --no-save --no-package-lock --no-audit --no-fund tsx
+          mv _package.json package.json
 
       # Writes both generated files. Exits non-zero on a BREAKING terms change —
       # the files are written first, so the diff is still committed below.
@@ -65,12 +74,7 @@ jobs:
         env:
           EHUB_PARTNER_ID: ${{ secrets.EHUB_PARTNER_ID }}
           EHUB_API_KEY: ${{ secrets.EHUB_API_KEY }}
-        run: pnpm exec tsx scripts/sync-ehub-csob.ts
-
-      # The coupon file feeds the site, so a broken shape must not reach
-      # production just because the JSON parsed.
-      - name: Typecheck
-        run: pnpm exec tsc --noEmit
+        run: npx tsx scripts/sync-ehub-csob.ts
 
       - name: Commit if changed
         run: |
