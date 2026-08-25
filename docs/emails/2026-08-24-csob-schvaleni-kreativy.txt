@@ -1,29 +1,29 @@
 Komu: kratka@ehub.cz
-Předmět: VINInfo.cz – posouzení vlastní kreativy u kampaně ČSOB Pojišťovna
+Předmět: VINInfo.cz – dotaz k pravidlům propagace u kampaně ČSOB Pojišťovna
 
 
 Dobrý den, paní Krátká,
 
 provozuji web VINInfo.cz, kde si lidé podle VIN ověřují historii ojetého vozu. Pracujeme s daty z registru vozidel, se záznamy technických prohlídek, nájezdy a evidovanými závadami. V eHubu máme schválenou kampaň ČSOB Pojišťovna i Cebia.
 
-ČSOB chceme nabízet jako jediného partnera pro pojištění napříč webem. Než to spustíme, potřebuji si vyjasnit dvě věci.
+ČSOB chceme nabízet jako partnera pro pojištění napříč webem. Než to rozšíříme, potřebuji si vyjasnit dvě věci k pravidlům programu.
 
 
-1) Vlastní modul s našimi daty
+1) Jak je vymezena "tvorba vlastního obsahu"
 
-Pod výsledek lustrace vozidla bychom rádi umístili modul postavený na našich datech, zakončený oficiálním odkazem z eHubu do vaší kalkulačky.
+Mezi omezeními kampaně je uvedeno "Tvorba vlastního obsahu a použití loga inzerenta" s tím, že takový obsah lze publikovat pouze s předchozím souhlasem inzerenta nebo sítě. Rád bych si ujasnil, kam až toto omezení sahá.
 
-Abyste ho mohla posoudit v reálné podobě a ne z popisu, připravili jsme ho na adrese:
+Konkrétně: pod výsledek lustrace vozidla chceme umístit modul postavený na našich datech. Obsahuje čtyři údaje o daném modelu vozu (počet vozidel v registru, průměrné stáří, podíl vozů neúspěšných při technické prohlídce, míra evidovaných krádeží) a krátký redakční komentář k tomu, jaký typ pojištění u vozu daného stáří dává smysl. Posledním prvkem modulu je oficiální kreativa z eHubu, tedy odkaz do vaší kalkulačky (například "Odkaz do kalkulačky – povinné ručení", ID edd3eab1).
+
+Co v modulu není: logo ČSOB, jakákoli grafika s vaší značkou, ceny, srovnání cen ani tvrzení o vašich produktech. V samotném modulu ČSOB ani nejmenujeme – tlačítko je popsané neutrálně a partnera uvádíme až v nabídce nad modulem, včetně označení, že jde o partnerský odkaz.
+
+Rozumím tomu omezení tak, že míří na partnery, kteří vytvářejí vlastní bannery, grafiku nebo stránky nesoucí značku inzerenta. Náš modul je redakční obsah o vozidle doplněný oficiálním odkazem, nikoli kreativa o vašem produktu. Nechci to ale posuzovat sám: spadá takový modul pod uvedené omezení, nebo se týká jen materiálů využívajících vaši značku?
+
+Abyste to mohla posoudit na konkrétní podobě, a ne z popisu, připravili jsme ho na adrese:
 
     https://www.vininfo.cz/sjednat-pojisteni?typ=povinne&nahled=csob&znacka=skoda&model=fabia
 
-Modul zatím není veřejně dostupný. Zobrazí se pouze s tímto parametrem v adrese, nevede na něj žádný odkaz z webu a je vyloučený z indexace vyhledávači. Dokud nám nedáte vědět, nikam ho nezpřístupníme.
-
-Co modul obsahuje: čtyři údaje o daném modelu vozu (počet vozidel v registru, průměrné stáří, podíl vozů neúspěšných při technické prohlídce, míra evidovaných krádeží) a krátký redakční komentář k tomu, jaký typ pojištění u vozu daného stáří dává smysl.
-
-Co neobsahuje: logo ČSOB, žádné ceny, žádné srovnání cen a žádné tvrzení o vašich produktech. Data i text jsou naše. Odkaz vede přes oficiální kreativu z eHubu (například "Odkaz do kalkulačky – povinné ručení", ID edd3eab1), nikoli přes vlastní přesměrování.
-
-Podle podmínek programu lze vlastní obsah pro propagaci inzerenta publikovat jen s předchozím souhlasem, a nejsem si jistý, jestli se toto pravidlo na takový modul vztahuje. Můžete ho prosím posoudit? Pokud je něco potřeba upravit, rád to změním a pošlu k odsouhlasení znovu.
+Modul zatím veřejně nezobrazujeme. Zobrazí se pouze s tímto parametrem v adrese, nevede na něj žádný odkaz z webu, není v sitemapě a je vyloučený z indexace vyhledávači. Držíme ho tak z opatrnosti, dokud nebudeme mít jasno – i pro případ, že by se ukázalo, že souhlas potřeba není.
 
 
 2) Odkazy do kalkulačky
