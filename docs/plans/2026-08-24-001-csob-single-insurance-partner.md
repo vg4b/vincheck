@@ -252,6 +252,12 @@ snadno zapomene. Vše je v `api/_reminderEmail.ts`, funkce `promoBlock()`:
 | `havarijni_pojisteni` | `${baseUrl}/sjednat-pojisteni?vin=…` | **náš web** |
 | `stk` | `ehub.cz/…&a_bid=67e04d9d` | affiliate **Cebia** |
 
+**Opraveno 2026-08-25:** odkaz z připomínky nesl jen `?vin=`, který stránka nikdy
+nečetla. Doplněno `src=email_reminder` (propadá do eHubu jako `data1`, jinak byl
+provoz z připomínek nerozeznatelný od navigace) a `typ` podle typu připomínky.
+`?vin=` stránka pořád ignoruje — napojení vyžaduje překlad VIN na značku a model,
+aby ho mohl použít datový modul, což patří k jeho uvolnění.
+
 Z toho plynou dvě věci, které nesmíme uhodnout.
 
 **1) Přenáší se pravidlo o emailingu přes vlastní stránku?**
