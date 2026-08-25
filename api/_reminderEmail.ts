@@ -59,9 +59,14 @@ function getPromoBlockHtml(params: ReminderEmailParams): string {
 		reminderTypeRaw === 'povinne_ruceni' ||
 		reminderTypeRaw === 'havarijni_pojisteni'
 	) {
+		// `src` is what /sjednat-pojisteni forwards to eHub as `data1`, so without
+		// it every click from a reminder reported as plain `sjednat_page` and we
+		// could not tell whether the reminders drive any insurance interest at all.
+		// The placement value has existed in InsurancePlacement all along; the
+		// e-mail simply never set it.
 		const sjednatUrl = hasVin
-			? `${baseUrl}/sjednat-pojisteni?vin=${encodeURIComponent(vin)}`
-			: `${baseUrl}/sjednat-pojisteni`
+			? `${baseUrl}/sjednat-pojisteni?typ=${reminderTypeRaw === 'havarijni_pojisteni' ? 'havarijni' : 'povinne'}&src=email_reminder&vin=${encodeURIComponent(vin)}`
+			: `${baseUrl}/sjednat-pojisteni?typ=${reminderTypeRaw === 'havarijni_pojisteni' ? 'havarijni' : 'povinne'}&src=email_reminder`
 		// No price claim here. This used to promise "jedny z nejlepších cen na
 		// trhu", which was arguable when the page ran a comparison engine and is
 		// simply false now that it carries a single insurer — and a price claim
