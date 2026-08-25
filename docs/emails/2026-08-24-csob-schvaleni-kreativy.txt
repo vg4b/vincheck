@@ -6,7 +6,7 @@ Dobrý den, paní Krátká,
 
 provozuji web VINInfo.cz, kde si lidé podle VIN ověřují historii ojetého vozu. Pracujeme s daty z registru vozidel, se záznamy technických prohlídek, nájezdy a evidovanými závadami. V eHubu máme schválenou kampaň ČSOB Pojišťovna i Cebia.
 
-ČSOB chceme nabízet jako partnera pro pojištění napříč webem. Než to rozšíříme, potřebuji si vyjasnit dvě věci k pravidlům programu.
+ČSOB chceme nabízet jako partnera pro pojištění napříč webem. Než to rozšíříme, potřebuji si vyjasnit tři věci k pravidlům programu.
 
 
 1) Jak je vymezena "tvorba vlastního obsahu"
@@ -26,7 +26,16 @@ Abyste to mohla posoudit na konkrétní podobě, a ne z popisu, připravili jsme
 Modul zatím veřejně nezobrazujeme. Zobrazí se pouze s tímto parametrem v adrese, nevede na něj žádný odkaz z webu, není v sitemapě a je vyloučený z indexace vyhledávači. Držíme ho tak z opatrnosti, dokud nebudeme mít jasno – i pro případ, že by se ukázalo, že souhlas potřeba není.
 
 
-2) Odkazy do kalkulačky
+2) E-mailing
+
+Registrovaným uživatelům, kteří o to požádali, posíláme připomínky před koncem platnosti STK a před výročím pojistky. Tyto e-maily neobsahují žádný tracking odkaz ani jméno pojišťovny – odkazují na naši vlastní stránku, na které je nabídka ČSOB umístěná.
+
+Vztahuje se omezení k e-mailingu i na takový případ, nebo se týká e-mailů, které samy obsahují affiliate odkaz či propagaci inzerenta?
+
+Pokud by to bylo možné, uvítali bychom také vyjádření k tomu, zda smíme do těchto připomínek vložit tracking odkaz přímo. Jde o transakční zprávy registrovaným uživatelům k jejich konkrétnímu vozidlu, ne o hromadnou rozesílku.
+
+
+3) Odkazy do kalkulačky
 
 Chápu správně, že produktové kreativy typu Odkaz (povinné ručení edd3eab1, havarijní f2cbd4a7, vozidlo komplet 31ad0287, cestovní ce3024c2) můžeme používat volně, včetně umístění ve vlastním layoutu stránky?
 
