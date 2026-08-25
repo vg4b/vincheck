@@ -9,6 +9,16 @@ poskytovateli na eHubu, kde už běží Cebia.
 prošlých). Od dubna do srpna byly prošlé všechny, takže blok ČSOB byl na třech
 stránkách neviditelný a jedinou viditelnou monetizací zůstal rozbitý iframe.
 
+## Schváleno eHubem 2026-08-25
+
+Kristina Krátká (eHub) potvrdila:
+- omezení "vlastní obsah" míří na grafiku s logem inzerenta; **náš web včetně
+  modulu je v pořádku** → F3 odblokována, rollout řeší
+  `docs/plans/2026-08-25-001-module-rollout-and-import-content.md`
+- připomínky k vozu uživatele schválení nepotřebují; jen mailing čistě o nabídce
+  ČSOB na všechny uživatele ano
+- vše z administrace lze používat volně, **smíme si tvořit vlastní deeplinky**
+
 ## Hotovo 2026-08-24
 
 | jednotka | stav | ověřeno |
