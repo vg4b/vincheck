@@ -63,21 +63,28 @@ Realistické cesty ke stejnému cíli („co ten vůz dělal v zahraničí"):
 2. **Vytěžit, co už máme.** `vehicle_imports` + `datum_dovozu` + naše STK data
    umožňují říct o dovezených vozech to, co žádný jednotlivý registr neřekne:
 
-### Předběžný nález (VW Golf 2010–2016, ověřeno na produkční DB)
+### Nález (5 modelů, roč. 2010–2016, ověřeno na produkční DB)
 
-| původ | vozidel | neúspěšnost STK |
-|---|---|---|
-| dovoz z Německa | 25 267 | **3,82 %** |
-| bez záznamu dovozu | 23 783 | **2,69 %** |
-| dovoz odjinud | 5 731 | 3,82 % |
+Neúspěšnost STK, dovoz z Německa vs. vozy bez záznamu dovozu:
 
-Dovezený Golf padá na STK **o ~42 % častěji** než tuzemský. To je publikovatelný
-poznatek z dat, která už držíme, bez jakéhokoli cizího zdroje — a je to přesně
-ten typ obsahu, co posiluje `/znacky` a zároveň dává smysl vedle prodeje prověrky.
+| model | tuzemské | dovoz z DE | rozdíl |
+|---|---|---|---|
+| VW Golf | 2,69 % | 3,82 % | **+42 %** |
+| Audi A4 | 2,74 % | 3,28 % | +20 % |
+| VW Passat | 3,62 % | 4,34 % | +20 % |
+| Ford Focus | 4,61 % | 5,42 % | +18 % |
+| Škoda Fabia | 3,24 % | 3,78 % | +17 % |
 
-**Pozor:** číslo je z jednoho modelu a join přes tři velké tabulky trvá na
-současné instanci ~4–9 minut (agregace přes celý park narazila na timeout). Než
-z toho udělat feature, ověřit napříč modely v rámci nočního přepočtu, ne za běhu.
+**Směr drží u všech pěti modelů bez výjimky:** dovezené z Německa padají na STK
+častěji než tuzemské. Velikost kolísá (+17 % až +42 %); Golf je odlehlý, zbytek
+se drží kolem +18–20 %. Je to tedy robustní, publikovatelný poznatek z dat, která
+už držíme, bez jakéhokoli cizího zdroje — přesně ten typ obsahu, co posiluje
+`/znacky` a dává smysl vedle prodeje prověrky.
+
+**Pozor na výkon:** join registr × dovozy × prohlídky je drahý — Golf sám ~4 min,
+těchto 5 modelů (203k vozů) ~20 min, celý park spadl na 25min timeout. Proto to
+**musí do nočního přepočtu**, kde se registr i prohlídky stejně skenují, ne do
+ad-hoc dotazu za běhu.
 
 ## Zdroje
 

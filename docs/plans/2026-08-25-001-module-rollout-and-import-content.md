@@ -79,7 +79,8 @@ Podle bodu 2 výše:
 
 Průzkum (`docs/research/2026-08-25-import-country-sources.md`) došel k tomu, že
 cizí registr napojit nelze, ale **z vlastních dat plyne publikovatelný poznatek**:
-dovezený VW Golf 2010–2016 padá na STK **3,82 % vs 2,69 %** u tuzemského (~+42 %).
+dovezené z Německa padají na STK častěji než tuzemské u **všech 5 testovaných
+modelů** (Golf +42 %, A4/Passat +20 %, Focus +18 %, Fabia +17 %).
 
 **Musí do nočního přepočtu, ne ad-hoc.** Join registr × dovozy × prohlídky přes
 celý park spadl na 25min timeout; přes 550k vozů to instance neutáhne za běhu.
@@ -90,8 +91,7 @@ podle původu (DE / jiný / bez záznamu) tam je skoro zadarmo.
 - v `compute-stats.sql` doplnit `LEFT JOIN vehicle_imports` do bloku, který už
   počítá `_stk`, a rozdělit `FILTER` podle původu
 - na modelové stránce ukázat jako větu/dlaždici („dovezené kusy … o X % častěji")
-- ⚠️ ověřit napříč modely **uvnitř přepočtu**; Golf je jeden vzorek, potřebuje
-  potvrdit, že rozdíl drží obecně
+- ⚠️ ověřit napříč modely **uvnitř přepočtu**; Golf byl první vzorek; ověřeno na 5 modelech (+17–42 %). Potvrdit i u zbytku uvnitř přepočtu
 - **DoD:** rozpad je v `stats_model`, na modelové stránce, a přepočet se
   nezpomalil o víc než pár minut (každý sloupec stojí jeden běh – batchovat)
 
