@@ -2,6 +2,7 @@ import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 import './App.css'
 import GoogleAnalytics from './components/GoogleAnalytics'
 import ScrollToTop from './components/ScrollToTop'
+import AdminMetricsPage from './pages/AdminMetricsPage'
 import BrandModelStatsPage from './pages/BrandModelStatsPage'
 import BrandStatsPage from './pages/BrandStatsPage'
 import CertificateLandingPage from './pages/CertificateLandingPage'
@@ -65,6 +66,7 @@ function App() {
 				/>
 				<Route path='/firma' element={<FleetSearchPage />} />
 				<Route path='/firma/:ico' element={<FleetPage />} />
+				<Route path='/admin/metrics' element={<AdminMetricsPage />} />
 				<Route path='/statistiky/:slug' element={<RankingPage />} />
 				<Route path='/znacky' element={<ZnackyHubPage />} />
 				<Route path='/znacky/:brand' element={<BrandStatsPage />} />
