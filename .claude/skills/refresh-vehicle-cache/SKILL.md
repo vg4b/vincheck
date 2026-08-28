@@ -236,6 +236,26 @@ it here without re-reading that decision.
    a network blip. A VPN switch mid-run was survived on 2026-08-20 with them in
    place.
 
+   **Then rebuild the fleet aggregates** (`fleet_stats`, powering the true totals
+   and the current/year/brand breakdown on `/firma/:ico`) — same idea, its own
+   script:
+
+   ```bash
+   caffeinate -i env PGOPTIONS='-c statement_timeout=0' \
+     psql '<ADMIN_URL>' -f scripts/compute-fleet-stats.sql
+   ```
+
+   A single idempotent transaction (TRUNCATE + rebuild), so readers keep the
+   previous numbers until it commits and Ctrl-C rolls it back. It materialises the
+   whole owners→registry graph (90M ⋈ 19M rows) to get per-IČO totals, so it wants
+   temp space and a few minutes; `statement_timeout=0` is mandatory or a server
+   default kills it mid-build. Can be run any time (not only right after the
+   ingest) — it just reflects whatever snapshot the cache currently holds.
+   Skipping it does NOT break the page: `lookupVehiclesByIco` falls back to the
+   exact total (a cheap index-only distinct count) plus a newest-first sample and
+   omits the breakdown — but the breakdown then reflects the previous snapshot.
+   Table + grant come from `scripts/migrations/012_fleet_stats.sql` (one-off).
+
 6. **Scale the node back down** to `DB-DEV-S` — only if you scaled up in step 1.
 
 7. **Report** the new snapshot date + row counts to the user. No deploy needed —

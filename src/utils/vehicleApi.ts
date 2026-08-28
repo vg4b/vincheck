@@ -543,20 +543,35 @@ export async function fetchVehicleInfo(
 	return fields
 }
 
+const fleetApiBase = (): string =>
+	typeof window !== 'undefined'
+		? '/api/fleet'
+		: 'https://vincheck-six.vercel.app/api/fleet'
+
+// Upper bound of the bounded working set (mirrors FLEET_COUNT_CAP on the server).
+// The fleet page pulls the whole set in one request and filters/sorts client-side.
+export const FLEET_MAX_LIMIT = 1000
+
+export type FleetPageOptions = FetchVehicleInfoOptions & {
+	offset?: number
+	limit?: number
+}
+
 // Reverse lookup: vehicles for a legal-entity IČO (/api/fleet). Cache-only;
-// returns null on 404 (no vehicles found for that IČO).
+// returns null on 404 (no vehicles found for that IČO). Paginated via
+// offset/limit; the API clamps limit to its own per-page cap.
 export async function fetchFleetByIco(
 	ico: string,
-	options?: FetchVehicleInfoOptions
+	options?: FleetPageOptions
 ): Promise<FleetResult | null> {
-	const base =
-		typeof window !== 'undefined'
-			? '/api/fleet'
-			: 'https://vincheck-six.vercel.app/api/fleet'
+	const base = fleetApiBase()
+	const params = new URLSearchParams({ ico })
+	if (options?.offset != null) params.set('offset', String(options.offset))
+	if (options?.limit != null) params.set('limit', String(options.limit))
 
 	let response: Response
 	try {
-		response = await fetch(`${base}?ico=${encodeURIComponent(ico)}`, {
+		response = await fetch(`${base}?${params.toString()}`, {
 			mode: 'cors',
 			credentials: 'omit',
 			signal: options?.signal,

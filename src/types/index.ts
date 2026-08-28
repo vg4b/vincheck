@@ -224,14 +224,28 @@ export interface FleetVehicle {
 	current: boolean
 }
 
+/** True per-IČO aggregates (precomputed in fleet_stats). Null when not yet built. */
+export interface FleetStats {
+	total: number
+	current: number
+	minRok: number | null
+	maxRok: number | null
+	brands: { znacka: string; n: number }[]
+}
+
 /** Result of the reverse "vehicles by IČO" lookup (/api/fleet). */
 export interface FleetResult {
 	ico: string
 	nazev: string | null
+	/** True total number of vehicles (exact). */
 	count: number
-	countCapped: boolean
+	/** True when `vehicles` is only a sample of `count` (big fleets). */
+	sampled: boolean
+	/** Newest-first sample of the fleet (bounded). */
 	vehicles: FleetVehicle[]
 	snapshot: string | null
+	/** True aggregates when precomputed; null until the monthly build runs. */
+	stats: FleetStats | null
 }
 
 export interface AuthUser {

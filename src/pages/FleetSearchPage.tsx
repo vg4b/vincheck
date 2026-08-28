@@ -32,7 +32,8 @@ const FleetSearchPage: FC = () => {
 				<h1 className='h4 mb-2'>Vozidla firmy podle IČO</h1>
 				<p className='text-muted-ink'>
 					Zadejte IČO a zobrazte vozidla, která má (nebo měla) daný subjekt
-					zapsaná v registru silničních vozidel.
+					zapsaná v registru silničních vozidel. Výsledky můžete filtrovat,
+					řadit a stáhnout jako CSV.
 				</p>
 				<form onSubmit={submit} className='d-flex gap-2 mt-3'>
 					<input
