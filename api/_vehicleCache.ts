@@ -1095,34 +1095,95 @@ export type FleetVehicle = {
 	current: boolean
 }
 
+/** True per-IČO aggregates, precomputed monthly in fleet_stats. */
+export type FleetStats = {
+	total: number
+	current: number
+	minRok: number | null
+	maxRok: number | null
+	brands: Array<{ znacka: string; n: number }>
+}
+
 export type FleetResult = {
 	ico: string
 	nazev: string | null
-	count: number // capped at FLEET_COUNT_CAP
-	countCapped: boolean // true => real total exceeds `count` (show "count+")
-	vehicles: FleetVehicle[]
+	count: number // true total (exact)
+	sampled: boolean // true => `vehicles` is only a sample of `count`
+	vehicles: FleetVehicle[] // newest-first sample
 	snapshot: string | null
+	stats: FleetStats | null // true aggregates, null until the monthly build runs
 }
 
-// Big leasing fleets reach hundreds of thousands of vehicles, so never scan the
-// whole set: return a bounded sample and a capped count. Needs vehicle_owners_ico_idx.
+// Big leasing fleets reach hundreds of thousands of vehicles (ARVAL: 118k), so
+// never scan/join the whole set at request time — that needs 100k+ random heap
+// reads and times out. We return a bounded *newest-first* sample for browsing,
+// an exact total (cheap index-only distinct count), and read the true
+// aggregates from the precomputed fleet_stats table. Needs vehicle_owners_ico_pcv_idx.
 const FLEET_PAGE_SIZE = 60
 const FLEET_COUNT_CAP = 1000
+// Upper bound of the sample the caller may request in one go.
+export const FLEET_MAX_LIMIT = FLEET_COUNT_CAP
+
+export type FleetLookupOptions = {
+	offset?: number
+	limit?: number
+}
+
+// Read the precomputed per-IČO aggregates. Returns null if fleet_stats hasn't
+// been built yet (table absent) — the page then falls back to the exact total
+// plus the honestly-labelled sample.
+async function readFleetStats(
+	p: Pool,
+	ico: string
+): Promise<FleetStats | null> {
+	try {
+		const r = await p.query(
+			`SELECT total, current, min_rok, max_rok, brands FROM fleet_stats WHERE ico = $1`,
+			[ico]
+		)
+		const row = r.rows[0]
+		if (!row) return null
+		return {
+			total: Number(row.total),
+			current: Number(row.current),
+			minRok: row.min_rok == null ? null : Number(row.min_rok),
+			maxRok: row.max_rok == null ? null : Number(row.max_rok),
+			brands: Array.isArray(row.brands)
+				? (row.brands as Array<{ znacka: string; n: number }>)
+				: []
+		}
+	} catch {
+		// Most likely the table doesn't exist yet (undefined_table) — degrade
+		// gracefully rather than failing the whole lookup.
+		return null
+	}
+}
 
 /**
  * Reverse lookup: vehicles where a legal entity (IČO) is/was owner or operator.
  * Returns null if the cache isn't configured or the IČO has no vehicles.
  * Cache-only — the live API has no reverse-by-IČO capability.
+ *
+ * `count` is the exact fleet size; `vehicles` is a newest-first sample
+ * (ordered by pcv desc, which tracks registry entry order). `stats` carries the
+ * true aggregates when fleet_stats has been built.
  */
 export async function lookupVehiclesByIco(
-	ico: string
+	ico: string,
+	options?: FleetLookupOptions
 ): Promise<FleetResult | null> {
 	const p = getPool()
 	if (!p) {
 		return null
 	}
 
-	const [meta, info, ids] = await Promise.all([
+	const offset = Math.max(0, Math.trunc(options?.offset ?? 0))
+	const limit = Math.min(
+		FLEET_MAX_LIMIT,
+		Math.max(1, Math.trunc(options?.limit ?? FLEET_PAGE_SIZE))
+	)
+
+	const [meta, info, ids, stats] = await Promise.all([
 		p.query(
 			`SELECT source_snapshot::text AS snapshot FROM cache_meta WHERE dataset = 'vlastnik_provozovatel'`
 		),
@@ -1134,15 +1195,32 @@ export async function lookupVehiclesByIco(
          ) s) AS cnt`,
 			[ico]
 		),
+		// Newest-first: pcv tracks registry-entry order, so DESC surfaces the
+		// current/recent fleet instead of the oldest (mostly disposed) vehicles.
 		p.query(
-			`SELECT DISTINCT pcv FROM vehicle_owners WHERE ico = $1 LIMIT ${FLEET_PAGE_SIZE}`,
-			[ico]
-		)
+			`SELECT DISTINCT pcv FROM vehicle_owners WHERE ico = $1 ORDER BY pcv DESC OFFSET $2 LIMIT $3`,
+			[ico, offset, limit]
+		),
+		readFleetStats(p, ico)
 	])
 
-	const cnt = Number(info.rows[0]?.cnt ?? 0)
-	if (cnt === 0) {
+	const cappedCnt = Number(info.rows[0]?.cnt ?? 0)
+	if (cappedCnt === 0) {
 		return null
+	}
+
+	// The floor count is capped at FLEET_COUNT_CAP+1; when we hit that, run the
+	// exact (still index-only, ~0.4s) distinct count so the page shows the true
+	// size instead of "1000+". Prefer fleet_stats.total when available.
+	let count = cappedCnt
+	if (stats?.total != null) {
+		count = stats.total
+	} else if (cappedCnt > FLEET_COUNT_CAP) {
+		const exact = await p.query(
+			`SELECT count(*)::int AS n FROM (SELECT DISTINCT pcv FROM vehicle_owners WHERE ico = $1) s`,
+			[ico]
+		)
+		count = Number(exact.rows[0]?.n ?? cappedCnt)
 	}
 
 	const pcvs = (ids.rows as Array<{ pcv: unknown }>).map((r) => r.pcv)
@@ -1152,7 +1230,8 @@ export async function lookupVehiclesByIco(
                 r.rok_vyroby, r.datum_prvni_registrace, r.status,
                 (SELECT bool_or(o.aktualni = 'True') FROM vehicle_owners o
                   WHERE o.pcv = r.pcv AND o.ico = $2) AS current
-         FROM vehicle_registry r WHERE r.pcv = ANY($1::bigint[])`,
+         FROM vehicle_registry r WHERE r.pcv = ANY($1::bigint[])
+         ORDER BY array_position($1::bigint[], r.pcv)`,
 				[pcvs, ico]
 			)
 		: { rows: [] as Array<Record<string, unknown>> }
@@ -1173,9 +1252,10 @@ export async function lookupVehiclesByIco(
 	return {
 		ico,
 		nazev: nullIfEmpty(info.rows[0]?.nazev),
-		count: Math.min(cnt, FLEET_COUNT_CAP),
-		countCapped: cnt > FLEET_COUNT_CAP,
+		count,
+		sampled: count > vehicles.length,
 		vehicles,
-		snapshot: (meta.rows[0]?.snapshot as string | undefined) ?? null
+		snapshot: (meta.rows[0]?.snapshot as string | undefined) ?? null,
+		stats
 	}
 }

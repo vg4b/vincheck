@@ -11,10 +11,25 @@
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { rateLimit } from './_rateLimit'
-import { isCacheConfigured, lookupVehiclesByIco } from './_vehicleCache'
+import {
+	FLEET_MAX_LIMIT,
+	isCacheConfigured,
+	lookupVehiclesByIco
+} from './_vehicleCache'
 
 const first = (value: string | string[] | undefined): string | undefined =>
 	Array.isArray(value) ? value[0] : value
+
+// Max rows one JSON request may pull. The fleet page fetches the whole bounded
+// working set (≤ FLEET_MAX_LIMIT) in one go and does filtering / sorting /
+// paging / the summary / CSV export client-side — the set is already capped, so
+// pulling it whole is cheap. Per-IP rate limiting guards against abuse.
+const JSON_PAGE_LIMIT = FLEET_MAX_LIMIT
+
+function parseInt0(value: string | undefined, fallback: number): number {
+	const n = Number.parseInt(value ?? '', 10)
+	return Number.isFinite(n) ? n : fallback
+}
 
 function setCorsHeaders(req: VercelRequest, res: VercelResponse) {
 	const origin = req.headers.origin
@@ -68,7 +83,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 	}
 
 	try {
-		const result = await lookupVehiclesByIco(ico)
+		const result = await lookupVehiclesByIco(ico, {
+			offset: Math.max(0, parseInt0(first(req.query.offset), 0)),
+			limit: Math.min(
+				JSON_PAGE_LIMIT,
+				Math.max(1, parseInt0(first(req.query.limit), 60))
+			)
+		})
 		if (!result) {
 			return res
 				.status(404)
