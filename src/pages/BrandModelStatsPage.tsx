@@ -20,6 +20,12 @@ interface ModelStats {
 	pctTowbar: number | null
 	stkFailPct: number | null
 	stkInspections: number | null
+	// STK failure rate split by origin: German imports vs domestic (no import
+	// record). NULL until the recompute after migration 013 runs.
+	stkFailPctDe: number | null
+	stkInspectionsDe: number | null
+	stkFailPctDomestic: number | null
+	stkInspectionsDomestic: number | null
 	medianKmByAge: Record<string, number> | null
 	colorSplit: Record<string, number> | null
 	motorisations: Array<{ name: string; count: number }> | null
@@ -428,6 +434,39 @@ const BrandModelStatsPage: React.FC = () => {
 									Vypočteno z {fmtInt(stats.stkInspections)} skutečných
 									prohlídek vozů {name} v ČR.
 								</p>
+								{/* Origin split: German imports vs domestic. Only when both
+								    cohorts clear a floor — a rate over a handful of
+								    inspections is noise. Direction stays honest (research
+								    found DE higher across all tested models, but the page
+								    shows whichever the data says). "Domestic" = no import
+								    record; other-country imports are in neither cohort, so
+								    the two rates are deliberately not summed. */}
+								{stats.stkFailPctDe != null &&
+									stats.stkFailPctDomestic != null &&
+									stats.stkInspectionsDe != null &&
+									stats.stkInspectionsDomestic != null &&
+									stats.stkInspectionsDe >= 500 &&
+									stats.stkInspectionsDomestic >= 500 &&
+									stats.stkFailPctDomestic > 0 && (
+										<p className='mt-3 mb-0'>
+											{(() => {
+												const de = stats.stkFailPctDe
+												const dom = stats.stkFailPctDomestic
+												const rel = Math.round((100 * (de - dom)) / dom)
+												const more = de >= dom
+												return (
+													<>
+														Dovezené z Německa propadají na STK{' '}
+														<strong>
+															o {Math.abs(rel)} %{' '}
+															{more ? 'častěji' : 'méně často'}
+														</strong>{' '}
+														než tuzemské ({fmtNum1(de)} % vs. {fmtNum1(dom)} %).
+													</>
+												)
+											})()}
+										</p>
+									)}
 							</section>
 						)}
 

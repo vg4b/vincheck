@@ -49,6 +49,13 @@ export type ModelStats = {
 	pctTowbar: number | null
 	stkFailPct: number | null
 	stkInspections: number | null
+	/** STK failure rate split by origin (see migration 013): German imports vs
+	 *  domestic (no import record). Other-country imports are in neither, so the
+	 *  two are not complementary. All NULL until the recompute after 013 runs. */
+	stkFailPctDe: number | null
+	stkInspectionsDe: number | null
+	stkFailPctDomestic: number | null
+	stkInspectionsDomestic: number | null
 	medianKmByAge: Record<string, number> | null
 	colorSplit: Record<string, number> | null
 	/** Engine variants the cohort fold merged, biggest first. Null when the model
@@ -82,6 +89,10 @@ function mapRow(r: Record<string, unknown>): ModelStats {
 		pctTowbar: num(r.pct_towbar),
 		stkFailPct: num(r.stk_fail_pct),
 		stkInspections: num(r.stk_inspections),
+		stkFailPctDe: num(r.stk_fail_pct_de),
+		stkInspectionsDe: num(r.stk_inspections_de),
+		stkFailPctDomestic: num(r.stk_fail_pct_domestic),
+		stkInspectionsDomestic: num(r.stk_inspections_domestic),
 		medianKmByAge: (r.median_km_by_age as Record<string, number>) ?? null,
 		colorSplit: (r.color_split as Record<string, number>) ?? null,
 		motorisations:
@@ -100,7 +111,9 @@ function mapRow(r: Record<string, unknown>): ModelStats {
 
 const SELECT_COLS = `brand, model, vehicle_count, first_year, last_year,
   avg_age_years, fuel_split, avg_owners, pct_imported, pct_lpg, pct_towbar,
-  stk_fail_pct, stk_inspections, median_km_by_age, color_split, motorisations,
+  stk_fail_pct, stk_inspections,
+  stk_fail_pct_de, stk_inspections_de, stk_fail_pct_domestic, stk_inspections_domestic,
+  median_km_by_age, color_split, motorisations,
   top_defects, theft_per_1000, theft_count,
   computed_at::text AS computed_at`
 

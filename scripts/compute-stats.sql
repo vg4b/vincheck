@@ -326,12 +326,28 @@ GROUP BY GROUPING SETS ((b.brand, b.model), (b.brand));
 
 -- STK failure rate: share of REAL inspections (excl. synthetic kod_stk 9999)
 -- ending in defects/unfit (stav B/C). Keep the denominator for honesty on the page.
+--
+-- Origin split (see migration 013): the same rate for German imports (_de) vs
+-- domestic cars (_domestic, no import record at all). Other-country imports are
+-- in neither bucket, so the two are NOT a partition of the cohort. The two
+-- LEFT JOINs each hash `vehicle_imports` (~3.4M rows) once and reuse it, so this
+-- costs a couple of hash builds, not a second pass over the inspection join.
 CREATE TEMP TABLE _stk ON COMMIT DROP AS
 SELECT b.brand, b.model,
        count(*) FILTER (WHERE coalesce(i.kod_stk,'') <> '9999')                             AS stk_inspections,
        round(100.0 * count(*) FILTER (WHERE i.stav IN ('B','C') AND coalesce(i.kod_stk,'') <> '9999')
-             / nullif(count(*) FILTER (WHERE coalesce(i.kod_stk,'') <> '9999'), 0), 1)       AS stk_fail_pct
+             / nullif(count(*) FILTER (WHERE coalesce(i.kod_stk,'') <> '9999'), 0), 1)       AS stk_fail_pct,
+       -- German imports.
+       count(*) FILTER (WHERE de.pcv IS NOT NULL AND coalesce(i.kod_stk,'') <> '9999')       AS stk_inspections_de,
+       round(100.0 * count(*) FILTER (WHERE i.stav IN ('B','C') AND de.pcv IS NOT NULL AND coalesce(i.kod_stk,'') <> '9999')
+             / nullif(count(*) FILTER (WHERE de.pcv IS NOT NULL AND coalesce(i.kod_stk,'') <> '9999'), 0), 1) AS stk_fail_pct_de,
+       -- Domestic (no import record).
+       count(*) FILTER (WHERE imp.pcv IS NULL AND coalesce(i.kod_stk,'') <> '9999')          AS stk_inspections_domestic,
+       round(100.0 * count(*) FILTER (WHERE i.stav IN ('B','C') AND imp.pcv IS NULL AND coalesce(i.kod_stk,'') <> '9999')
+             / nullif(count(*) FILTER (WHERE imp.pcv IS NULL AND coalesce(i.kod_stk,'') <> '9999'), 0), 1) AS stk_fail_pct_domestic
 FROM _base b JOIN vehicle_inspections i USING (pcv)
+LEFT JOIN (SELECT DISTINCT pcv FROM vehicle_imports)                              imp USING (pcv)
+LEFT JOIN (SELECT DISTINCT pcv FROM vehicle_imports WHERE upper(btrim(stat)) = 'NĚMECKO') de USING (pcv)
 GROUP BY GROUPING SETS ((b.brand, b.model), (b.brand));
 
 -- Median mileage by vehicle age (years since first registration). Only ages with
@@ -355,12 +371,16 @@ TRUNCATE stats_model;
 INSERT INTO stats_model (
   brand, model, vehicle_count, first_year, last_year, avg_age_years,
   fuel_split, avg_owners, pct_imported, pct_lpg, pct_towbar,
-  stk_fail_pct, stk_inspections, median_km_by_age, color_split, computed_at
+  stk_fail_pct, stk_inspections,
+  stk_fail_pct_de, stk_inspections_de, stk_fail_pct_domestic, stk_inspections_domestic,
+  median_km_by_age, color_split, computed_at
 )
 SELECT
   c.brand, c.model, c.vehicle_count, c.first_year, c.last_year, c.avg_age_years,
   f.fuel_split, o.avg_owners, im.pct_imported, eq.pct_lpg, eq.pct_towbar,
-  s.stk_fail_pct, s.stk_inspections, od.median_km_by_age, cl.color_split, now()
+  s.stk_fail_pct, s.stk_inspections,
+  s.stk_fail_pct_de, s.stk_inspections_de, s.stk_fail_pct_domestic, s.stk_inspections_domestic,
+  od.median_km_by_age, cl.color_split, now()
 FROM (SELECT * FROM _cohort WHERE model IS NOT NULL) c
 LEFT JOIN _fuel   f  USING (brand, model)
 LEFT JOIN _owners o  USING (brand, model)

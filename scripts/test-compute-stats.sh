@@ -30,7 +30,8 @@ psql -qX -d "$DB" -v ON_ERROR_STOP=1 \
   -f "$SCRIPT_DIR/migrations/008_stats_model_alias.sql" \
   -f "$SCRIPT_DIR/migrations/009_stats_brand.sql" \
   -f "$SCRIPT_DIR/migrations/010_stats_defects_and_theft.sql" \
-  -f "$SCRIPT_DIR/migrations/011_theft_rate.sql" >/dev/null 2>&1
+  -f "$SCRIPT_DIR/migrations/011_theft_rate.sql" \
+  -f "$SCRIPT_DIR/migrations/013_stk_by_origin.sql" >/dev/null 2>&1
 
 psql -qX -d "$DB" -v ON_ERROR_STOP=1 <<'SQL'
 -- Cases chosen to exercise every rule the script implements:
@@ -100,6 +101,17 @@ WHERE tovarni_znacka = 'AUDI' AND obchodni_oznaceni = 'A4' AND (pcv % 25) = 0;
 INSERT INTO vehicle_deregistration (pcv, duvod, datum_od)
 SELECT pcv, 'Odcizeno', '2015-05-01' FROM vehicle_registry
 WHERE tovarni_znacka = 'AUDI' AND obchodni_oznaceni = 'A4' AND (pcv % 7) = 0;
+
+-- Imports, to exercise the STK origin split (migration 013). German cars are
+-- every 5th pcv; fails are every 10th pcv (a strict subset of every 5th), so DE
+-- cars fail at 50 % while domestic (no import record) fail at 0 % — a stark,
+-- checkable contrast that proves the FILTER buckets are wired right. The Slovak
+-- rows are imported but NOT German, so they land in neither published bucket:
+-- the two rates must not add up to the whole cohort.
+INSERT INTO vehicle_imports (pcv, stat, datum_dovozu)
+SELECT pcv, 'Německo', '2019-03-01' FROM vehicle_registry WHERE (pcv % 5) = 0;
+INSERT INTO vehicle_imports (pcv, stat, datum_dovozu)
+SELECT pcv, 'Slovensko', '2019-03-01' FROM vehicle_registry WHERE (pcv % 5) = 2;
 SQL
 
 echo "== running compute-stats.sql =="
@@ -123,6 +135,15 @@ FROM stats_model WHERE top_defects IS NOT NULL OR theft_count IS NOT NULL
 ORDER BY theft_per_1000 DESC NULLS LAST, brand"
 echo "   ^ theft_fleet > vehicle_count means deregistered cars were counted (the v1 bug)"
 echo "   ^ OCTAVIA leading on theft_count but not on theft_per_1000 means the rate is real"
+echo "== STK by origin (DE imports vs domestic; migration 013) =="
+psql -qX -d "$DB" -c "
+SELECT brand, model, stk_fail_pct,
+       stk_fail_pct_de AS de_pct, stk_inspections_de AS de_n,
+       stk_fail_pct_domestic AS dom_pct, stk_inspections_domestic AS dom_n
+FROM stats_model
+WHERE stk_inspections_de IS NOT NULL OR stk_inspections_domestic IS NOT NULL
+ORDER BY brand, model"
+echo "   ^ de_pct ~50 and dom_pct ~0 means the origin FILTER buckets are wired right"
 echo "== brand hubs =="
 psql -qX -d "$DB" -c "SELECT brand, vehicle_count, model_count, stk_fail_pct, stk_inspections FROM stats_brand ORDER BY vehicle_count DESC"
 echo "== brand totals must cover the WHOLE brand, incl. below-floor models =="
