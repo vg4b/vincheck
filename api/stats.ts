@@ -673,10 +673,22 @@ ${urls}
 	if (type === 'model') {
 		const brandSlug = q(req.query.brand)
 		const modelSlug = q(req.query.model)
-		const stats =
+		let stats =
 			brandSlug && modelSlug
 				? await getModelStatsBySlug(brandSlug, modelSlug)
 				: null
+		// A clean miss may be a slug the variant fold retired ("octavia-1-9-tdi" ->
+		// cohort "octavia"). Retry once with the surviving slug so a JSON caller —
+		// the vehicle insurance module resolves a real car's messy registry model
+		// here — sees the same cohort the /znacky page 308-redirects to above.
+		if (!stats && brandSlug && modelSlug) {
+			const target = await resolveModelAlias(brandSlug, modelSlug).catch(
+				() => null
+			)
+			if (target && target !== modelSlug) {
+				stats = await getModelStatsBySlug(brandSlug, target)
+			}
+		}
 		if (!stats) {
 			res.setHeader('Cache-Control', 'public, s-maxage=3600')
 			if (headOnly) return res.status(404).end()

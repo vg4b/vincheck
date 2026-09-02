@@ -19,9 +19,10 @@ import { titleCase } from '../utils/carLabels'
  *   - the verdict says when insurance is NOT worth buying; a module that only
  *     ever recommends buying is an ad, and reads like one
  *
- * eHub requires prior consent before PUBLISHING partner-made content, so this
- * renders only behind the ?nahled= gate until that consent arrives.
- * See docs/plans/2026-08-24-001-csob-single-insurance-partner.md (F2/F3).
+ * eHub approved publishing this content (2026-08-25), so it renders in public:
+ * under the vehicle lookup result (VehicleDetailPage, M1 only) and on the
+ * insurance page for a vehicle-carrying link.
+ * See docs/plans/2026-08-25-001-module-rollout-and-import-content.md.
  */
 
 type ModelStats = {

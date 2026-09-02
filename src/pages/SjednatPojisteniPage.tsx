@@ -42,9 +42,6 @@ const VALID_PLACEMENTS: InsurancePlacement[] = [
 	'nav'
 ]
 
-/** Query value that reveals the not-yet-approved data module. See PREVIEW note. */
-const PREVIEW_FLAG = 'csob'
-
 const KIND_TO_PRODUCT: Record<InsuranceKind, CsobProduct> = {
 	povinne: 'povinne',
 	havarijni: 'havarijni',
@@ -134,8 +131,6 @@ const SjednatPojisteniPage: React.FC = () => {
 	 * always describes what is on screen. It used to be useState seeded from the
 	 * param once: switching tabs then left a URL that named a different product
 	 * than the page showed, so a shared or reloaded link lost the selection.
-	 * That matters most for the ?nahled= preview links, which exist to be sent to
-	 * someone else.
 	 *
 	 * `replace: true` on purpose — tab clicks should not stack history entries,
 	 * so Back leaves the page instead of walking back through the tabs.
@@ -153,24 +148,18 @@ const SjednatPojisteniPage: React.FC = () => {
 		srcParam && VALID_PLACEMENTS.includes(srcParam) ? srcParam : 'sjednat_page'
 
 	/**
-	 * PREVIEW GATE. eHub allows partner-made content only with prior consent, so
-	 * the data module must not be PUBLISHED before ČSOB has seen it. It therefore
-	 * renders only with ?nahled=csob, is linked from nowhere, is absent from the
-	 * sitemap, and the page goes noindex while the flag is on — a preview Google
-	 * had indexed would be public in every way that matters.
-	 *
-	 * Remove this gate (and the noindex branch) once consent arrives: F3 in the plan.
+	 * The data module is our own content and eHub approved publishing it
+	 * (2026-08-25), so the preview gate is gone: it renders whenever the URL names
+	 * a vehicle (znacka + model), which is what an email/card deeplink carries.
 	 */
-	const previewOn = searchParams.get('nahled') === PREVIEW_FLAG
-	const previewBrand = searchParams.get('znacka')
-	const previewModel = searchParams.get('model')
+	const moduleBrand = searchParams.get('znacka')
+	const moduleModel = searchParams.get('model')
 	/**
 	 * Vehicle-only. Travel insurance has nothing to do with the car, so the
 	 * module's numbers (STK failures, theft rate, fleet age) would be decoration
 	 * next to a product they say nothing about.
 	 */
-	const showModule =
-		previewOn && typ !== 'cestovni' && Boolean(previewBrand && previewModel)
+	const showModule = typ !== 'cestovni' && Boolean(moduleBrand && moduleModel)
 
 	useEffect(() => {
 		document.title = 'Sjednat pojištění vozidla | VIN Info.cz'
@@ -182,18 +171,6 @@ const SjednatPojisteniPage: React.FC = () => {
 			)
 		}
 	}, [])
-
-	// Keep the preview out of the index for as long as the flag is on.
-	useEffect(() => {
-		if (!previewOn) return
-		const el = document.createElement('meta')
-		el.setAttribute('name', 'robots')
-		el.setAttribute('content', 'noindex, nofollow')
-		document.head.appendChild(el)
-		return () => {
-			document.head.removeChild(el)
-		}
-	}, [previewOn])
 
 	const validCoupons = csob.getValidCoupons()
 	// An unmatched coupon is not lost: it still shows in the "další akce" strip.
@@ -301,10 +278,10 @@ const SjednatPojisteniPage: React.FC = () => {
 				    pojištění, a ten patří nahoru. Modul je podklad k rozhodnutí, ne
 				    nabídka sama. Zároveň tím přestanou dvě tlačítka se skoro stejným
 				    významem stát hned pod sebou. */}
-				{showModule && previewBrand && previewModel && (
+				{showModule && moduleBrand && moduleModel && (
 					<VehicleInsuranceModule
-						brandSlug={previewBrand}
-						modelSlug={previewModel}
+						brandSlug={moduleBrand}
+						modelSlug={moduleModel}
 						product={KIND_TO_PRODUCT[typ]}
 						placement={placement}
 					/>

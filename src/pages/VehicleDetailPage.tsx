@@ -4,11 +4,13 @@ import { CebiaRemindersModal } from '../components/CebiaRemindersModal'
 import Footer from '../components/Footer'
 import Navigation from '../components/Navigation'
 import VehicleInfo from '../components/VehicleInfo'
+import VehicleInsuranceModule from '../components/VehicleInsuranceModule'
 import { cebia } from '../config/affiliateCampaigns'
 import { useAuth } from '../contexts/AuthContext'
 import { VehicleDataArray, VehicleHistory } from '../types'
 import { ApiError } from '../utils/apiClient'
 import { addVehicle, fetchVehicles } from '../utils/clientZoneApi'
+import { slugify } from '../utils/slug'
 import {
 	fetchSharedVehicleInfo,
 	fetchVehicleInfoWithHistory,
@@ -323,6 +325,18 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 	const vinCode = getDataValue(vehicleData, 'VIN', code)
 	const { brand, model } = resolveVehicleTitle(vehicleData)
 
+	// The insurance module only makes sense for passenger cars (M1). Its numbers
+	// (STK failures, theft rate) have no cohort for trucks/motorcycles, so it
+	// would render nothing anyway — but the registry category gates it cleanly
+	// rather than firing a JSON lookup that is bound to miss. `Kategorie` is coded
+	// ("M1", "N1", "L3e", …); match the M1 family by prefix.
+	const isM1 = getDataValue(vehicleData, 'Kategorie', '')
+		.trim()
+		.toUpperCase()
+		.startsWith('M1')
+	const brandSlug = brand ? slugify(brand) : ''
+	const modelSlug = model ? slugify(model) : ''
+
 	const cleanVinForCebia = vinCode.replace(/[^a-zA-Z0-9]/g, '')
 	const cebiaVehicleDetailModalRetryUrl =
 		cleanVinForCebia.length === 17
@@ -512,6 +526,21 @@ const VehicleDetailPage: React.FC<VehicleDetailPageProps> = ({ type }) => {
 						)
 					}
 				/>
+				{/* Insurance module BELOW the technical specs (option B): the
+				    certificate's ProductComparison owns the top of the page, so our own
+				    affiliate module sits at the tail as context — not a competing CTA at
+				    the conversion point. M1-only and self-silencing on an unknown model;
+				    opens ČSOB in a new tab, so it never pulls a buyer off this page. */}
+				{isM1 && brandSlug && modelSlug && (
+					<div className='mt-4'>
+						<VehicleInsuranceModule
+							brandSlug={brandSlug}
+							modelSlug={modelSlug}
+							product='povinne'
+							placement='vehicle_info'
+						/>
+					</div>
+				)}
 			</div>
 			<CebiaRemindersModal
 				open={vinPageCebiaRemindersModalOpen}

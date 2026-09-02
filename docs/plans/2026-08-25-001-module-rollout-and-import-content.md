@@ -87,13 +87,25 @@ celý park spadl na 25min timeout; přes 550k vozů to instance neutáhne za bě
 `compute-stats.sql` ale registr i prohlídky **stejně skenuje** – přidat rozpad
 podle původu (DE / jiný / bez záznamu) tam je skoro zadarmo.
 
-- migrace: `stk_fail_pct_imported`, `stk_fail_pct_domestic` (+ počty) na `stats_model`
-- v `compute-stats.sql` doplnit `LEFT JOIN vehicle_imports` do bloku, který už
-  počítá `_stk`, a rozdělit `FILTER` podle původu
-- na modelové stránce ukázat jako větu/dlaždici („dovezené kusy … o X % častěji")
-- ⚠️ ověřit napříč modely **uvnitř přepočtu**; Golf byl první vzorek; ověřeno na 5 modelech (+17–42 %). Potvrdit i u zbytku uvnitř přepočtu
-- **DoD:** rozpad je v `stats_model`, na modelové stránce, a přepočet se
-  nezpomalil o víc než pár minut (každý sloupec stojí jeden běh – batchovat)
+Rozlišení je **DE vs. tuzemské (bez záznamu dovozu)**, ne dovoz obecně –
+research měřil konkrétně Německo (2,69 % vs. 3,82 % u Golfu). Dovoz z jiných
+zemí je proto v **žádném** z obou kbelíků; ty dva podíly nejsou rozklad celku.
+
+- ✅ migrace `013_stk_by_origin.sql`: `stk_fail_pct_de`, `stk_inspections_de`,
+  `stk_fail_pct_domestic`, `stk_inspections_domestic` na `stats_model` (aditivní,
+  bezpečná před přepočtem – sloupce jsou NULL, čtenáři NULL berou jako „nemám dost")
+- ✅ `compute-stats.sql`: dva `LEFT JOIN` na `vehicle_imports` v bloku `_stk`
+  (`DISTINCT pcv`, a `stat='Německo'`), `FILTER` rozdělen podle původu; 4 sloupce
+  doplněny do `INSERT` do `stats_model` (brand hub beze změny)
+- ✅ modelová stránka (`BrandModelStatsPage`): věta pod „Poruchovost při STK"
+  („Dovezené z Německa propadají na STK o X % častěji"), práh 500 prohlídek na
+  každý kbelík, směr se řídí daty (ne natvrdo „častěji")
+- ✅ ověřeno na fixture (`test-compute-stats.sh`, migrace 013 přidána): DE 50 % vs.
+  tuzemské 0 % dle návrhu, denominátory DE+dom < celku (slovenský dovoz mimo oba)
+- ⚠️ **zbývá:** ověřit napříč modely **uvnitř nočního přepočtu** na prod datech
+  (Golf byl vzorek; potvrzeno na 5 modelech +17–42 %, doměřit zbytek dotazem)
+- **DoD:** rozpad je v `stats_model` na prod, na modelové stránce, a přepočet se
+  nezpomalil o víc než pár minut (přidány všechny 4 sloupce jedním během)
 
 ## Pořadí
 
@@ -103,10 +115,26 @@ měly jet jedním během).
 
 ## Definition of Done
 
-- [ ] R1: náhledová brána pryč, stránka indexovatelná
-- [ ] R3: JSON model endpoint foldne retirovaný slug (nutné před R2)
-- [ ] R2: modul pod lustrací vozu, ověřeno na reálném VINu
+- [x] R1: náhledová brána pryč (`PREVIEW_FLAG`, `previewOn`, noindex větev
+      odstraněny; modul se řídí jen `znacka`+`model`), stránka indexovatelná
+- [x] R3: JSON model endpoint foldne retirovaný slug – doplněn `resolveModelAlias`
+      fallback i do JSON větve `api/stats.ts` (dřív byl jen v HTML/SEO větvi, což R2
+      potichu sabotovalo). Alias data v produkci existují (HTML větev už 308uje
+      `octavia-1-9-tdi`→`octavia`); JSON fold se projeví po nasazení.
+- [x] R2 (kód): `<VehicleInsuranceModule>` na `VehicleDetailPage`, jen M1
+      (`Kategorie` prefix), slugy přes nový `src/utils/slug.ts`. **Umístěn POD
+      technické údaje (varianta B)**, ne do `promoSection` – certifikát (živý,
+      `ProductComparison` 99 Kč) vlastní horní plochu, modul je až v patičce jako
+      kontext, ne konkurenční CTA v konverzním bodě (otevírá ČSOB v novém tabu, tak
+      neodvádí kupce z certifikátu). **Ověření na reálném VINu čeká na nasazení**
+      (JSON fold z R3 musí být na prod).
 - [ ] R4: připomínky beze změny; tracking odkaz do e-mailu jen po zvláštním potvrzení
-- [ ] S-import: rozpad v nočním přepočtu, ověřený napříč modely, na modelové stránce
+- [~] S-import: **kód hotový a ověřený na fixture** (migrace 013, `compute-stats.sql`,
+      API `_statsData.ts`, dlaždice). Na větvi `feat/stk-by-origin` – čtecí cesta se
+      **nesmí mergnout na main dřív, než je migrace 013 na prod** (jinak by
+      `getModelStatsBySlug` 500-oval na chybějícím sloupci). Zbývá: noční migrace +
+      přepočet + ověření napříč modely na prod, pak merge větve. Runbook:
+      `docs/runbooks/2026-09-02-stk-by-origin-scaleway.md`
+- [x] R1/R2/R3: **releasnuto na main** (rollout modulu, nezávislý na S-importu)
 - [ ] `sync-marketing-surfaces` proběhl (modul je nová zákaznická plocha)
-- [ ] ověřeno na produkci, ne jen lokálně
+- [ ] ověřeno na produkci, ne jen lokálně (build + typecheck + fixture lokálně OK)
