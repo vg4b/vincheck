@@ -136,5 +136,17 @@ měly jet jedním během).
       přepočet + ověření napříč modely na prod, pak merge větve. Runbook:
       `docs/runbooks/2026-09-02-stk-by-origin-scaleway.md`
 - [x] R1/R2/R3: **releasnuto na main** (rollout modulu, nezávislý na S-importu)
-- [ ] `sync-marketing-surfaces` proběhl (modul je nová zákaznická plocha)
+- [x] `sync-marketing-surfaces` proběhl. Závěr: **žádná plocha nevyžaduje změnu.**
+      Modul žije na dvou zákaznických plochách, které ho už nesou (`VehicleDetailPage`
+      po lustraci, `/sjednat-pojisteni` s vozem v URL). Záměrně jinde ne:
+      - insurance SEO (`PovinneRuceniPage`, `HavarijniPojisteniPage`) linkují na
+        `/sjednat-pojisteni` bez `znacka`+`model` → modul se nemá o jaký vůz opřít;
+        jsou to tematické stránky, ne detail konkrétního vozu
+      - homepage / hub / stats stránky: modul je per-vozidlo affiliate CTA, na
+        obsahovou/SEO plochu nepatří (`BrandModelStatsPage` už STK/krádeže ukazuje
+        jako fakta, ne jako pobídku)
+      - certifikát (landing / PDF / `ProductComparison` / sample): netýká se –
+        modul je affiliate pojištění, ne placený certifikát; žádné tvrzení o
+        certifikátu nefalšuje. Modul je M1-only a sám se skryje bez kohorty
+        (žádné přeslibování)
 - [ ] ověřeno na produkci, ne jen lokálně (build + typecheck + fixture lokálně OK)
