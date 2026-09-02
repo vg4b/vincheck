@@ -35,12 +35,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 					count(*)::int AS total,
 					count(*) FILTER (WHERE created_at >= now() - interval '30 day')::int AS d30
 				FROM events GROUP BY type ORDER BY total DESC`,
-			// Daily lookups vs paid certificates, last 30 days.
+			// Full funnel per day, last 30 days. Sales/revenue exclude test-gateway
+			// purchases; every other step is a raw event count.
 			sql`
 				SELECT to_char(created_at, 'YYYY-MM-DD') AS day,
 					count(*) FILTER (WHERE type = 'vin_lookup')::int AS lookups,
+					count(*) FILTER (WHERE type = 'comparison_view')::int AS comparisons,
+					count(*) FILTER (WHERE type = 'cert_cta_click')::int AS cta,
+					count(*) FILTER (WHERE type = 'certificate_created')::int AS created,
 					count(*) FILTER (WHERE type = 'certificate_issued'
-						AND props->>'testMode' = 'false')::int AS sales
+						AND props->>'testMode' = 'false')::int AS sales,
+					coalesce(sum((props->>'amountCzk')::int) FILTER (
+						WHERE type = 'certificate_issued'
+						AND props->>'testMode' = 'false'), 0)::int AS revenue_czk
 				FROM events
 				WHERE created_at >= now() - interval '30 day'
 				GROUP BY day ORDER BY day DESC`,

@@ -10,7 +10,15 @@ import Navigation from '../components/Navigation'
  */
 interface Metrics {
 	funnel: Array<{ type: string; total: number; d30: number }>
-	daily: Array<{ day: string; lookups: number; sales: number }>
+	daily: Array<{
+		day: string
+		lookups: number
+		comparisons: number
+		cta: number
+		created: number
+		sales: number
+		revenue_czk: number
+	}>
 	placements: Array<{ placement: string; n: number }>
 	sales: { sales: number; revenue_czk: number }
 	generatedAt: string
@@ -216,7 +224,11 @@ const AdminMetricsPage: FC = () => {
 									<tr>
 										<th>Den</th>
 										<th className='text-end'>Lookupů</th>
+										<th className='text-end'>Nabídek</th>
+										<th className='text-end'>CTA</th>
+										<th className='text-end'>Plateb</th>
 										<th className='text-end'>Prodejů</th>
+										<th className='text-end'>Tržba</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -224,7 +236,13 @@ const AdminMetricsPage: FC = () => {
 										<tr key={d.day}>
 											<td className='num'>{d.day}</td>
 											<td className='text-end'>{d.lookups}</td>
+											<td className='text-end'>{d.comparisons}</td>
+											<td className='text-end'>{d.cta}</td>
+											<td className='text-end'>{d.created}</td>
 											<td className='text-end'>{d.sales}</td>
+											<td className='text-end'>
+												{d.revenue_czk.toLocaleString('cs-CZ')} Kč
+											</td>
 										</tr>
 									))}
 								</tbody>
