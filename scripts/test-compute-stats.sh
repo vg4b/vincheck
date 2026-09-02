@@ -109,7 +109,7 @@ WHERE tovarni_znacka = 'AUDI' AND obchodni_oznaceni = 'A4' AND (pcv % 7) = 0;
 -- rows are imported but NOT German, so they land in neither published bucket:
 -- the two rates must not add up to the whole cohort.
 INSERT INTO vehicle_imports (pcv, stat, datum_dovozu)
-SELECT pcv, 'Německo', '2019-03-01' FROM vehicle_registry WHERE (pcv % 5) = 0;
+SELECT pcv, 'Spolková republika Německo', '2019-03-01' FROM vehicle_registry WHERE (pcv % 5) = 0;
 INSERT INTO vehicle_imports (pcv, stat, datum_dovozu)
 SELECT pcv, 'Slovensko', '2019-03-01' FROM vehicle_registry WHERE (pcv % 5) = 2;
 SQL

@@ -347,7 +347,11 @@ SELECT b.brand, b.model,
              / nullif(count(*) FILTER (WHERE imp.pcv IS NULL AND coalesce(i.kod_stk,'') <> '9999'), 0), 1) AS stk_fail_pct_domestic
 FROM _base b JOIN vehicle_inspections i USING (pcv)
 LEFT JOIN (SELECT DISTINCT pcv FROM vehicle_imports)                              imp USING (pcv)
-LEFT JOIN (SELECT DISTINCT pcv FROM vehicle_imports WHERE upper(btrim(stat)) = 'NĚMECKO') de USING (pcv)
+-- `stat` is the registry's full official country name, not a short label: the
+-- German cohort is "Spolková republika Německo" (~2.0M rows), NOT "Německo".
+-- (An older "Německá demokratická republika" GDR value exists too, ~22k, but
+-- that defunct state is not what "dovoz z Německa" means for a used car today.)
+LEFT JOIN (SELECT DISTINCT pcv FROM vehicle_imports WHERE btrim(stat) = 'Spolková republika Německo') de USING (pcv)
 GROUP BY GROUPING SETS ((b.brand, b.model), (b.brand));
 
 -- Median mileage by vehicle age (years since first registration). Only ages with
