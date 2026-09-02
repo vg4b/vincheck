@@ -49,11 +49,12 @@ psql "$PSQL_URL" -qtAX -c "
 
 ## 2. Přepočet (`compute-stats.sql`, ~2 h)
 
-`TRUNCATE stats_model` + plný rebuild. `min_count=100` je publikační práh (beze
-změny). `caffeinate -i` ať Mac neusne uprostřed.
+`TRUNCATE stats_model` + plný rebuild. `min_count=500` je produkční publikační
+práh (default, zvýšen ze 100 dne 2026-08-20 – NE 100, to je jen fixture).
+`caffeinate -i` ať Mac neusne uprostřed.
 
 ```bash
-caffeinate -i psql "$PSQL_URL" -v ON_ERROR_STOP=1 -v min_count=100 \
+caffeinate -i psql "$PSQL_URL" -v ON_ERROR_STOP=1 -v min_count=500 \
   -f scripts/compute-stats.sql
 ```
 
