@@ -512,6 +512,7 @@ const VehicleInfo: React.FC<VehicleInfoProps> = ({
 						priceCzk={CERTIFICATE_PRICE_CZK}
 						mileageAvailable={(history?.mileage?.count ?? 0) > 0}
 						hasPrediction={history?.mileage?.hasPrediction ?? false}
+						stkAvailable={(history?.inspections?.total ?? 0) > 0}
 						certificateCta={
 							<button
 								type='button'

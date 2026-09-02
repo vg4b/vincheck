@@ -21,6 +21,16 @@ interface ProductComparisonProps {
 	 * certificate won't contain. Omit (undefined) on the generic landing page.
 	 */
 	hasPrediction?: boolean
+	/**
+	 * Whether the looked-up vehicle has any STK inspection records. Pass `false`
+	 * on the detail page when this specific vehicle has none ("Bez záznamu STK v
+	 * registru"), so we don't advertise an STK history the certificate won't
+	 * contain. The absence is already shown for free in the STK card, so hiding
+	 * this bullet leaks nothing the buyer couldn't otherwise see. Omit
+	 * (undefined) on the generic landing page, where the feature is described in
+	 * general terms.
+	 */
+	stkAvailable?: boolean
 }
 
 /**
@@ -38,7 +48,8 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 	certificateCta,
 	cebiaCta,
 	mileageAvailable,
-	hasPrediction
+	hasPrediction,
+	stkAvailable
 }) => (
 	<div className='product-choice'>
 		{/* Our product – official registry data. */}
@@ -52,10 +63,12 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
 				<li>
 					<Icon name='check' size={15} /> Vlastníci a provozovatelé
 				</li>
-				<li>
-					<Icon name='check' size={15} /> Historie STK včetně konkrétních závad
-					z protokolů
-				</li>
+				{stkAvailable !== false && (
+					<li>
+						<Icon name='check' size={15} /> Historie STK včetně konkrétních
+						závad z protokolů
+					</li>
+				)}
 				{/* Static, unlike the mileage bullets: the certificate answers this in
 				    all cases including "nic jsme nenašli", and a bullet that appeared
 				    only for financed cars would leak the paid answer into the card. */}
