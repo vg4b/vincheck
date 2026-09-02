@@ -13,6 +13,51 @@ nečte – proto je `main` bezpečný i před migrací.
 
 ---
 
+## ⚠️ STAV k 2026-09-03 01:30 (noční pokus – ČTI NEJDŘÍV)
+
+Co je hotové a co zbývá:
+
+- ✅ **Migrace 013 aplikována na prod** (sloupce existují, jsou NULL).
+- ✅ **Dva root-cause bugy opravené na větvi** (`feat/stk-by-origin`, commit
+  `e5c4712`): filtr DE musí matchovat plný název země **„Spolková republika
+  Německo"** (~2,0M), ne „Německo" – to nematchlo nic. Fixture to maskoval.
+- ⚠️ **DE sloupce jsou na prod pořád NULL** – přepočet, který je měl naplnit,
+  spadl na síťový timeout (viz incident níž). **Produkce je ale zdravá** (main DE
+  nečte), `stats_model` drží data z prvního běhu (764 kohort, `computed_at` 21:08).
+- ❌ **Krok 4 (merge/deploy) NEPROVEDEN** – čeká na naplnění DE sloupců.
+
+### Incident (vyřešeno) – proč nepouštět plný přepočet přes noc bez dozoru
+
+Druhý běh `compute-stats.sql` spadl po 1h44m na `could not receive data from
+server: Operation timed out` (flaky síť). Klient umřel, **serverový backend zůstal
+`idle in transaction` a držel `ACCESS EXCLUSIVE` zámek z `TRUNCATE stats_model`** –
+a tím **zablokoval i živé čtení `/znacky` na produkci** (`/api/stats` vracelo
+HTTP 000 / timeout). Vyřešeno `pg_terminate_backend()` na ten zombie backend
+(`pg_stat_activity`, viz [[never-print-process-args]] – ne `ps`).
+
+**Dvě ponaučení do dalšího pokusu:**
+
+1. **`TRUNCATE` v `compute-stats.sql` drží `ACCESS EXCLUSIVE` po CELOU dobu běhu
+   (~1 h)** → plný přepočet blokuje čtení `/znacky` celou tu dobu (cache-miss
+   requesty padají). Buď pouštět jen v nízké špičce, nebo **použít cílený backfill
+   níž** (jen nové sloupce, `UPDATE` místo `TRUNCATE` → zámek `ROW EXCLUSIVE`,
+   který čtení NEblokuje).
+2. **Vždy nastavit `idle_in_transaction_session_timeout`** (např. 180 s), aby se
+   při úmrtí klienta backend sám ukončil a uvolnil zámek, místo aby držel prod dole.
+
+### Doporučená bezpečná cesta k naplnění DE (dozorovaně)
+
+Cílený backfill jen 4 nových sloupců – **neblokuje čtení, bezpečný i při pádu**
+(žádný `TRUNCATE`; temp tabulky + `UPDATE`). Postaví stejné `_base`/`_canon`/`_stk`
+bloky jako přepočet (kanonická logika), pak `UPDATE stats_model`. Buď:
+- vyříznout bloky z `compute-stats.sql` (fold funkce + `_base` 75–200, `_canon`
+  221–239, `_stk` 335–356) do skriptu zakončeného `UPDATE stats_model … FROM _stk`, nebo
+- pustit celý `compute-stats.sql` v nízké špičce s `idle_in_transaction_session_timeout`.
+
+Připojení vždy s `SET idle_in_transaction_session_timeout='180s';` na začátku.
+
+---
+
 ## 0. Předpoklady
 
 ```bash
@@ -54,6 +99,9 @@ práh (default, zvýšen ze 100 dne 2026-08-20 – NE 100, to je jen fixture).
 `caffeinate -i` ať Mac neusne uprostřed.
 
 ```bash
+# PGOPTIONS: pokud klient umře, backend se sám ukončí do 180 s a uvolní zámek
+# (jinak zombie drží ACCESS EXCLUSIVE a shodí čtení /znacky – viz incident výš).
+PGOPTIONS='-c idle_in_transaction_session_timeout=180000' \
 caffeinate -i psql "$PSQL_URL" -v ON_ERROR_STOP=1 -v min_count=500 \
   -f scripts/compute-stats.sql
 ```
