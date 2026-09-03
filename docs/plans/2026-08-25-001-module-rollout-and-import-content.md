@@ -128,7 +128,12 @@ měly jet jedním během).
       kontext, ne konkurenční CTA v konverzním bodě (otevírá ČSOB v novém tabu, tak
       neodvádí kupce z certifikátu). **Ověření na reálném VINu čeká na nasazení**
       (JSON fold z R3 musí být na prod).
-- [ ] R4: připomínky beze změny; tracking odkaz do e-mailu jen po zvláštním potvrzení
+- [~] R4: **vin→značka/model napojeno** (2026-09-03) – připomínkové e-maily i karty
+      vozidel v klientské zóně teď vedou na `/sjednat-pojisteni?znacka=…&model=…`,
+      takže se modul rozsvítí. E-mail nejmenuje pojišťovnu, jen odkazuje na naši
+      stránku – to eHub potvrdil, že souhlas nepotřebuje (připomínka k vozu, ne
+      mailing o nabídce ČSOB; viz `docs/emails/2026-08-24-*`, bod 2). **Zbývá jen**
+      tracking odkaz VLOŽENÝ přímo do e-mailu – ten čeká na zvláštní potvrzení eHubu.
 - [x] S-import: **HOTOVO a živé na produkci** (2026-09-03). Migrace 013 + cílený
       backfill (UPDATE, ne TRUNCATE → neblokuje `/znacky`), větev `feat/stk-by-origin`
       mergnuta na main. Klíčové zádrhely cestou: (1) `stat` je plný název země
