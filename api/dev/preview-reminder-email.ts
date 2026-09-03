@@ -61,6 +61,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 		note: type === 'stk' ? 'Kontrola brzd a podvozku' : null,
 		unsubscribeUrl: `${baseUrl}/api/email/unsubscribe?token=preview`,
 		vehicleVin: vin?.trim() || null,
+		vehicleBrand: 'Škoda',
+		vehicleModel: 'Octavia',
 		baseUrl
 	})
 

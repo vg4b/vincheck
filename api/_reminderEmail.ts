@@ -1,5 +1,6 @@
 import { sql } from '@vercel/postgres'
 import { EMAIL_HEAD_STYLES, EMAIL_LOGO_URL, sendEmail } from './_email'
+import { slugify } from './_statsData'
 import { formatDate, getBaseUrl } from './_utils'
 import { generateUnsubscribeToken } from './email/unsubscribe'
 
@@ -29,6 +30,8 @@ interface ReminderEmailParams {
 	note: string | null
 	unsubscribeUrl: string
 	vehicleVin: string | null
+	vehicleBrand: string | null
+	vehicleModel: string | null
 	baseUrl: string
 }
 
@@ -51,7 +54,8 @@ function promoBlockHtml(message: string, href: string, label: string): string {
 }
 
 function getPromoBlockHtml(params: ReminderEmailParams): string {
-	const { reminderTypeRaw, vehicleVin, baseUrl } = params
+	const { reminderTypeRaw, vehicleVin, vehicleBrand, vehicleModel, baseUrl } =
+		params
 	const vin = vehicleVin?.trim()
 	const hasVin = vin && vin.length === 17
 
@@ -64,9 +68,21 @@ function getPromoBlockHtml(params: ReminderEmailParams): string {
 		// could not tell whether the reminders drive any insurance interest at all.
 		// The placement value has existed in InsurancePlacement all along; the
 		// e-mail simply never set it.
-		const sjednatUrl = hasVin
-			? `${baseUrl}/sjednat-pojisteni?typ=${reminderTypeRaw === 'havarijni_pojisteni' ? 'havarijni' : 'povinne'}&src=email_reminder&vin=${encodeURIComponent(vin)}`
-			: `${baseUrl}/sjednat-pojisteni?typ=${reminderTypeRaw === 'havarijni_pojisteni' ? 'havarijni' : 'povinne'}&src=email_reminder`
+		const typ =
+			reminderTypeRaw === 'havarijni_pojisteni' ? 'havarijni' : 'povinne'
+		const brandSlug = vehicleBrand ? slugify(vehicleBrand) : ''
+		const modelSlug = vehicleModel ? slugify(vehicleModel) : ''
+		// znacka+model lights up the vehicle data module on the page (the whole
+		// point of the deeplink). Fall back to vin (kept for analytics) or the bare
+		// page. No insurer is named in the e-mail — it only links to our own page,
+		// which is the case eHub confirmed needs no consent (vehicle reminder, not
+		// a mailing about the ČSOB offer). See docs/emails/2026-08-24-*.
+		const sjednatUrl =
+			brandSlug && modelSlug
+				? `${baseUrl}/sjednat-pojisteni?typ=${typ}&src=email_reminder&znacka=${brandSlug}&model=${modelSlug}`
+				: hasVin
+					? `${baseUrl}/sjednat-pojisteni?typ=${typ}&src=email_reminder&vin=${encodeURIComponent(vin)}`
+					: `${baseUrl}/sjednat-pojisteni?typ=${typ}&src=email_reminder`
 		// No price claim here. This used to promise "jedny z nejlepších cen na
 		// trhu", which was arguable when the page ran a comparison engine and is
 		// simply false now that it carries a single insurer — and a price claim
@@ -235,6 +251,8 @@ export async function sendReminderEmailNow(
 			note: params.note,
 			unsubscribeUrl,
 			vehicleVin: params.vehicleVin,
+			vehicleBrand: params.vehicleBrand,
+			vehicleModel: params.vehicleModel,
 			baseUrl
 		}
 		const emailHtml = generateReminderEmailHtml(templateParams)

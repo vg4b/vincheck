@@ -29,6 +29,7 @@ import {
 	updateVehicleTitle
 } from '../utils/clientZoneApi'
 import { applyNoindex } from '../utils/seo'
+import { slugify } from '../utils/slug'
 import {
 	fetchVehicleInfo,
 	formatValue,
@@ -220,12 +221,33 @@ function formatOkVehicles(count: number): string {
 }
 
 /**
+ * /sjednat-pojisteni deeplink. znacka+model light up the vehicle data module on
+ * the page (only fires when both are known). No insurer named in the link — the
+ * page hosts the ČSOB offer, which is the case eHub confirmed needs no consent.
+ */
+const insuranceUrl = (
+	typ: string,
+	src: string,
+	brand?: string | null,
+	model?: string | null
+): string => {
+	const q = new URLSearchParams({ typ, src })
+	if (brand && model) {
+		q.set('znacka', slugify(brand))
+		q.set('model', slugify(model))
+	}
+	return `/sjednat-pojisteni?${q.toString()}`
+}
+
+/**
  * Kontextová nabídka sjednání pojištění na kartě vozidla - zobrazí se,
  * když se u vozidla blíží termín pojištění.
  */
-const InsuranceDeadlineCallout: React.FC<{ deadline: InsuranceDeadline }> = ({
-	deadline
-}) => (
+const InsuranceDeadlineCallout: React.FC<{
+	deadline: InsuranceDeadline
+	brand?: string | null
+	model?: string | null
+}> = ({ deadline, brand, model }) => (
 	<div
 		className='d-flex flex-wrap align-items-center justify-content-between gap-2 rounded p-3 mb-3'
 		style={{
@@ -238,7 +260,7 @@ const InsuranceDeadlineCallout: React.FC<{ deadline: InsuranceDeadline }> = ({
 			{formatDaysLeft(deadline.daysLeft)}. Sjednáte online během pár minut.
 		</span>
 		<Link
-			to={`/sjednat-pojisteni?typ=${deadline.kind}&src=vehicle_card_due`}
+			to={insuranceUrl(deadline.kind, 'vehicle_card_due', brand, model)}
 			className='btn btn-sm btn-primary text-nowrap'
 		>
 			Porovnat nabídky
@@ -1243,6 +1265,8 @@ const ClientZonePage: React.FC = () => {
 												{insuranceDeadline && (
 													<InsuranceDeadlineCallout
 														deadline={insuranceDeadline}
+														brand={vehicle.brand}
+														model={vehicle.model}
 													/>
 												)}
 												<ul className='vehicle-actions'>
@@ -1264,7 +1288,14 @@ const ClientZonePage: React.FC = () => {
 													)}
 													{!insuranceDeadline && (
 														<li>
-															<Link to='/sjednat-pojisteni?typ=povinne&src=vehicle_card'>
+															<Link
+																to={insuranceUrl(
+																	'povinne',
+																	'vehicle_card',
+																	vehicle.brand,
+																	vehicle.model
+																)}
+															>
 																<Icon name='chevron-right' size={16} />
 																Sjednat pojištění
 															</Link>
@@ -1761,7 +1792,12 @@ const ClientZonePage: React.FC = () => {
 															</a>
 														)}
 														<Link
-															to='/sjednat-pojisteni?typ=povinne&src=vehicle_card'
+															to={insuranceUrl(
+																'povinne',
+																'vehicle_card',
+																vehicle.brand,
+																vehicle.model
+															)}
 															className='btn btn-sm btn-outline-secondary'
 														>
 															Sjednat pojištění
