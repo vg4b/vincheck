@@ -129,12 +129,15 @@ měly jet jedním během).
       neodvádí kupce z certifikátu). **Ověření na reálném VINu čeká na nasazení**
       (JSON fold z R3 musí být na prod).
 - [ ] R4: připomínky beze změny; tracking odkaz do e-mailu jen po zvláštním potvrzení
-- [~] S-import: **kód hotový a ověřený na fixture** (migrace 013, `compute-stats.sql`,
-      API `_statsData.ts`, dlaždice). Na větvi `feat/stk-by-origin` – čtecí cesta se
-      **nesmí mergnout na main dřív, než je migrace 013 na prod** (jinak by
-      `getModelStatsBySlug` 500-oval na chybějícím sloupci). Zbývá: noční migrace +
-      přepočet + ověření napříč modely na prod, pak merge větve. Runbook:
-      `docs/runbooks/2026-09-02-stk-by-origin-scaleway.md`
+- [x] S-import: **HOTOVO a živé na produkci** (2026-09-03). Migrace 013 + cílený
+      backfill (UPDATE, ne TRUNCATE → neblokuje `/znacky`), větev `feat/stk-by-origin`
+      mergnuta na main. Klíčové zádrhely cestou: (1) `stat` je plný název země
+      „Spolková republika Německo", ne „Německo"; (2) split dává smysl jen ve
+      věkovém pásmu **~10–16 let** – přes celý park se efekt smázne/obrátí (Passat).
+      Ověřeno na prod: 5 research modelů reprodukuje (+17–46 %). Dlaždice je
+      směrově-poctivá, zúžená na „U vozů 10–16 let…". Runbook má incident log:
+      `docs/runbooks/2026-09-02-stk-by-origin-scaleway.md`. Další mining: plán
+      `docs/plans/2026-09-02-002-mine-existing-import-stk-data.md`
 - [x] R1/R2/R3: **releasnuto na main** (rollout modulu, nezávislý na S-importu)
 - [x] `sync-marketing-surfaces` proběhl. Závěr: **žádná plocha nevyžaduje změnu.**
       Modul žije na dvou zákaznických plochách, které ho už nesou (`VehicleDetailPage`
@@ -149,4 +152,5 @@ měly jet jedním během).
         modul je affiliate pojištění, ne placený certifikát; žádné tvrzení o
         certifikátu nefalšuje. Modul je M1-only a sám se skryje bez kohorty
         (žádné přeslibování)
-- [ ] ověřeno na produkci, ne jen lokálně (build + typecheck + fixture lokálně OK)
+- [x] ověřeno na produkci: R1/R2/R3 modul + S-import dlaždice živé a ověřené
+      v prohlížeči/API (build + typecheck + fixture + prod smoke test OK)
