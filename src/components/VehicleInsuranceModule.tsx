@@ -68,9 +68,11 @@ function verdictFor(stats: ModelStats, product: CsobProduct): string {
 	const theft = stats.theftPer1000
 
 	if (product === 'povinne') {
-		// True and genuinely useful: many owners assume the premium tracks the
-		// car's value, and then overpay or expect a discount that never comes.
-		return 'Povinné ručení musíte mít bez ohledu na stáří vozu. Jeho cena se obvykle odvíjí od výkonu motoru a vaší bezeškodní historie, ne od hodnoty vozidla.'
+		// State what DOES drive the premium (engine power + claims history). An
+		// earlier version added "ne od hodnoty vozidla" to correct a common
+		// misconception, but on a specific model it read as "this car is cheap" —
+		// wrong for e.g. a new Golf over a million — so the value clause is gone.
+		return 'Povinné ručení musíte mít bez ohledu na stáří vozu. Jeho cenu určuje hlavně výkon motoru a vaše bezeškodní historie.'
 	}
 
 	if (age != null && age >= 15) {

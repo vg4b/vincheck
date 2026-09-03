@@ -452,24 +452,31 @@ const BrandModelStatsPage: React.FC = () => {
 									stats.stkFailPctDomestic > 0 &&
 									Math.abs(stats.stkFailPctDe - stats.stkFailPctDomestic) >=
 										0.2 && (
-										<p className='mt-3 mb-0'>
+										<div
+											className='rounded-3 p-3 mt-3'
+											style={{
+												backgroundColor: 'var(--surface-soft, #f7f8fa)',
+												borderLeft: '3px solid var(--brand-600, #2f7a3e)'
+											}}
+										>
 											{(() => {
 												const de = stats.stkFailPctDe
 												const dom = stats.stkFailPctDomestic
 												const rel = Math.round((100 * (de - dom)) / dom)
 												const more = de >= dom
 												return (
-													<>
-														U vozů 10–16 let dovezené z Německa propadají na STK{' '}
+													<p className='mb-0'>
+														Ve stáří 10–16 let propadají vozy dovezené z Německa
+														na STK{' '}
 														<strong>
 															o {Math.abs(rel)} %{' '}
 															{more ? 'častěji' : 'méně často'}
 														</strong>{' '}
 														než tuzemské ({fmtNum1(de)} % vs. {fmtNum1(dom)} %).
-													</>
+													</p>
 												)
 											})()}
-										</p>
+										</div>
 									)}
 							</section>
 						)}
