@@ -44,6 +44,17 @@
   \set max_age_years 30
 \endif
 
+-- STK origin split (stk_*_de / stk_*_domestic) is only meaningful in a mid-life
+-- age band. The DE-vs-domestic gap is clean for cars ~10-16 years old and washes
+-- out — even reverses — for older cars (validated on model years 2010-2016 in
+-- docs/research/2026-08-25-import-country-sources.md; a full-fleet split put
+-- Passat the wrong way). Expressed as a rolling window keyed on reg_year so it
+-- stays current — RE-VALIDATE the effect if the band is widened or moved.
+\if :{?stk_band}
+\else
+  \set stk_band 'b.reg_year BETWEEN EXTRACT(YEAR FROM now())::int - 16 AND EXTRACT(YEAR FROM now())::int - 10'
+\endif
+
 BEGIN;
 
 -- SAMPLE_BRAND: restrict the base cohort to one brand, for exercising the script
@@ -337,14 +348,14 @@ SELECT b.brand, b.model,
        count(*) FILTER (WHERE coalesce(i.kod_stk,'') <> '9999')                             AS stk_inspections,
        round(100.0 * count(*) FILTER (WHERE i.stav IN ('B','C') AND coalesce(i.kod_stk,'') <> '9999')
              / nullif(count(*) FILTER (WHERE coalesce(i.kod_stk,'') <> '9999'), 0), 1)       AS stk_fail_pct,
-       -- German imports.
-       count(*) FILTER (WHERE de.pcv IS NOT NULL AND coalesce(i.kod_stk,'') <> '9999')       AS stk_inspections_de,
-       round(100.0 * count(*) FILTER (WHERE i.stav IN ('B','C') AND de.pcv IS NOT NULL AND coalesce(i.kod_stk,'') <> '9999')
-             / nullif(count(*) FILTER (WHERE de.pcv IS NOT NULL AND coalesce(i.kod_stk,'') <> '9999'), 0), 1) AS stk_fail_pct_de,
-       -- Domestic (no import record).
-       count(*) FILTER (WHERE imp.pcv IS NULL AND coalesce(i.kod_stk,'') <> '9999')          AS stk_inspections_domestic,
-       round(100.0 * count(*) FILTER (WHERE i.stav IN ('B','C') AND imp.pcv IS NULL AND coalesce(i.kod_stk,'') <> '9999')
-             / nullif(count(*) FILTER (WHERE imp.pcv IS NULL AND coalesce(i.kod_stk,'') <> '9999'), 0), 1) AS stk_fail_pct_domestic
+       -- German imports, mid-life age band only (:stk_band, see \set above).
+       count(*) FILTER (WHERE de.pcv IS NOT NULL AND :stk_band AND coalesce(i.kod_stk,'') <> '9999')       AS stk_inspections_de,
+       round(100.0 * count(*) FILTER (WHERE i.stav IN ('B','C') AND de.pcv IS NOT NULL AND :stk_band AND coalesce(i.kod_stk,'') <> '9999')
+             / nullif(count(*) FILTER (WHERE de.pcv IS NOT NULL AND :stk_band AND coalesce(i.kod_stk,'') <> '9999'), 0), 1) AS stk_fail_pct_de,
+       -- Domestic (no import record), same age band.
+       count(*) FILTER (WHERE imp.pcv IS NULL AND :stk_band AND coalesce(i.kod_stk,'') <> '9999')          AS stk_inspections_domestic,
+       round(100.0 * count(*) FILTER (WHERE i.stav IN ('B','C') AND imp.pcv IS NULL AND :stk_band AND coalesce(i.kod_stk,'') <> '9999')
+             / nullif(count(*) FILTER (WHERE imp.pcv IS NULL AND :stk_band AND coalesce(i.kod_stk,'') <> '9999'), 0), 1) AS stk_fail_pct_domestic
 FROM _base b JOIN vehicle_inspections i USING (pcv)
 LEFT JOIN (SELECT DISTINCT pcv FROM vehicle_imports)                              imp USING (pcv)
 -- `stat` is the registry's full official country name, not a short label: the

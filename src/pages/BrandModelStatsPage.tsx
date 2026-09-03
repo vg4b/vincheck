@@ -434,20 +434,24 @@ const BrandModelStatsPage: React.FC = () => {
 									Vypočteno z {fmtInt(stats.stkInspections)} skutečných
 									prohlídek vozů {name} v ČR.
 								</p>
-								{/* Origin split: German imports vs domestic. Only when both
-								    cohorts clear a floor — a rate over a handful of
-								    inspections is noise. Direction stays honest (research
-								    found DE higher across all tested models, but the page
-								    shows whichever the data says). "Domestic" = no import
-								    record; other-country imports are in neither cohort, so
-								    the two rates are deliberately not summed. */}
+								{/* Origin split: German imports vs domestic, restricted to the
+								    mid-life age band (~10-16y) where the effect is real —
+								    see :stk_band in compute-stats.sql. Over the full fleet it
+								    washes out and even reverses, so the copy is SCOPED to the
+								    band, otherwise the number would be read as the whole-fleet
+								    STK rate shown just above. Shown only when both cohorts
+								    clear the inspection floor AND the gap is non-trivial (no
+								    "o 0 %"). Direction stays honest; "domestic" = no import
+								    record; other-country imports are in neither cohort. */}
 								{stats.stkFailPctDe != null &&
 									stats.stkFailPctDomestic != null &&
 									stats.stkInspectionsDe != null &&
 									stats.stkInspectionsDomestic != null &&
 									stats.stkInspectionsDe >= 500 &&
 									stats.stkInspectionsDomestic >= 500 &&
-									stats.stkFailPctDomestic > 0 && (
+									stats.stkFailPctDomestic > 0 &&
+									Math.abs(stats.stkFailPctDe - stats.stkFailPctDomestic) >=
+										0.2 && (
 										<p className='mt-3 mb-0'>
 											{(() => {
 												const de = stats.stkFailPctDe
@@ -456,7 +460,7 @@ const BrandModelStatsPage: React.FC = () => {
 												const more = de >= dom
 												return (
 													<>
-														Dovezené z Německa propadají na STK{' '}
+														U vozů 10–16 let dovezené z Německa propadají na STK{' '}
 														<strong>
 															o {Math.abs(rel)} %{' '}
 															{more ? 'častěji' : 'méně často'}

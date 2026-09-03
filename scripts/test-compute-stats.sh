@@ -112,6 +112,24 @@ INSERT INTO vehicle_imports (pcv, stat, datum_dovozu)
 SELECT pcv, 'Spolková republika Německo', '2019-03-01' FROM vehicle_registry WHERE (pcv % 5) = 0;
 INSERT INTO vehicle_imports (pcv, stat, datum_dovozu)
 SELECT pcv, 'Slovensko', '2019-03-01' FROM vehicle_registry WHERE (pcv % 5) = 2;
+
+-- Age-band exclusion: SEAT IBIZA, all registered 2005 (OUTSIDE the rolling
+-- 10-16y window) and all German imports with a 50% fail rate. The origin split
+-- must EXCLUDE them (stk_inspections_de = 0), even though the overall
+-- stk_fail_pct still counts them. Proves :stk_band is applied to the _de/_domestic
+-- buckets and only there. pcv 100000+ avoids colliding with the generated ids.
+INSERT INTO vehicle_registry
+  (pcv, vin, tovarni_znacka, obchodni_oznaceni, datum_prvni_registrace,
+   kategorie_vozidla, status, palivo, barva)
+SELECT 100000 + g, 'VINOLD' || g, 'SEAT', 'IBIZA', '2005-01-01',
+       'M1', 'PROVOZOVANÉ', 'BA', 'Šedá'
+FROM generate_series(1, 600) g;
+INSERT INTO vehicle_inspections (pcv, stav, kod_stk)
+SELECT 100000 + g, CASE WHEN g % 2 = 0 THEN 'B' ELSE 'A' END, '1234'
+FROM generate_series(1, 600) g;
+INSERT INTO vehicle_imports (pcv, stat, datum_dovozu)
+SELECT 100000 + g, 'Spolková republika Německo', '2019-03-01'
+FROM generate_series(1, 600) g;
 SQL
 
 echo "== running compute-stats.sql =="
